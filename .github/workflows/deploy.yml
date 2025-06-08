@@ -18,7 +18,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 146.83.198.35 >> ~/.ssh/known_hosts || (echo "Failed to add SSH key for host" && exit 1)
+          ssh-keyscan -H 146.83.198.35 -p 1233 >> ~/.ssh/known_hosts || (echo "Failed to add SSH key for host" && exit 1)
 
       - name: SSH and deploy
         run: |
