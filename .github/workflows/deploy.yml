@@ -20,17 +20,18 @@ jobs:
     steps:
       # 1. Configurar la clave SSH para acceder al servidor
       - name: Configurar SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          # Usa el secret que creamos en GitHub con nuestra clave privada
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          # Añadir la clave privada al agente SSH
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" 
+          chmod 600 private_key
+          ssh-add private_key
 
       # 2. Ejecutar los comandos de despliegue en el servidor remoto
       - name: Conectar y Desplegar
         run: |
           # Añadir la huella del servidor a known_hosts para evitar prompts interactivos
           ssh-keyscan -H -p 1233 146.83.198.35 >> ~/.ssh/known_hosts
-          
+
           # Conectarse vía SSH y ejecutar el script de despliegue.
           # Forzamos el uso de 'bash' para que el script sea predecible.
           ssh njimenez@146.83.198.35 -p 1233 bash << 'EOSSH'
