@@ -18,11 +18,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H tu-servidor.com >> ~/.ssh/known_hosts
+          ssh-keyscan -p 1233 -H 146.83.198.35 >> ~/.ssh/known_hosts
 
       - name: SSH and deploy
         run: |
-          ssh usuario@tu-servidor.com << 'EOF'
+          ssh -p 1233 usuario@146.83.198.35 << 'EOF'
             cd /ruta/del/proyecto
             git pull origin main
             docker-compose down
