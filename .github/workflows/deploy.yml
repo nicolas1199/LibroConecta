@@ -35,10 +35,10 @@ jobs:
       - name: SSH and deploy
         run: |
           ssh -p 1233 njimenez@146.83.198.35 << 'EOF'
-            cd /LibroConecta
+            cd LibroConecta/
             git pull
             pm2 stop all
-            cd /frontend
+            cd frontend/
             npm install
             npm run build
             pm2 start all
