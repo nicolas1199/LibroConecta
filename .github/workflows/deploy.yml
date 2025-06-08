@@ -1,79 +1,30 @@
-# Nombre del workflow, aparecerá en la pestaña "Actions" de GitHub
-name: Desplegar en Servidor
+name: Deploy to Server
 
-# Define cuándo se ejecutará este workflow
 on:
   push:
-    # Solo en pushes a la rama 'main'
     branches:
       - main
 
-# Define los trabajos (jobs) que se ejecutarán
 jobs:
   deploy:
-    # El nombre del trabajo
-    name: Desplegar Proyecto
-    # El tipo de máquina virtual donde se ejecutará
     runs-on: ubuntu-latest
 
-    # Los pasos que se ejecutarán en secuencia
     steps:
-      # 1. Configurar la clave SSH para acceder al servidor
-      - name: Configurar SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          # Usa el secret que creamos en GitHub con nuestra clave privada
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # 2. Ejecutar los comandos de despliegue en el servidor remoto
-      - name: Conectar y Desplegar
+      - name: Set up SSH key
         run: |
-          # Añadir la huella del servidor a known_hosts para evitar prompts interactivos
-          ssh-keyscan -H -p 1233 146.83.198.35 >> ~/.ssh/known_hosts
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H tu-servidor.com >> ~/.ssh/known_hosts
 
-          # Conectarse vía SSH y ejecutar el script de despliegue.
-          # Forzamos el uso de 'bash' para que el script sea predecible.
-          ssh njimenez@146.83.198.35 -p 1233 bash << 'EOSSH'
-            # --- Inicio del script en el servidor remoto ---
-            set -e # Salir inmediatamente si un comando falla
-
-            echo "Conectado al servidor como $(whoami)"
-
-            # Configurar FNM para esta sesión
-            echo "Configurando FNM..."
-            eval "$(fnm env --shell=bash)"
-            echo "Versión de Node activa: $(node --version)"
-
-            # Ir al directorio del proyecto
-            echo "Navegando a /LibroConecta"
-            cd /LibroConecta
-
-            # Detener la aplicación actual para evitar conflictos
-            echo "Deteniendo la aplicación con PM2..."
-            # Usamos la ruta completa en sudoers, por lo que 'sudo pm2' debería funcionar
-            sudo pm2 stop 0 || echo "Proceso 0 ya estaba detenido."
-
-            # Actualizar el código desde la rama main de GitHub
-            echo "Actualizando el código con git pull..."
+      - name: SSH and deploy
+        run: |
+          ssh usuario@tu-servidor.com << 'EOF'
+            cd /ruta/del/proyecto
             git pull origin main
-
-            # Navegar a la carpeta del frontend
-            echo "Navegando a la carpeta frontend..."
-            cd frontend
-
-            # Instalar dependencias (npm ci es más rápido y seguro para CI/CD)
-            echo "Instalando dependencias del frontend..."
-            npm ci
-
-            # Construir el proyecto de frontend
-            echo "Construyendo el frontend..."
-            npm run build
-
-            # Reiniciar la aplicación con PM2
-            # 'restart' es mejor que 'start' porque maneja si ya estaba corriendo o no
-            echo "Reiniciando la aplicación con PM2..."
-            sudo pm2 restart 0
-
-            echo "✅ Despliegue completado exitosamente."
-            # --- Fin del script en el servidor remoto ---
-          EOSSH
+            docker-compose down
+            docker-compose up -d --build
+          EOF
