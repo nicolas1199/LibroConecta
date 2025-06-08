@@ -35,8 +35,8 @@ jobs:
       - name: SSH and deploy
         run: |
           ssh -p 1233 njimenez@146.83.198.35 << 'EOF'
-            export PATH="/home/njimenez/.fnm:$PATH" # O la ruta donde esté tu binario fnm
-            eval "`fnm env`" # Esto cargará la versión de Node.js gestionada por fnm y sus binarios (npm)
+            export PATH="/home/njimenez/.local/share/fnm/fnm:$PATH" 
+            eval "`fnm env`" 
 
             # Verifica que npm y pm2 estén en el PATH dentro de esta sesión SSH
             echo "PATH dentro de SSH: $PATH"
