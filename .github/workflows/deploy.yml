@@ -12,6 +12,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: OpenVPN-Connect
+        uses: kota65535/github-openvpn-connect-action@v3.1.0
+        with:
+          config_file: ".github/workflows/config.ovpn"
+          username: "20257520"
+          password: ${{ secrets.OVPN_PASSWORD }}
 
       - name: Set up SSH key
         run: |
@@ -22,9 +28,14 @@ jobs:
 
       - name: SSH and deploy
         run: |
-          ssh -p 1233 usuario@146.83.198.35 << 'EOF'
-            cd /ruta/del/proyecto
-            git pull origin main
-            docker-compose down
-            docker-compose up -d --build
+          ssh -p 1233 njimenez@146.83.198.35 << 'EOF'
+            cd /LibroConecta
+            git pull
+            pm2 stop all
+            cd /frontend
+            npm install
+            npm run build
+            pm2 start all
+            pm2 save
+            
           EOF
