@@ -35,7 +35,7 @@ jobs:
       - name: SSH and deploy
         run: |
           ssh -p 1233 njimenez@146.83.198.35 << 'EOF'
-            export PATH="/home/njimenez/.local/share/fnm/fnm:$PATH" 
+            export PATH="/home/njimenez/.local/share/fnm/:$PATH" 
             eval "`fnm env`" 
 
             # Verifica que npm y pm2 estén en el PATH dentro de esta sesión SSH
