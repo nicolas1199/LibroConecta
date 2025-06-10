@@ -1,16 +1,31 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from '../pages/Home'
-import MainLayout from '../layouts/MainLayout'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import MainLayout from "../layouts/MainLayout"
+import Home from "../pages/Home"
+import Login from "../pages/Login"
+import Register from "../pages/Register"
 
-const AppRouter = () => (
-    <BrowserRouter>
-        <Routes>
-            <Route path="/" element={<MainLayout />}>
-                <Route index element={<Home />} />
-            </Route>
-        </Routes>
+export default function AppRouter() {
+  return (
+    <Router>
+      <Routes>
+        {/* Routes without MainLayout (auth pages) */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-    </BrowserRouter>
-)
+        {/* Routes with MainLayout */}
+        <Route
+          path="/"
+          element={
+            <MainLayout>
+              <Home />
+            </MainLayout>
+          }
+        />
 
-export default AppRouter
+        {/* Future routes can be added here */}
+        {/* <Route path="/about" element={<MainLayout><About /></MainLayout>} /> */}
+        {/* <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} /> */}
+      </Routes>
+    </Router>
+  )
+}
