@@ -1,0 +1,27 @@
+const { DataTypes } = require("sequelize");
+
+module.exports = (sequelize) => {
+  const UserType = sequelize.define(
+    "UserType",
+    {
+      user_type_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      type_name: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+      },
+      description: {
+        type: DataTypes.TEXT,
+      },
+    },
+    {
+      tableName: "UserType",
+      timestamps: false,
+    }
+  );
+
+  return UserType;
+};

@@ -21,12 +21,12 @@ export async function connectDB() {
   try {
     // Intenta autenticar la conexión
     await sequelize.authenticate();
-    // Si la autenticación es exitosa, sincroniza los modelos
-    await sequelize.sync();
-    // Mensaje de éxito
     console.log("=> Conexión exitosa a la base de datos!");
   } catch (error) {
     console.error("Error al conectar con la base de datos:", error);
     process.exit(1);
   }
 }
+
+// Exportar la instancia de Sequelize y la función de conexión
+export { sequelize };
