@@ -1,28 +1,27 @@
 "use strict";
 import { Sequelize } from "sequelize";
-import { DB_CONFIG } from "./configEnv.js"; // Importa el objeto DB_CONFIG
+import { DB_CONFIG, DATABASE_URL } from "./configEnv.js"; // Importa DB_CONFIG y DATABASE_URL
 
 // Configuración de la conexión a la base de datos usando Sequelize
-const sequelize = new Sequelize(
-  DB_CONFIG.database,
-  DB_CONFIG.user,
-  DB_CONFIG.password,
-
-  {
-    host: DB_CONFIG.host,
-    port: DB_CONFIG.port,
-    dialect: "postgres",
-    logging: console.log,
-  }
-);
+export const sequelize = DATABASE_URL
+  ? new Sequelize(DATABASE_URL, {
+      dialect: "postgres",
+      logging: console.log,
+    })
+  : new Sequelize(DB_CONFIG.database, DB_CONFIG.user, DB_CONFIG.password, {
+      host: DB_CONFIG.host,
+      port: DB_CONFIG.port,
+      dialect: "postgres",
+      logging: console.log,
+    });
 
 // Función para inicializar la conexión a la base de datos
 export async function connectDB() {
   try {
     // Intenta autenticar la conexión
     await sequelize.authenticate();
-    // Si la autenticación es exitosa, sincroniza los modelos
-    await sequelize.sync();
+    console.log("=> Conexión a la base de datos establecida correctamente.");
+
     // Mensaje de éxito
     console.log("=> Conexión exitosa a la base de datos!");
   } catch (error) {
