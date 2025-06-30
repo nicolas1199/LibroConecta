@@ -1,15 +1,15 @@
-import { sequelize } from "../../config/configDB.js";
+import { sequelize } from "../config/configDB.js";
 import setupRelations from "./relations.js";
 
-import Book from "./Book.js";
-import User from "./User.js";
-import UserType from "./UserType.js";
-import Category from "./Category.js";
-import UserBook from "./UserBook.js";
-import State from "./State.js";
-import Sell from "./Sell.js";
-import Exchange from "./Exchange.js";
-import Match from "./Match.js";
+import Book from "./models/Book.js";
+import User from "./models/User.js";
+import UserType from "./models/UserType.js";
+import Category from "./models/Category.js";
+import UserBook from "./models/UserBook.js";
+import State from "./models/State.js";
+import Sell from "./models/Sell.js";
+import Exchange from "./models/Exchange.js";
+import Match from "./models/Match.js";
 
 // Configurar relaciones una sola vez
 setupRelations({
