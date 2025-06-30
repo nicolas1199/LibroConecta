@@ -1,30 +1,17 @@
-const { sequelize } = require("../../config/configDB");
+import { sequelize } from "../../config/configDB.js";
 import setupRelations from "./relations.js";
 
-const Book = require("./Book")(sequelize);
-const User = require("./User")(sequelize);
-const UserType = require("./UserType")(sequelize);
-const Category = require("./Category")(sequelize);
-const UserBook = require("./UserBook")(sequelize);
-const State = require("./State")(sequelize);
-const Sell = require("./Sell")(sequelize);
-const Exchange = require("./Exchange")(sequelize);
-const Match = require("./Match")(sequelize);
+import Book from "./Book.js";
+import User from "./User.js";
+import UserType from "./UserType.js";
+import Category from "./Category.js";
+import UserBook from "./UserBook.js";
+import State from "./State.js";
+import Sell from "./Sell.js";
+import Exchange from "./Exchange.js";
+import Match from "./Match.js";
 
-// Importar y ejecutar relaciones
-require("./relations")({
-  Book,
-  User,
-  UserType,
-  Category,
-  UserBook,
-  State,
-  Sell,
-  Exchange,
-  Match,
-});
-
-// Exportar todos listos
+// Configurar relaciones una sola vez
 setupRelations({
   Book,
   User,
@@ -36,3 +23,17 @@ setupRelations({
   Exchange,
   Match,
 });
+
+// Exportar todos los modelos + conexión
+export {
+  Book,
+  User,
+  UserType,
+  Category,
+  UserBook,
+  State,
+  Sell,
+  Exchange,
+  Match,
+  sequelize,
+};
