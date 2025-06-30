@@ -1,30 +1,29 @@
 import { DataTypes } from "sequelize";
+import { sequelize } from "../../config/configDB.js";
 
-export default (sequelize) => {
-  const UserBook = sequelize.define(
-    "UserBook",
-    {
-      user_book_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      user_id: {
-        type: DataTypes.INTEGER,
-      },
-      book_id: {
-        type: DataTypes.INTEGER,
-      },
-      is_for_sale: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-      },
+const UserBook = sequelize.define(
+  "UserBook",
+  {
+    user_book_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
-    {
-      tableName: "UserBooks",
-      timestamps: false,
-    }
-  );
+    user_id: {
+      type: DataTypes.INTEGER,
+    },
+    book_id: {
+      type: DataTypes.INTEGER,
+    },
+    is_for_sale: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+  },
+  {
+    tableName: "UserBooks",
+    timestamps: false,
+  }
+);
 
-  return UserBook;
-};
+export default UserBook;

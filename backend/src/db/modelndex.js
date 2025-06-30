@@ -24,6 +24,14 @@ setupRelations({
   Match,
 });
 
+// Sincronizar modelos con la base de datos para crear tablas automáticamente
+sequelize
+  .sync()
+  .then(() => {})
+  .catch((error) => {
+    console.error("Error al sincronizar las tablas:", error);
+  });
+
 // Exportar todos los modelos + conexión
 export {
   Book,

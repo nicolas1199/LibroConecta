@@ -1,13 +1,13 @@
-import models from "../db/models/index.js";
-import { Op, Sequelize } from "sequelize";
+import { Book, Category } from "../db/modelndex.js";
+import { Sequelize } from "sequelize";
 
 // Obtener libros random para swipe
 export async function getRandomBooks(req, res) {
   try {
-    const books = await models.Book.findAll({
-      order: Sequelize.literal("RANDOM()"), // Para Postgres
+    const books = await Book.findAll({
+      order: Sequelize.literal("RANDOM()"),
       limit: 10,
-      include: [models.Category],
+      include: [Category],
     });
 
     res.json(books);
@@ -19,8 +19,8 @@ export async function getRandomBooks(req, res) {
 
 export async function getAllBooks(req, res) {
   try {
-    const books = await models.Book.findAll({
-      include: [models.Category],
+    const books = await Book.findAll({
+      include: [Category],
     });
     res.json(books);
   } catch (error) {
@@ -33,8 +33,8 @@ export async function getAllBooks(req, res) {
 export async function getBookById(req, res) {
   try {
     const { id } = req.params;
-    const book = await models.Book.findByPk(id, {
-      include: [models.Category],
+    const book = await Book.findByPk(id, {
+      include: [Category],
     });
     if (!book) return res.status(404).json({ error: "Libro no encontrado" });
 
@@ -49,7 +49,7 @@ export async function getBookById(req, res) {
 export async function createBook(req, res) {
   try {
     const { title, author, date_of_pub, location, category_id } = req.body;
-    const newBook = await models.Book.create({
+    const newBook = await Book.create({
       title,
       author,
       date_of_pub,
@@ -69,7 +69,7 @@ export async function updateBook(req, res) {
     const { id } = req.params;
     const { title, author, date_of_pub, location, category_id } = req.body;
 
-    const book = await models.Book.findByPk(id);
+    const book = await Book.findByPk(id);
     if (!book) return res.status(404).json({ error: "Libro no encontrado" });
 
     await book.update({
@@ -91,7 +91,7 @@ export async function updateBook(req, res) {
 export async function deleteBook(req, res) {
   try {
     const { id } = req.params;
-    const book = await models.Book.findByPk(id);
+    const book = await Book.findByPk(id);
     if (!book) return res.status(404).json({ error: "Libro no encontrado" });
 
     await book.destroy();

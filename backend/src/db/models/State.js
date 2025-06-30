@@ -1,24 +1,23 @@
 import { DataTypes } from "sequelize";
+import { sequelize } from "../../config/configDB.js";
 
-export default (sequelize) => {
-  const State = sequelize.define(
-    "State",
-    {
-      state_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      name: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-      },
+const State = sequelize.define(
+  "State",
+  {
+    state_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
-    {
-      tableName: "State",
-      timestamps: false,
-    }
-  );
+    name: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+  },
+  {
+    tableName: "State",
+    timestamps: false,
+  }
+);
 
-  return State;
-};
+export default State;

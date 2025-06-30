@@ -9,7 +9,8 @@ import sessionMiddleware from "./middlewares/session.middleware.js";
 import morganMiddleware from "./middlewares/morgan.middleware.js";
 
 import { PORT } from "./config/configEnv.js";
-import { connectDB } from "./config/configDb.js";
+import { connectDB } from "./config/configDB.js";
+import * as db from "./db/modelndex.js";
 
 async function setupServer() {
   const app = express();
@@ -37,6 +38,8 @@ async function setupServer() {
 async function setupAPI() {
   try {
     await connectDB();
+    await db.sequelize.sync();
+    console.log("=> Base de datos sincronizada correctamente");
     await setupServer();
   } catch (error) {
     console.error("Error al iniciar backend:", error);
