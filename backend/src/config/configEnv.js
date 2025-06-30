@@ -15,6 +15,8 @@ dotenv.config({ path: envPath });
 
 export const PORT = process.env.PORT || 4000;
 
+export const DATABASE_URL = process.env.DATABASE_URL;
+
 export const DB_CONFIG = {
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USERNAME || "postgres",
