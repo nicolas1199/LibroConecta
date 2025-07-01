@@ -1,4 +1,4 @@
-import { Book, Category } from "../db/modelndex.js";
+import { Book, Category } from "../db/modelIndex.js";
 import { Sequelize } from "sequelize";
 
 // Obtener libros random para swipe

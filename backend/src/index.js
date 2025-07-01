@@ -10,7 +10,8 @@ import morganMiddleware from "./middlewares/morgan.middleware.js";
 
 import { PORT } from "./config/configEnv.js";
 import { connectDB } from "./config/configDB.js";
-import * as db from "./db/modelndex.js";
+import indexRoutes from "./routes/index.routes.js";
+import * as db from "./db/modelIndex.js";
 
 async function setupServer() {
   const app = express();
@@ -28,7 +29,8 @@ async function setupServer() {
   app.use(sessionMiddleware);
 
   app.use(morganMiddleware);
-  //Aquí irían las rutas cuando estén listas
+
+  app.use("/api", indexRoutes);
 
   app.listen(PORT, () => {
     console.log(`=> Servidor corriendo en puerto ${PORT}`);
