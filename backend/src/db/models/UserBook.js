@@ -19,6 +19,14 @@ export default (sequelize) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      liked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: null, // null: no ha hecho swipe; true: like; false: dislike
+      },
+      created_at: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+      },
     },
     {
       tableName: "UserBooks",

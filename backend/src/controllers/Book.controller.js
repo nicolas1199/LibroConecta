@@ -1,5 +1,5 @@
 import models from "../db/models/index.js";
-import { Op, Sequelize } from "sequelize";
+import { Sequelize } from "sequelize";
 
 // Obtener libros random para swipe
 export async function getRandomBooks(req, res) {
@@ -49,6 +49,13 @@ export async function getBookById(req, res) {
 export async function createBook(req, res) {
   try {
     const { title, author, date_of_pub, location, category_id } = req.body;
+
+    if (!title || !category_id) {
+      return res
+        .status(400)
+        .json({ error: "Título y categoría son obligatorios" });
+    }
+
     const newBook = await models.Book.create({
       title,
       author,
@@ -56,6 +63,7 @@ export async function createBook(req, res) {
       location,
       category_id,
     });
+
     res.status(201).json(newBook);
   } catch (error) {
     console.error("Error en createBook:", error);
