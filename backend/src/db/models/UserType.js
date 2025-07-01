@@ -1,27 +1,26 @@
 import { DataTypes } from "sequelize";
+import { sequelize } from "../../config/configDB.js";
 
-export default (sequelize) => {
-  const UserType = sequelize.define(
-    "UserType",
-    {
-      user_type_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      type_name: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-      },
-      description: {
-        type: DataTypes.TEXT,
-      },
+const UserType = sequelize.define(
+  "UserType",
+  {
+    user_type_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
-    {
-      tableName: "UserType",
-      timestamps: false,
-    }
-  );
+    type_name: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.TEXT,
+    },
+  },
+  {
+    tableName: "UserType",
+    timestamps: false,
+  }
+);
 
-  return UserType;
-};
+export default UserType;
