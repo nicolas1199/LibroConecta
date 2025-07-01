@@ -35,7 +35,7 @@ export const JWT = {
 
 export const COOKIE_KEY = process.env.COOKIE_KEY || "defaultCookieSecret";
 
-export const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
+export const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
 export const EMAIL_CONFIG = {
   service: "gmail",

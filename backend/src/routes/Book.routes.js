@@ -6,7 +6,7 @@ import {
   createBook,
   updateBook,
   deleteBook,
-} from "../controllers/books.controller.js";
+} from "../controllers/Book.controller.js";
 
 const router = Router();
 
