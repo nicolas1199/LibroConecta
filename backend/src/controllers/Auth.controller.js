@@ -5,8 +5,11 @@ import jwt from "jsonwebtoken";
 import { JWT } from "../config/configEnv.js";
 
 export const register = async (req, res) => {
-  const { first_name, last_name, location, email, username, password } =
-    req.body;
+  const { fullname, location, email, username, password } = req.body;
+  // Desestructurar fullname en first_name y last_name
+  console.log(req.body);
+  const [first_name, last_name] = fullname.split(" ");
+  console.log(req.body);
   if (!first_name || !last_name || !email || !username || !password) {
     return res.status(400).json({ message: "Faltan datos obligatorios" });
   }
