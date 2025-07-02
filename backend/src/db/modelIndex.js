@@ -10,6 +10,7 @@ import State from "./models/State.js";
 import Sell from "./models/Sell.js";
 import Exchange from "./models/Exchange.js";
 import Match from "./models/Match.js";
+import BookCategory from "./models/BookCategory.js";
 
 // Configurar relaciones una sola vez
 setupRelations({
@@ -22,6 +23,7 @@ setupRelations({
   Sell,
   Exchange,
   Match,
+  BookCategory,
 });
 
 // Sincronizar modelos con la base de datos para crear tablas automáticamente
@@ -43,5 +45,6 @@ export {
   Sell,
   Exchange,
   Match,
+  BookCategory,
   sequelize,
 };

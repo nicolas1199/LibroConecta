@@ -1,4 +1,4 @@
-import { UserBook, Book, User } from "../db/modelIndex.js";
+import { UserBook } from "../db/modelIndex.js";
 import {
   addToLibraryService,
   getUserLibraryService,

@@ -22,9 +22,6 @@ const Book = sequelize.define(
     location: {
       type: DataTypes.STRING(100),
     },
-    category_id: {
-      type: DataTypes.INTEGER,
-    },
   },
   {
     tableName: "Books",

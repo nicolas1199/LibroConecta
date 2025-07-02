@@ -1,4 +1,4 @@
-import { Book, Category } from "../db/modelIndex.js";
+import { Book, Category, BookCategory } from "../db/modelIndex.js";
 import { Sequelize } from "sequelize";
 
 // Obtener libros random para swipe
@@ -7,7 +7,13 @@ export async function getRandomBooks(req, res) {
     const books = await Book.findAll({
       order: Sequelize.literal("RANDOM()"),
       limit: 10,
-      include: [Category],
+      include: [
+        {
+          model: Category,
+          as: "Categories",
+          through: { attributes: [] },
+        },
+      ],
     });
 
     res.json(books);
@@ -20,7 +26,13 @@ export async function getRandomBooks(req, res) {
 export async function getAllBooks(req, res) {
   try {
     const books = await Book.findAll({
-      include: [Category],
+      include: [
+        {
+          model: Category,
+          as: "Categories",
+          through: { attributes: [] },
+        },
+      ],
     });
     res.json(books);
   } catch (error) {
@@ -34,7 +46,13 @@ export async function getBookById(req, res) {
   try {
     const { id } = req.params;
     const book = await Book.findByPk(id, {
-      include: [Category],
+      include: [
+        {
+          model: Category,
+          as: "Categories",
+          through: { attributes: [] },
+        },
+      ],
     });
     if (!book) return res.status(404).json({ error: "Libro no encontrado" });
 
@@ -48,15 +66,44 @@ export async function getBookById(req, res) {
 //  Crear nuevo libro
 export async function createBook(req, res) {
   try {
-    const { title, author, date_of_pub, location, category_id } = req.body;
+    const { title, author, date_of_pub, location, category_ids } = req.body;
+
     const newBook = await Book.create({
       title,
       author,
       date_of_pub,
       location,
-      category_id,
     });
-    res.status(201).json(newBook);
+
+    // Si se proporcionan categorías, asociarlas al libro
+    if (
+      category_ids &&
+      Array.isArray(category_ids) &&
+      category_ids.length > 0
+    ) {
+      // Usar el modelo BookCategory para crear las asociaciones
+      const bookId = newBook.dataValues.book_id;
+
+      const associations = category_ids.map((categoryId) => ({
+        book_id: bookId,
+        category_id: categoryId,
+      }));
+
+      await BookCategory.bulkCreate(associations);
+    }
+
+    // Obtener el libro con sus categorías para la respuesta
+    const bookWithCategories = await Book.findByPk(newBook.dataValues.book_id, {
+      include: [
+        {
+          model: Category,
+          as: "Categories",
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    res.status(201).json(bookWithCategories);
   } catch (error) {
     console.error("Error en createBook:", error);
     res.status(500).json({ error: "Error al crear libro" });
@@ -67,7 +114,7 @@ export async function createBook(req, res) {
 export async function updateBook(req, res) {
   try {
     const { id } = req.params;
-    const { title, author, date_of_pub, location, category_id } = req.body;
+    const { title, author, date_of_pub, location, category_ids } = req.body;
 
     const book = await Book.findByPk(id);
     if (!book) return res.status(404).json({ error: "Libro no encontrado" });
@@ -77,10 +124,38 @@ export async function updateBook(req, res) {
       author,
       date_of_pub,
       location,
-      category_id,
     });
 
-    res.json(book);
+    // Si se proporcionan categorías, actualizar las asociaciones
+    if (category_ids && Array.isArray(category_ids)) {
+      // Eliminar asociaciones existentes usando el modelo BookCategory
+      await BookCategory.destroy({
+        where: { book_id: id },
+      });
+
+      // Crear nuevas asociaciones si hay categorías
+      if (category_ids.length > 0) {
+        const associations = category_ids.map((categoryId) => ({
+          book_id: id,
+          category_id: categoryId,
+        }));
+
+        await BookCategory.bulkCreate(associations);
+      }
+    }
+
+    // Obtener el libro actualizado con sus categorías
+    const updatedBook = await Book.findByPk(id, {
+      include: [
+        {
+          model: Category,
+          as: "Categories",
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    res.json(updatedBook);
   } catch (error) {
     console.error("Error en updateBook:", error);
     res.status(500).json({ error: "Error al actualizar libro" });

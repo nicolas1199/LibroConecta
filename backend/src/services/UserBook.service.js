@@ -1,4 +1,4 @@
-import { UserBook, Book } from "../db/modelIndex.js";
+import { UserBook, Book, Category } from "../db/modelIndex.js";
 import { Op, Sequelize } from "sequelize";
 
 // Agregar o actualizar un libro en la biblioteca personal
@@ -45,6 +45,13 @@ export async function addToLibraryService(userId, bookData) {
       {
         model: Book,
         attributes: ["title", "author", "date_of_pub"],
+        include: [
+          {
+            model: Category,
+            as: "Categories",
+            through: { attributes: [] },
+          },
+        ],
       },
     ],
   });
@@ -71,6 +78,13 @@ export async function getUserLibraryService(userId, options = {}) {
       {
         model: Book,
         attributes: ["book_id", "title", "author", "date_of_pub", "location"],
+        include: [
+          {
+            model: Category,
+            as: "Categories",
+            through: { attributes: [] },
+          },
+        ],
       },
     ],
     order: [["updatedAt", "DESC"]],
@@ -128,6 +142,13 @@ export async function updateReadingStatusService(userBook, updateData) {
       {
         model: Book,
         attributes: ["title", "author", "date_of_pub"],
+        include: [
+          {
+            model: Category,
+            as: "Categories",
+            through: { attributes: [] },
+          },
+        ],
       },
     ],
   });
@@ -242,6 +263,13 @@ export async function findUserBookByIdService(userBookId, userId) {
       {
         model: Book,
         attributes: ["title", "author", "date_of_pub"],
+        include: [
+          {
+            model: Category,
+            as: "Categories",
+            through: { attributes: [] },
+          },
+        ],
       },
     ],
   });

@@ -8,14 +8,25 @@ export default ({
   Sell,
   Exchange,
   Match,
+  BookCategory,
 }) => {
   //  UserType 1:N User
   UserType.hasMany(User, { foreignKey: "user_type_id" });
   User.belongsTo(UserType, { foreignKey: "user_type_id" });
 
-  // Category 1:N Book
-  Category.hasMany(Book, { foreignKey: "category_id" });
-  Book.belongsTo(Category, { foreignKey: "category_id" });
+  // Book N:M Category
+  Book.belongsToMany(Category, {
+    through: BookCategory,
+    foreignKey: "book_id",
+    otherKey: "category_id",
+    as: "Categories",
+  });
+  Category.belongsToMany(Book, {
+    through: BookCategory,
+    foreignKey: "category_id",
+    otherKey: "book_id",
+    as: "Books",
+  });
 
   //  User 1:N UserBook
   User.hasMany(UserBook, { foreignKey: "user_id" });
