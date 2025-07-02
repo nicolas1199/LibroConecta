@@ -1,7 +1,8 @@
-import { UserLibrary } from "../db/modelIndex.js";
+import { UserLibrary, Book } from "../db/modelIndex.js";
 import {
   validateRatingService,
   validateReadingStatusService,
+  validateBookExistsService,
 } from "../services/UserLibrary.service.js";
 
 // Validar que el usuario autenticado pueda acceder al UserLibrary
@@ -56,15 +57,24 @@ export function validateLibraryData(req, res, next) {
   }
 }
 
-// Validar que el book_id sea requerido
-export function validateBookId(req, res, next) {
-  const { book_id } = req.body;
+// Validar que el book_id sea requerido y exista
+export async function validateBookId(req, res, next) {
+  try {
+    const { book_id } = req.body;
 
-  if (!book_id) {
-    return res.status(400).json({
-      error: "El ID del libro es requerido",
+    if (!book_id) {
+      return res.status(400).json({
+        error: "El ID del libro es requerido",
+      });
+    }
+
+    // Validar que el libro existe
+    await validateBookExistsService(book_id);
+
+    next();
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
     });
   }
-
-  next();
 }

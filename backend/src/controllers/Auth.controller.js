@@ -26,7 +26,7 @@ export const register = async (req, res) => {
   try {
     // Asegurar que existan los tipos de usuario necesarios
     const regularUserType = await UserType.findOne({
-      where: { user_type_id: 2 }, // Asumiendo que 2 es el ID del tipo de usuario regular
+      where: { user_type_id: 2 },
     });
     if (!regularUserType) {
       return res.status(500).json({
@@ -87,15 +87,17 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { identifier, password } = req.body;
-  if (!identifier || !password) {
+  const { email, password } = req.body;
+  if (!email || !password) {
     return res.status(400).json({ message: "Faltan datos" });
   }
   try {
-    // Buscar por email o username
+    // Buscar por email
     const user = await User.findOne({
       where: {
-        [Op.or]: [{ email: identifier }, { username: identifier }],
+        email: {
+          [Op.iLike]: email,
+        },
       },
     });
     if (!user) {

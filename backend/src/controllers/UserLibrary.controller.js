@@ -5,6 +5,7 @@ import {
   getReadingStatsService,
   removeFromLibraryService,
   findUserLibraryByIdService,
+  getAdvancedLibraryInsights,
 } from "../services/UserLibrary.service.js";
 
 // Agregar libro a la biblioteca personal
@@ -112,6 +113,20 @@ export async function getUserLibraryBookById(req, res) {
     console.error("Error en getUserLibraryBookById:", error);
     res.status(500).json({
       error: error.message || "Error al obtener libro de biblioteca",
+    });
+  }
+}
+
+// Obtener insights avanzados de la biblioteca
+export async function getLibraryInsights(req, res) {
+  try {
+    const userId = req.user.id;
+    const insights = await getAdvancedLibraryInsights(userId);
+    res.json(insights);
+  } catch (error) {
+    console.error("Error en getLibraryInsights:", error);
+    res.status(500).json({
+      error: error.message || "Error al obtener insights de biblioteca",
     });
   }
 }

@@ -1,9 +1,21 @@
 import { UserLibrary, Book, Category } from "../db/modelIndex.js";
 import { Op, Sequelize } from "sequelize";
 
+// Validar que un libro existe en la base de datos
+export async function validateBookExistsService(bookId) {
+  const book = await Book.findByPk(bookId);
+  if (!book) {
+    throw new Error("El libro especificado no existe");
+  }
+  return book;
+}
+
 // Agregar o actualizar un libro en la biblioteca personal
 export async function addToLibraryService(userId, bookData) {
   const { book_id, reading_status, rating, review } = bookData;
+
+  // Validar que el libro existe
+  await validateBookExistsService(book_id);
 
   // Verificar si el libro ya está en la biblioteca del usuario
   const existingUserLibrary = await UserLibrary.findOne({
@@ -17,26 +29,52 @@ export async function addToLibraryService(userId, bookData) {
       reading_status,
       rating,
       review,
-      date_started:
-        reading_status === "leyendo"
-          ? new Date()
-          : existingUserLibrary.dataValues.date_started,
-      date_finished: reading_status === "leido" ? new Date() : null,
     };
+
+    // Lógica para fechas
+    if (
+      reading_status === "leyendo" &&
+      existingUserLibrary.dataValues.reading_status !== "leyendo"
+    ) {
+      updateData.date_started = new Date();
+      updateData.date_finished = null;
+    } else if (
+      reading_status === "leido" &&
+      existingUserLibrary.dataValues.reading_status !== "leido"
+    ) {
+      updateData.date_finished = new Date();
+
+      if (!existingUserLibrary.dataValues.date_started) {
+        updateData.date_started = new Date();
+      }
+    } else if (reading_status === "por_leer") {
+      updateData.date_started = null;
+      updateData.date_finished = null;
+    }
 
     await existingUserLibrary.update(updateData);
     userLibrary = existingUserLibrary;
   } else {
-    // Si no existe, crear nueva entrada
-    userLibrary = await UserLibrary.create({
+    // Si no existe, crear nueva entrada con lógica de fechas mejorada
+    let createData = {
       user_id: userId,
       book_id,
       reading_status,
       rating,
       review,
-      date_started: reading_status === "leyendo" ? new Date() : null,
-      date_finished: reading_status === "leido" ? new Date() : null,
-    });
+      date_started: null,
+      date_finished: null,
+    };
+
+    // Establecer fechas según el estado inicial
+    if (reading_status === "leyendo") {
+      createData.date_started = new Date();
+    } else if (reading_status === "leido") {
+      createData.date_started = new Date();
+      createData.date_finished = new Date();
+    }
+
+    userLibrary = await UserLibrary.create(createData);
   }
 
   // Incluir información del libro en la respuesta
@@ -187,7 +225,7 @@ export async function getReadingStatsService(userId) {
     ],
   });
 
-  // Libros leídos por mes (últimos 12 meses)
+  // Libros leídos por mes (últimos 12 meses) - Compatible con PostgreSQL
   const monthlyReading = await UserLibrary.findAll({
     where: {
       user_id: userId,
@@ -198,7 +236,7 @@ export async function getReadingStatsService(userId) {
     },
     attributes: [
       [
-        Sequelize.fn("DATE_FORMAT", Sequelize.col("date_finished"), "%Y-%m"),
+        Sequelize.fn("TO_CHAR", Sequelize.col("date_finished"), "YYYY-MM"),
         "month",
       ],
       [
@@ -206,12 +244,10 @@ export async function getReadingStatsService(userId) {
         "books_finished",
       ],
     ],
-    group: [
-      Sequelize.fn("DATE_FORMAT", Sequelize.col("date_finished"), "%Y-%m"),
-    ],
+    group: [Sequelize.fn("TO_CHAR", Sequelize.col("date_finished"), "YYYY-MM")],
     order: [
       [
-        Sequelize.fn("DATE_FORMAT", Sequelize.col("date_finished"), "%Y-%m"),
+        Sequelize.fn("TO_CHAR", Sequelize.col("date_finished"), "YYYY-MM"),
         "DESC",
       ],
     ],
@@ -286,4 +322,79 @@ export async function removeFromLibraryService(userLibraryId, userId) {
 
   await userLibrary.destroy();
   return { message: "Libro eliminado de la biblioteca correctamente" };
+}
+
+// Obtener insights avanzados de la biblioteca del usuario
+export async function getAdvancedLibraryInsights(userId) {
+  try {
+    // Categorías más leídas
+    const topCategories = await UserLibrary.findAll({
+      where: {
+        user_id: userId,
+        reading_status: "leido",
+      },
+      include: [
+        {
+          model: Book,
+          include: [
+            {
+              model: Category,
+              as: "Categories",
+              through: { attributes: [] },
+            },
+          ],
+        },
+      ],
+      attributes: [],
+    });
+
+    // Procesamos las categorías
+    const categoryStats = {};
+    topCategories.forEach((userBook) => {
+      // Acceder correctamente a los datos del libro con sus categorías
+      const bookData = userBook.dataValues?.Book;
+      if (bookData?.Categories) {
+        bookData.Categories.forEach((category) => {
+          const categoryName = category.title; // Usar 'title' en lugar de 'name'
+          categoryStats[categoryName] = (categoryStats[categoryName] || 0) + 1;
+        });
+      }
+    });
+
+    // Tiempo promedio de lectura (para libros que tienen ambas fechas)
+    const readingTimes = await UserLibrary.findAll({
+      where: {
+        user_id: userId,
+        reading_status: "leido",
+        date_started: { [Op.not]: null },
+        date_finished: { [Op.not]: null },
+      },
+      attributes: ["date_started", "date_finished"],
+    });
+
+    let averageReadingDays = 0;
+    if (readingTimes.length > 0) {
+      const totalDays = readingTimes.reduce((acc, book) => {
+        const startDate = new Date(book.dataValues.date_started);
+        const endDate = new Date(book.dataValues.date_finished);
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return acc + diffDays;
+      }, 0);
+
+      averageReadingDays = Math.round(totalDays / readingTimes.length);
+    }
+
+    return {
+      topCategories: Object.entries(categoryStats)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count })),
+      averageReadingDays,
+      booksWithReadingTime: readingTimes.length,
+    };
+  } catch (error) {
+    console.error("Error en getAdvancedLibraryInsights:", error);
+    throw error;
+  }
 }

@@ -6,6 +6,7 @@ import {
   getReadingStats,
   removeFromLibrary,
   getUserLibraryBookById,
+  getLibraryInsights,
 } from "../controllers/UserLibrary.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 
@@ -24,6 +25,7 @@ router.use(authenticateToken);
 router.post("/add", validateBookId, validateLibraryData, addToLibrary);
 router.get("/", getUserLibrary);
 router.get("/stats", getReadingStats);
+router.get("/insights", getLibraryInsights);
 router.get("/:id", getUserLibraryBookById);
 router.put(
   "/:id",
