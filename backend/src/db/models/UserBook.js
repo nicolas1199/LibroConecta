@@ -10,7 +10,7 @@ const UserBook = sequelize.define(
       autoIncrement: true,
     },
     user_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
     },
     book_id: {
       type: DataTypes.INTEGER,

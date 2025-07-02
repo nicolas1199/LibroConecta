@@ -10,10 +10,10 @@ const Sell = sequelize.define(
       autoIncrement: true,
     },
     user_id_seller: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
     },
     user_id_buyer: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
     },
     user_book_id: {
       type: DataTypes.INTEGER,
