@@ -11,7 +11,7 @@ const router = Router();
 // Rutas de libros
 router.use("/books", bookRoutes);
 
-// Rutas de intercambio/venta de libros (swipe, marketplace)
+// Rutas de intercambio (swipe)
 router.use("/user-books", userBookRoutes);
 
 // Rutas de biblioteca personal
