@@ -35,14 +35,20 @@ export const authenticateToken = (req, res, next) => {
     }
 
     // Validar que el token tenga la información necesaria
-    if (!user.id) {
+    if (!user.user_id) {
       return res.status(403).json({
         error: "Token malformado",
         message: "El token no contiene información de usuario válida",
       });
     }
 
-    req.user = user;
+    // Normalizar la estructura del usuario para compatibilidad
+    req.user = {
+      id: user.user_id,
+      user_id: user.user_id,
+      username: user.username,
+      user_type_id: user.user_type_id,
+    };
     next();
   });
 };
