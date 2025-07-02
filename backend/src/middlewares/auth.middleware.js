@@ -52,3 +52,47 @@ export const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+// Middleware para verificar que el usuario sea administrador
+export const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      error: "No autenticado",
+      message: "Debe estar autenticado para acceder a este recurso",
+    });
+  }
+
+  // Verificar si el usuario es administrador (user_type_id: 1)
+  if (req.user.user_type_id !== 1) {
+    return res.status(403).json({
+      error: "Acceso denegado",
+      message: "Solo los administradores pueden realizar esta acción",
+    });
+  }
+
+  next();
+};
+
+// Middleware para verificar que el usuario sea propietario del recurso o administrador
+export const requireOwnershipOrAdmin = (resourceUserId) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "No autenticado",
+        message: "Debe estar autenticado para acceder a este recurso",
+      });
+    }
+
+    const isOwner = req.user.user_id === resourceUserId;
+    const isAdmin = req.user.user_type_id === 1;
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        error: "Acceso denegado",
+        message: "Solo puede acceder a sus propios recursos",
+      });
+    }
+
+    next();
+  };
+};

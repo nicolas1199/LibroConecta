@@ -1,4 +1,4 @@
-import { Category } from "../db/modelIndex.js";
+import { Category, Book } from "../db/modelIndex.js";
 
 // Obtener todas las categorías
 export async function getAllCategories(req, res) {
@@ -89,5 +89,83 @@ export async function deleteCategory(req, res) {
   } catch (error) {
     console.error("Error en deleteCategory:", error);
     res.status(500).json({ error: "Error al eliminar categoría" });
+  }
+}
+
+// Obtener libros de una categoría específica
+export async function getBooksByCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const category = await Category.findByPk(id);
+    if (!category) {
+      return res.status(404).json({ error: "Categoría no encontrada" });
+    }
+
+    const offset = (page - 1) * limit;
+
+    // Buscar libros que tengan esta categoría
+    const { count, rows: books } = await Book.findAndCountAll({
+      include: [
+        {
+          model: Category,
+          as: "Categories",
+          where: { category_id: parseInt(id) },
+          through: { attributes: [] },
+        },
+      ],
+      limit: parseInt(limit),
+      offset: offset,
+      distinct: true,
+    });
+
+    res.json({
+      category: category.dataValues,
+      books,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(count / limit),
+        totalBooks: count,
+        hasNextPage: page * limit < count,
+        hasPreviousPage: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Error en getBooksByCategory:", error);
+    res.status(500).json({ error: "Error al obtener libros de la categoría" });
+  }
+}
+
+// Obtener estadísticas de una categoría
+export async function getCategoryStats(req, res) {
+  try {
+    const { id } = req.params;
+
+    const category = await Category.findByPk(id);
+    if (!category) {
+      return res.status(404).json({ error: "Categoría no encontrada" });
+    }
+
+    const bookCount = await Book.count({
+      include: [
+        {
+          model: Category,
+          as: "Categories",
+          where: { category_id: parseInt(id) },
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    res.json({
+      category: category.dataValues,
+      bookCount,
+    });
+  } catch (error) {
+    console.error("Error en getCategoryStats:", error);
+    res
+      .status(500)
+      .json({ error: "Error al obtener estadísticas de la categoría" });
   }
 }

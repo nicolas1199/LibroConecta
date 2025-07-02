@@ -1,6 +1,26 @@
 import { Book, Category, BookCategory } from "../db/modelIndex.js";
 import { Sequelize } from "sequelize";
 
+// Función helper para validar categorías
+async function validateCategories(categoryIds) {
+  if (!categoryIds || !Array.isArray(categoryIds)) {
+    return { valid: true, categories: [] };
+  }
+
+  const categories = await Category.findAll({
+    where: { category_id: categoryIds },
+  });
+
+  if (categories.length !== categoryIds.length) {
+    return {
+      valid: false,
+      error: "Una o más categorías no existen",
+    };
+  }
+
+  return { valid: true, categories };
+}
+
 // Obtener libros random para swipe
 export async function getRandomBooks(req, res) {
   try {
@@ -68,6 +88,19 @@ export async function createBook(req, res) {
   try {
     const { title, author, date_of_pub, location, category_ids } = req.body;
 
+    // Validar campos requeridos
+    if (!title) {
+      return res.status(400).json({ error: "El título es requerido" });
+    }
+
+    // Validar categorías si se proporcionan
+    if (category_ids) {
+      const validation = await validateCategories(category_ids);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+    }
+
     const newBook = await Book.create({
       title,
       author,
@@ -118,6 +151,14 @@ export async function updateBook(req, res) {
 
     const book = await Book.findByPk(id);
     if (!book) return res.status(404).json({ error: "Libro no encontrado" });
+
+    // Validar categorías si se proporcionan
+    if (category_ids) {
+      const validation = await validateCategories(category_ids);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+    }
 
     await book.update({
       title,

@@ -14,7 +14,9 @@ import {
   removeFromLibrary,
 } from "../controllers/UserBook.controller.js";
 
-import { authenticateToken } from "../middlewares/auth.middleware.js";
+import {
+  authenticateToken /* , requireAdmin */,
+} from "../middlewares/auth.middleware.js";
 
 import {
   validateLibraryData,
@@ -57,7 +59,11 @@ router.delete("/reset/all", resetUserSwipes);
 
 // === RUTAS CRUD GENERALES ===
 router.post("/", createUserBook);
-router.get("/", getAllUserBooks);
+
+// Esta ruta podría requerir permisos de admin para ver todos los UserBooks
+// router.get("/", requireAdmin, getAllUserBooks);
+router.get("/", /* requireAdmin, */ getAllUserBooks);
+
 router.get("/:id", getUserBookById);
 router.put("/:id", updateUserBook);
 router.delete("/:id", deleteUserBook);
