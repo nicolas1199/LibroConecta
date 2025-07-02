@@ -1,4 +1,5 @@
 import User from "../db/models/User.js";
+import UserType from "../db/models/UserType.js";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -6,14 +7,47 @@ import { JWT } from "../config/configEnv.js";
 
 export const register = async (req, res) => {
   const { fullname, location, email, username, password } = req.body;
-  // Desestructurar fullname en first_name y last_name
-  console.log(req.body);
-  const [first_name, last_name] = fullname.split(" ");
-  console.log(req.body);
-  if (!first_name || !last_name || !email || !username || !password) {
+
+  // Validar datos obligatorios
+  if (!fullname || !email || !username || !password) {
     return res.status(400).json({ message: "Faltan datos obligatorios" });
   }
+
+  // Desestructurar fullname en first_name y last_name de manera más robusta
+  const nameParts = fullname.trim().split(" ");
+  const first_name = nameParts[0];
+  const last_name = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+  if (!first_name || !last_name) {
+    return res
+      .status(400)
+      .json({ message: "El nombre completo debe incluir nombre y apellido" });
+  }
   try {
+    // Asegurar que existan los tipos de usuario necesarios
+    const regularUserType = await UserType.findOne({
+      where: { user_type_id: 2 }, // Asumiendo que 2 es el ID del tipo de usuario regular
+    });
+    if (!regularUserType) {
+      return res.status(500).json({
+        message: "Tipo de usuario regular no encontrado en la base de datos",
+      });
+    }
+
+    // Validar email y username
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/; // Al menos 3 caracteres, solo alfanuméricos y guiones bajos
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Email inválido" });
+    }
+
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({
+        message:
+          "Nombre de usuario inválido (3-30 caracteres, alfanuméricos y guiones bajos)",
+      });
+    }
+
     // Verificar si email o username ya existen
     const existingUser = await User.findOne({
       where: {
@@ -32,18 +66,18 @@ export const register = async (req, res) => {
       first_name,
       last_name,
       location,
-      user_type_id: 2,
+      user_type_id: 2, // Asignar tipo de usuario regular
       email,
       username,
       password: hashedPassword,
     });
+
     return res.status(201).json({
-      user_id: newUser.get("user_id"),
-      username: newUser.get("username"),
-      email: newUser.get("email"),
-      first_name: newUser.get("first_name"),
-      last_name: newUser.get("last_name"),
-      user_type_id: newUser.get("user_type_id"),
+      username: newUser.dataValues.username,
+      email: newUser.dataValues.email,
+      first_name: newUser.dataValues.first_name,
+      last_name: newUser.dataValues.last_name,
+      user_type_id: newUser.dataValues.user_type_id,
     });
   } catch (err) {
     return res
