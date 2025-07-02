@@ -1,4 +1,4 @@
-import { UserBook, Book, Category } from "../db/modelIndex.js";
+import { UserLibrary, Book, Category } from "../db/modelIndex.js";
 import { Op, Sequelize } from "sequelize";
 
 // Agregar o actualizar un libro en la biblioteca personal
@@ -6,12 +6,12 @@ export async function addToLibraryService(userId, bookData) {
   const { book_id, reading_status, rating, review } = bookData;
 
   // Verificar si el libro ya está en la biblioteca del usuario
-  const existingUserBook = await UserBook.findOne({
+  const existingUserLibrary = await UserLibrary.findOne({
     where: { user_id: userId, book_id },
   });
 
-  let userBook;
-  if (existingUserBook) {
+  let userLibrary;
+  if (existingUserLibrary) {
     // Si ya existe, actualizar los campos de biblioteca
     const updateData = {
       reading_status,
@@ -20,15 +20,15 @@ export async function addToLibraryService(userId, bookData) {
       date_started:
         reading_status === "leyendo"
           ? new Date()
-          : existingUserBook.dataValues.date_started,
+          : existingUserLibrary.dataValues.date_started,
       date_finished: reading_status === "leido" ? new Date() : null,
     };
 
-    await existingUserBook.update(updateData);
-    userBook = existingUserBook;
+    await existingUserLibrary.update(updateData);
+    userLibrary = existingUserLibrary;
   } else {
     // Si no existe, crear nueva entrada
-    userBook = await UserBook.create({
+    userLibrary = await UserLibrary.create({
       user_id: userId,
       book_id,
       reading_status,
@@ -40,7 +40,7 @@ export async function addToLibraryService(userId, bookData) {
   }
 
   // Incluir información del libro en la respuesta
-  return await UserBook.findByPk(userBook.dataValues.user_book_id, {
+  return await UserLibrary.findByPk(userLibrary.dataValues.user_library_id, {
     include: [
       {
         model: Book,
@@ -67,12 +67,9 @@ export async function getUserLibraryService(userId, options = {}) {
     whereConditions.reading_status = status;
   }
 
-  // Solo mostrar libros que están en la biblioteca (tienen reading_status)
-  whereConditions.reading_status = { [Op.not]: null };
-
   const offset = (page - 1) * limit;
 
-  const { count, rows: userBooks } = await UserBook.findAndCountAll({
+  const { count, rows: userLibraries } = await UserLibrary.findAndCountAll({
     where: whereConditions,
     include: [
       {
@@ -96,7 +93,7 @@ export async function getUserLibraryService(userId, options = {}) {
   const stats = await getLibraryStatsService(userId);
 
   return {
-    books: userBooks,
+    books: userLibraries,
     pagination: {
       currentPage: parseInt(page),
       totalPages: Math.ceil(count / limit),
@@ -109,7 +106,7 @@ export async function getUserLibraryService(userId, options = {}) {
 }
 
 // Actualizar el estado de lectura de un libro específico
-export async function updateReadingStatusService(userBook, updateData) {
+export async function updateReadingStatusService(userLibrary, updateData) {
   const { reading_status, rating, review } = updateData;
 
   // Gestionar fechas automáticamente
@@ -117,16 +114,16 @@ export async function updateReadingStatusService(userBook, updateData) {
 
   if (
     reading_status === "leyendo" &&
-    userBook.dataValues.reading_status !== "leyendo"
+    userLibrary.dataValues.reading_status !== "leyendo"
   ) {
     finalUpdateData.date_started = new Date();
     finalUpdateData.date_finished = null; // Limpiar fecha de finalización si vuelve a leer
   } else if (
     reading_status === "leido" &&
-    userBook.dataValues.reading_status !== "leido"
+    userLibrary.dataValues.reading_status !== "leido"
   ) {
     finalUpdateData.date_finished = new Date();
-    if (!userBook.dataValues.date_started) {
+    if (!userLibrary.dataValues.date_started) {
       finalUpdateData.date_started = new Date();
     }
   } else if (reading_status === "por_leer") {
@@ -134,10 +131,10 @@ export async function updateReadingStatusService(userBook, updateData) {
     finalUpdateData.date_finished = null;
   }
 
-  await userBook.update(finalUpdateData);
+  await userLibrary.update(finalUpdateData);
 
   // Obtener el libro actualizado con información del libro
-  return await UserBook.findByPk(userBook.dataValues.user_book_id, {
+  return await UserLibrary.findByPk(userLibrary.dataValues.user_library_id, {
     include: [
       {
         model: Book,
@@ -156,14 +153,13 @@ export async function updateReadingStatusService(userBook, updateData) {
 
 // Obtener estadísticas básicas de la biblioteca por estado
 export async function getLibraryStatsService(userId) {
-  const stats = await UserBook.findAll({
+  const stats = await UserLibrary.findAll({
     where: {
       user_id: userId,
-      reading_status: { [Op.not]: null },
     },
     attributes: [
       "reading_status",
-      [Sequelize.fn("COUNT", Sequelize.col("user_book_id")), "count"],
+      [Sequelize.fn("COUNT", Sequelize.col("user_library_id")), "count"],
     ],
     group: ["reading_status"],
   });
@@ -180,7 +176,7 @@ export async function getReadingStatsService(userId) {
   const statusStats = await getLibraryStatsService(userId);
 
   // Promedio de calificaciones
-  const avgRating = await UserBook.findOne({
+  const avgRating = await UserLibrary.findOne({
     where: {
       user_id: userId,
       rating: { [Op.not]: null },
@@ -192,7 +188,7 @@ export async function getReadingStatsService(userId) {
   });
 
   // Libros leídos por mes (últimos 12 meses)
-  const monthlyReading = await UserBook.findAll({
+  const monthlyReading = await UserLibrary.findAll({
     where: {
       user_id: userId,
       reading_status: "leido",
@@ -205,7 +201,10 @@ export async function getReadingStatsService(userId) {
         Sequelize.fn("DATE_FORMAT", Sequelize.col("date_finished"), "%Y-%m"),
         "month",
       ],
-      [Sequelize.fn("COUNT", Sequelize.col("user_book_id")), "books_finished"],
+      [
+        Sequelize.fn("COUNT", Sequelize.col("user_library_id")),
+        "books_finished",
+      ],
     ],
     group: [
       Sequelize.fn("DATE_FORMAT", Sequelize.col("date_finished"), "%Y-%m"),
@@ -252,11 +251,11 @@ export function validateReadingStatusService(status) {
   return true;
 }
 
-// Buscar un UserBook por ID y validar permisos
-export async function findUserBookByIdService(userBookId, userId) {
-  const userBook = await UserBook.findOne({
+// Buscar un UserLibrary por ID y validar permisos
+export async function findUserLibraryByIdService(userLibraryId, userId) {
+  const userLibrary = await UserLibrary.findOne({
     where: {
-      user_book_id: userBookId,
+      user_library_id: userLibraryId,
       user_id: userId,
     },
     include: [
@@ -274,22 +273,17 @@ export async function findUserBookByIdService(userBookId, userId) {
     ],
   });
 
-  if (!userBook) {
+  if (!userLibrary) {
     throw new Error("Libro no encontrado en tu biblioteca");
   }
 
-  return userBook;
+  return userLibrary;
 }
 
 // Eliminar un libro de la biblioteca personal
-export async function removeFromLibraryService(userBookId, userId) {
-  const userBook = await findUserBookByIdService(userBookId, userId);
+export async function removeFromLibraryService(userLibraryId, userId) {
+  const userLibrary = await findUserLibraryByIdService(userLibraryId, userId);
 
-  // Solo eliminar si está en la biblioteca (tiene reading_status)
-  if (!userBook.dataValues.reading_status) {
-    throw new Error("Este libro no está en tu biblioteca");
-  }
-
-  await userBook.destroy();
+  await userLibrary.destroy();
   return { message: "Libro eliminado de la biblioteca correctamente" };
 }

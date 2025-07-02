@@ -4,6 +4,7 @@ export default ({
   UserType,
   Category,
   UserBook,
+  UserLibrary,
   State,
   Sell,
   Exchange,
@@ -35,6 +36,14 @@ export default ({
   //  Book 1:N UserBook
   Book.hasMany(UserBook, { foreignKey: "book_id" });
   UserBook.belongsTo(Book, { foreignKey: "book_id" });
+
+  //  User 1:N UserLibrary (biblioteca personal)
+  User.hasMany(UserLibrary, { foreignKey: "user_id" });
+  UserLibrary.belongsTo(User, { foreignKey: "user_id" });
+
+  //  Book 1:N UserLibrary (biblioteca personal)
+  Book.hasMany(UserLibrary, { foreignKey: "book_id" });
+  UserLibrary.belongsTo(Book, { foreignKey: "book_id" });
 
   //  UserBook 1:1 Sell
   UserBook.hasOne(Sell, { foreignKey: "user_book_id" });

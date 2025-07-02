@@ -6,6 +6,7 @@ import User from "./models/User.js";
 import UserType from "./models/UserType.js";
 import Category from "./models/Category.js";
 import UserBook from "./models/UserBook.js";
+import UserLibrary from "./models/UserLibrary.js";
 import State from "./models/State.js";
 import Sell from "./models/Sell.js";
 import Exchange from "./models/Exchange.js";
@@ -19,6 +20,7 @@ setupRelations({
   UserType,
   Category,
   UserBook,
+  UserLibrary,
   State,
   Sell,
   Exchange,
@@ -41,6 +43,7 @@ export {
   UserType,
   Category,
   UserBook,
+  UserLibrary,
   State,
   Sell,
   Exchange,

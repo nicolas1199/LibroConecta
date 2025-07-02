@@ -18,45 +18,20 @@ const UserBook = sequelize.define(
     is_for_sale: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-    },
-    reading_status: {
-      type: DataTypes.ENUM("por_leer", "leyendo", "leido"),
-      allowNull: true,
-      comment: "Estado de lectura del libro",
-    },
-    rating: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      validate: {
-        min: 1,
-        max: 5,
-      },
-      comment: "Calificación del libro del 1 al 5",
-    },
-    review: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      comment: "Reseña personal del libro",
-    },
-    date_started: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      comment: "Fecha en que comenzó a leer el libro",
-    },
-    date_finished: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      comment: "Fecha en que terminó de leer el libro",
+      comment: "Si el libro está disponible para venta",
     },
     liked: {
       type: DataTypes.BOOLEAN,
-      allowNull: true,
-      comment: "Si le gustó o no el libro (para sistema de swipe)",
+      defaultValue: null, // null: no ha hecho swipe; true: like; false: dislike
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
     },
   },
   {
     tableName: "UserBooks",
-    timestamps: true,
+    timestamps: false,
   }
 );
 
