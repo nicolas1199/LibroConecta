@@ -1,8 +1,7 @@
-import { UserLibrary, Book } from "../db/modelIndex.js";
+import { UserLibrary } from "../db/modelIndex.js";
 import {
   validateRatingService,
   validateReadingStatusService,
-  validateBookExistsService,
 } from "../services/UserLibrary.service.js";
 
 // Validar que el usuario autenticado pueda acceder al UserLibrary
@@ -37,6 +36,8 @@ export async function validateUserLibraryOwnership(req, res, next) {
 // Validar datos de entrada para la biblioteca
 export function validateLibraryData(req, res, next) {
   try {
+    console.log("Validando datos de biblioteca middleware");
+
     const { rating, reading_status } = req.body;
 
     // Validar rating si está presente
@@ -57,19 +58,25 @@ export function validateLibraryData(req, res, next) {
   }
 }
 
-// Validar que el book_id sea requerido y exista
-export async function validateBookId(req, res, next) {
+// Validar que los datos del libro sean requeridos
+export async function validateBookData(req, res, next) {
   try {
-    const { book_id } = req.body;
+    console.log("Validando datos del libro middleware");
 
-    if (!book_id) {
+    const { title, author } = req.body;
+    console.log(req.body);
+
+    if (!title || title.trim() === "") {
       return res.status(400).json({
-        error: "El ID del libro es requerido",
+        error: "El título del libro es requerido",
       });
     }
 
-    // Validar que el libro existe
-    await validateBookExistsService(book_id);
+    // Normalizar los datos
+    req.body.title = title.trim();
+    if (author) {
+      req.body.author = author.trim();
+    }
 
     next();
   } catch (error) {

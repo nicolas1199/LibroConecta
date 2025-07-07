@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import { sequelize } from "../../config/configDB.js";
+import { sequelize } from "../../config/configDb.js";
 
 const UserLibrary = sequelize.define(
   "UserLibrary",
@@ -12,11 +12,33 @@ const UserLibrary = sequelize.define(
     user_id: {
       type: DataTypes.UUID,
     },
-    book_id: {
-      type: DataTypes.INTEGER,
+    title: {
+      type: DataTypes.STRING(200),
+      allowNull: false,
+      comment: "Título del libro",
+    },
+    author: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      comment: "Autor del libro",
+    },
+    isbn: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      comment: "ISBN del libro",
+    },
+    image_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: "URL de la imagen de portada del libro",
+    },
+    date_of_pub: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: "Fecha de publicación del libro",
     },
     reading_status: {
-      type: DataTypes.ENUM("por_leer", "leyendo", "leido"),
+      type: DataTypes.ENUM("por_leer", "leyendo", "leido", "abandonado"),
       allowNull: true,
       comment: "Estado de lectura del libro",
     },

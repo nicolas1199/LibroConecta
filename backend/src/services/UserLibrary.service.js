@@ -1,25 +1,26 @@
-import { UserLibrary, Book, Category } from "../db/modelIndex.js";
+import { UserLibrary } from "../db/modelIndex.js";
 import { Op, Sequelize } from "sequelize";
-
-// Validar que un libro existe en la base de datos
-export async function validateBookExistsService(bookId) {
-  const book = await Book.findByPk(bookId);
-  if (!book) {
-    throw new Error("El libro especificado no existe");
-  }
-  return book;
-}
 
 // Agregar o actualizar un libro en la biblioteca personal
 export async function addToLibraryService(userId, bookData) {
-  const { book_id, reading_status, rating, review } = bookData;
+  const {
+    title,
+    author,
+    isbn,
+    image_url,
+    date_of_pub,
+    reading_status,
+    rating,
+    review,
+  } = bookData;
 
-  // Validar que el libro existe
-  await validateBookExistsService(book_id);
-
-  // Verificar si el libro ya está en la biblioteca del usuario
+  // Verificar si el libro ya está en la biblioteca del usuario (por título y autor)
   const existingUserLibrary = await UserLibrary.findOne({
-    where: { user_id: userId, book_id },
+    where: {
+      user_id: userId,
+      title: title.trim(),
+      author: author ? author.trim() : null,
+    },
   });
 
   let userLibrary;
@@ -29,6 +30,9 @@ export async function addToLibraryService(userId, bookData) {
       reading_status,
       rating,
       review,
+      isbn,
+      image_url,
+      date_of_pub,
     };
 
     // Lógica para fechas
@@ -58,41 +62,32 @@ export async function addToLibraryService(userId, bookData) {
     // Si no existe, crear nueva entrada con lógica de fechas mejorada
     let createData = {
       user_id: userId,
-      book_id,
+      title: title.trim(),
+      author: author ? author.trim() : null,
+      isbn,
+      image_url,
+      date_of_pub,
       reading_status,
       rating,
       review,
-      date_started: null,
-      date_finished: null,
     };
 
     // Establecer fechas según el estado inicial
     if (reading_status === "leyendo") {
       createData.date_started = new Date();
+      createData.date_finished = null;
     } else if (reading_status === "leido") {
       createData.date_started = new Date();
       createData.date_finished = new Date();
+    } else {
+      createData.date_started = null;
+      createData.date_finished = null;
     }
 
     userLibrary = await UserLibrary.create(createData);
   }
 
-  // Incluir información del libro en la respuesta
-  return await UserLibrary.findByPk(userLibrary.dataValues.user_library_id, {
-    include: [
-      {
-        model: Book,
-        attributes: ["title", "author", "date_of_pub"],
-        include: [
-          {
-            model: Category,
-            as: "Categories",
-            through: { attributes: [] },
-          },
-        ],
-      },
-    ],
-  });
+  return userLibrary;
 }
 
 // Obtener biblioteca personal del usuario con filtros y paginación
@@ -109,19 +104,6 @@ export async function getUserLibraryService(userId, options = {}) {
 
   const { count, rows: userLibraries } = await UserLibrary.findAndCountAll({
     where: whereConditions,
-    include: [
-      {
-        model: Book,
-        attributes: ["book_id", "title", "author", "date_of_pub", "location"],
-        include: [
-          {
-            model: Category,
-            as: "Categories",
-            through: { attributes: [] },
-          },
-        ],
-      },
-    ],
     order: [["updatedAt", "DESC"]],
     limit: parseInt(limit),
     offset: offset,
@@ -171,22 +153,8 @@ export async function updateReadingStatusService(userLibrary, updateData) {
 
   await userLibrary.update(finalUpdateData);
 
-  // Obtener el libro actualizado con información del libro
-  return await UserLibrary.findByPk(userLibrary.dataValues.user_library_id, {
-    include: [
-      {
-        model: Book,
-        attributes: ["title", "author", "date_of_pub"],
-        include: [
-          {
-            model: Category,
-            as: "Categories",
-            through: { attributes: [] },
-          },
-        ],
-      },
-    ],
-  });
+  // Retornar el libro actualizado
+  return await UserLibrary.findByPk(userLibrary.dataValues.user_library_id);
 }
 
 // Obtener estadísticas básicas de la biblioteca por estado
@@ -254,7 +222,7 @@ export async function getReadingStatsService(userId) {
   });
 
   return {
-    statusStats,
+    ...statusStats,
     averageRating: avgRating
       ? parseFloat(avgRating.dataValues.average_rating).toFixed(1)
       : null,
@@ -278,7 +246,7 @@ export function validateRatingService(rating) {
 
 // Validar que el estado de lectura sea válido
 export function validateReadingStatusService(status) {
-  const validStatuses = ["por_leer", "leyendo", "leido"];
+  const validStatuses = ["por_leer", "leyendo", "leido", "abandonado"];
   if (status && !validStatuses.includes(status)) {
     throw new Error(
       `Estado de lectura inválido. Debe ser uno de: ${validStatuses.join(", ")}`
@@ -294,19 +262,6 @@ export async function findUserLibraryByIdService(userLibraryId, userId) {
       user_library_id: userLibraryId,
       user_id: userId,
     },
-    include: [
-      {
-        model: Book,
-        attributes: ["title", "author", "date_of_pub"],
-        include: [
-          {
-            model: Category,
-            as: "Categories",
-            through: { attributes: [] },
-          },
-        ],
-      },
-    ],
   });
 
   if (!userLibrary) {
@@ -327,50 +282,29 @@ export async function removeFromLibraryService(userLibraryId, userId) {
 // Obtener insights avanzados de la biblioteca del usuario
 export async function getAdvancedLibraryInsights(userId) {
   try {
-    // Categorías más leídas
-    const topCategories = await UserLibrary.findAll({
+    // Obtener todos los libros del usuario
+    const allBooks = await UserLibrary.findAll({
       where: {
         user_id: userId,
-        reading_status: "leido",
       },
-      include: [
-        {
-          model: Book,
-          include: [
-            {
-              model: Category,
-              as: "Categories",
-              through: { attributes: [] },
-            },
-          ],
-        },
-      ],
-      attributes: [],
     });
 
-    // Procesamos las categorías
-    const categoryStats = {};
-    topCategories.forEach((userBook) => {
-      // Acceder correctamente a los datos del libro con sus categorías
-      const bookData = userBook.dataValues?.Book;
-      if (bookData?.Categories) {
-        bookData.Categories.forEach((category) => {
-          const categoryName = category.title; // Usar 'title' en lugar de 'name'
-          categoryStats[categoryName] = (categoryStats[categoryName] || 0) + 1;
-        });
+    // Estadísticas por autor
+    const authorStats = {};
+    allBooks.forEach((book) => {
+      const author = book.dataValues.author;
+      if (author) {
+        authorStats[author] = (authorStats[author] || 0) + 1;
       }
     });
 
     // Tiempo promedio de lectura (para libros que tienen ambas fechas)
-    const readingTimes = await UserLibrary.findAll({
-      where: {
-        user_id: userId,
-        reading_status: "leido",
-        date_started: { [Op.not]: null },
-        date_finished: { [Op.not]: null },
-      },
-      attributes: ["date_started", "date_finished"],
-    });
+    const readingTimes = allBooks.filter(
+      (book) =>
+        book.dataValues.reading_status === "leido" &&
+        book.dataValues.date_started &&
+        book.dataValues.date_finished
+    );
 
     let averageReadingDays = 0;
     if (readingTimes.length > 0) {
@@ -385,13 +319,43 @@ export async function getAdvancedLibraryInsights(userId) {
       averageReadingDays = Math.round(totalDays / readingTimes.length);
     }
 
+    // Libros leídos por mes
+    const monthlyReadingStats = {};
+    allBooks
+      .filter(
+        (book) =>
+          book.dataValues.reading_status === "leido" &&
+          book.dataValues.date_finished
+      )
+      .forEach((book) => {
+        const finishDate = new Date(book.dataValues.date_finished);
+        const monthYear = `${finishDate.getFullYear()}-${String(
+          finishDate.getMonth() + 1
+        ).padStart(2, "0")}`;
+        monthlyReadingStats[monthYear] =
+          (monthlyReadingStats[monthYear] || 0) + 1;
+      });
+
+    // Promedio de calificaciones
+    const ratedBooks = allBooks.filter(
+      (book) => book.dataValues.rating !== null
+    );
+    const averageRating =
+      ratedBooks.length > 0
+        ? ratedBooks.reduce((sum, book) => sum + book.dataValues.rating, 0) /
+          ratedBooks.length
+        : 0;
+
     return {
-      topCategories: Object.entries(categoryStats)
+      topAuthors: Object.entries(authorStats)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([name, count]) => ({ name, count })),
       averageReadingDays,
       booksWithReadingTime: readingTimes.length,
+      monthlyReadingStats,
+      averageRating: Math.round(averageRating * 100) / 100,
+      totalRatedBooks: ratedBooks.length,
     };
   } catch (error) {
     console.error("Error en getAdvancedLibraryInsights:", error);
