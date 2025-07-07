@@ -41,8 +41,8 @@ jobs:
 
             # Comandos de despliegue
             cd LibroConecta/
-            git pull
             pm2 stop all
+            git pull
             cd backend/
             npm install
             cd ../frontend/
