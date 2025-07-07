@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import { sequelize } from "../../config/configDB.js";
+import { sequelize } from "../../config/configDb.js";
 
 const BookCategory = sequelize.define(
   "BookCategory",
