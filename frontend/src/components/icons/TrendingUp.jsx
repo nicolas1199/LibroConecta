@@ -1,6 +1,7 @@
-export default function ArrowLeft({ className = "h-6 w-6", ...props }) {
+export default function TrendingUp(props) {
   return (
     <svg
+      {...props}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -10,11 +11,9 @@ export default function ArrowLeft({ className = "h-6 w-6", ...props }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
-      {...props}
     >
-      <path d="M19 12H5" />
-      <path d="M12 19l-7-7 7-7" />
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+      <polyline points="17 6 23 6 23 12" />
     </svg>
   );
 }

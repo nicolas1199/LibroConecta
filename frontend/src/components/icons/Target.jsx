@@ -1,6 +1,7 @@
-export default function ArrowLeft({ className = "h-6 w-6", ...props }) {
+export default function Target(props) {
   return (
     <svg
+      {...props}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -10,11 +11,10 @@ export default function ArrowLeft({ className = "h-6 w-6", ...props }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
-      {...props}
     >
-      <path d="M19 12H5" />
-      <path d="M12 19l-7-7 7-7" />
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
     </svg>
   );
 }

@@ -1,12 +1,16 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
-import MainLayout from "../layouts/MainLayout"
-import DashboardLayout from "../layouts/DashboardLayout"
-import Home from "../pages/Home"
-import Login from "../pages/Login"
-import Register from "../pages/Register"
-import Dashboard from "../pages/Dashboard"
-import PublishBook from "../pages/PublishBook"
-import Explore from "../pages/Explore"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import MainLayout from "../layouts/MainLayout";
+import DashboardLayout from "../layouts/DashboardLayout";
+import Home from "../pages/Home";
+import Login from "../pages/Login";
+import Register from "../pages/Register";
+import Dashboard from "../pages/Dashboard";
+import PublishBook from "../pages/PublishBook";
+import Explore from "../pages/Explore";
+import MyLibrary from "../pages/MyLibrary";
+import AddToLibrary from "../pages/AddToLibrary";
+import EditLibraryBook from "../pages/EditLibraryBook";
+import LibraryInsights from "../pages/LibraryInsights";
 
 export default function AppRouter() {
   return (
@@ -49,8 +53,42 @@ export default function AppRouter() {
         {/* Publish book route */}
         <Route path="/dashboard/publish" element={<PublishBook />} />
 
+        {/* Library routes */}
+        <Route
+          path="/dashboard/library"
+          element={
+            <DashboardLayout>
+              <MyLibrary />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="/dashboard/library/add"
+          element={
+            <DashboardLayout>
+              <AddToLibrary />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="/dashboard/library/edit/:id"
+          element={
+            <DashboardLayout>
+              <EditLibraryBook />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="/dashboard/library/insights"
+          element={
+            <DashboardLayout>
+              <LibraryInsights />
+            </DashboardLayout>
+          }
+        />
+
         {/* Future dashboard routes can be added here */}
       </Routes>
     </Router>
-  )
+  );
 }

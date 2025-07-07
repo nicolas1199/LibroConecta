@@ -1,48 +1,64 @@
-"use client"
+"use client";
 
-import { Link } from "react-router-dom"
-import Home from "../icons/Home"
-import Search from "../icons/Search"
-import Users from "../icons/Users"
-import MessageCircle from "../icons/MessageCircle"
-import BookOpen from "../icons/BookOpen"
-import Plus from "../icons/Plus"
-import FileText from "../icons/FileText"
-import Heart from "../icons/Heart"
-import List from "../icons/List"
-import Clock from "../icons/Clock"
-import Star from "../icons/Star"
-import BarChart from "../icons/BarChart"
-import Settings from "../icons/Settings"
-import LogOut from "../icons/LogOut"
-import ChevronDown from "../icons/ChevronDown"
-import { useState } from "react"
+import { Link } from "react-router-dom";
+import Home from "../icons/Home";
+import Search from "../icons/Search";
+import Users from "../icons/Users";
+import MessageCircle from "../icons/MessageCircle";
+import BookOpen from "../icons/BookOpen";
+import Plus from "../icons/Plus";
+import FileText from "../icons/FileText";
+import Heart from "../icons/Heart";
+import List from "../icons/List";
+import Clock from "../icons/Clock";
+import Star from "../icons/Star";
+import BarChart from "../icons/BarChart";
+import Settings from "../icons/Settings";
+import LogOut from "../icons/LogOut";
+import ChevronDown from "../icons/ChevronDown";
+import { useState } from "react";
 
 export default function DashboardSidebar({ user, onLogout, currentPath }) {
   const [expandedSections, setExpandedSections] = useState({
     misLibros: true,
     actividad: false,
     configuracion: false,
-  })
+  });
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
-    }))
-  }
+    }));
+  };
 
   const menuItems = {
     principal: [
       { icon: Home, label: "Inicio", path: "/dashboard" },
-      { icon: Search, label: "Explorar", path: "/dashboard/explore", badge: "Nuevo" },
+      {
+        icon: Search,
+        label: "Explorar",
+        path: "/dashboard/explore",
+        badge: "Nuevo",
+      },
       { icon: Users, label: "Matches", path: "/dashboard/matches", count: 0 },
-      { icon: MessageCircle, label: "Mensajes", path: "/dashboard/messages", count: 0 },
+      {
+        icon: MessageCircle,
+        label: "Mensajes",
+        path: "/dashboard/messages",
+        count: 0,
+      },
     ],
     misLibros: [
+      { icon: BookOpen, label: "Mi biblioteca", path: "/dashboard/library" },
       { icon: BookOpen, label: "Mis libros", path: "/dashboard/my-books" },
       { icon: Plus, label: "Publicar libro", path: "/dashboard/publish" },
-      { icon: FileText, label: "Borradores", path: "/dashboard/drafts", count: 0 },
+      {
+        icon: FileText,
+        label: "Borradores",
+        path: "/dashboard/drafts",
+        count: 0,
+      },
       { icon: Heart, label: "Favoritos", path: "/dashboard/favorites" },
       { icon: List, label: "Lista de deseos", path: "/dashboard/wishlist" },
       { icon: Clock, label: "Historial", path: "/dashboard/history" },
@@ -52,7 +68,7 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
       { icon: FileText, label: "Reseñas", path: "/dashboard/reviews" },
       { icon: BarChart, label: "Estadísticas", path: "/dashboard/stats" },
     ],
-  }
+  };
 
   return (
     <aside className="dashboard-sidebar">
@@ -60,7 +76,9 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
         {/* User Profile */}
         <div className="sidebar-user-profile">
           <div className="flex items-center space-x-3">
-            <div className="user-avatar">{user.first_name?.charAt(0) || "U"}</div>
+            <div className="user-avatar">
+              {user.first_name?.charAt(0) || "U"}
+            </div>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 text-sm">
                 {user.first_name} {user.last_name}
@@ -82,14 +100,23 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
             <ul className="space-y-1">
               {menuItems.principal.map((item) => (
                 <li key={item.path}>
-                  <Link to={item.path} className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}>
+                  <Link
+                    to={item.path}
+                    className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                  >
                     <div className="sidebar-nav-content">
                       <item.icon className="h-4 w-4" />
                       <span>{item.label}</span>
                     </div>
-                    {item.badge && <span className="sidebar-badge sidebar-badge-new">{item.badge}</span>}
+                    {item.badge && (
+                      <span className="sidebar-badge sidebar-badge-new">
+                        {item.badge}
+                      </span>
+                    )}
                     {item.count !== undefined && item.count > 0 && (
-                      <span className="sidebar-badge sidebar-badge-count">{item.count}</span>
+                      <span className="sidebar-badge sidebar-badge-count">
+                        {item.count}
+                      </span>
                     )}
                   </Link>
                 </li>
@@ -99,7 +126,10 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
 
           {/* Mis Libros */}
           <div className="sidebar-nav-section">
-            <button onClick={() => toggleSection("misLibros")} className="sidebar-section-toggle sidebar-nav-title">
+            <button
+              onClick={() => toggleSection("misLibros")}
+              className="sidebar-section-toggle sidebar-nav-title"
+            >
               <span>Mis Libros</span>
               <ChevronDown
                 className={`h-3 w-3 transition-transform ${expandedSections.misLibros ? "rotate-180" : ""}`}
@@ -109,13 +139,18 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
               <ul className="space-y-1">
                 {menuItems.misLibros.map((item) => (
                   <li key={item.path}>
-                    <Link to={item.path} className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}>
+                    <Link
+                      to={item.path}
+                      className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                    >
                       <div className="sidebar-nav-content">
                         <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>
                       </div>
                       {item.count !== undefined && item.count > 0 && (
-                        <span className="sidebar-badge sidebar-badge-count">{item.count}</span>
+                        <span className="sidebar-badge sidebar-badge-count">
+                          {item.count}
+                        </span>
                       )}
                     </Link>
                   </li>
@@ -126,7 +161,10 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
 
           {/* Actividad */}
           <div className="sidebar-nav-section">
-            <button onClick={() => toggleSection("actividad")} className="sidebar-section-toggle sidebar-nav-title">
+            <button
+              onClick={() => toggleSection("actividad")}
+              className="sidebar-section-toggle sidebar-nav-title"
+            >
               <span>Actividad</span>
               <ChevronDown
                 className={`h-3 w-3 transition-transform ${expandedSections.actividad ? "rotate-180" : ""}`}
@@ -136,7 +174,10 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
               <ul className="space-y-1">
                 {menuItems.actividad.map((item) => (
                   <li key={item.path}>
-                    <Link to={item.path} className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}>
+                    <Link
+                      to={item.path}
+                      className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                    >
                       <div className="sidebar-nav-content">
                         <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>
@@ -152,7 +193,10 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
 
       {/* Configuration & Logout */}
       <div className="sidebar-section">
-        <button onClick={() => toggleSection("configuracion")} className="sidebar-section-toggle sidebar-nav-title">
+        <button
+          onClick={() => toggleSection("configuracion")}
+          className="sidebar-section-toggle sidebar-nav-title"
+        >
           <span>Configuración rápida</span>
           <ChevronDown
             className={`h-3 w-3 transition-transform ${expandedSections.configuracion ? "rotate-180" : ""}`}
@@ -171,7 +215,10 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
           </ul>
         )}
 
-        <button onClick={onLogout} className="sidebar-nav-item text-red-600 hover:bg-red-50 w-full">
+        <button
+          onClick={onLogout}
+          className="sidebar-nav-item text-red-600 hover:bg-red-50 w-full"
+        >
           <div className="sidebar-nav-content">
             <LogOut className="h-4 w-4" />
             <span>Cerrar sesión</span>
@@ -179,5 +226,5 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
         </button>
       </div>
     </aside>
-  )
+  );
 }
