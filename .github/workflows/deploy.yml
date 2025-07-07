@@ -43,7 +43,9 @@ jobs:
             cd LibroConecta/
             git pull
             pm2 stop all
-            cd frontend/
+            cd backend/
+            npm install
+            cd ../frontend/
             npm install
             npm run build
             pm2 start all
