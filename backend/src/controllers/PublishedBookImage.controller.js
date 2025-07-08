@@ -195,15 +195,18 @@ export async function uploadImagesForPublishedBook(req, res) {
     }
 
     // Crear registros de imagen para cada archivo subido
-    const imagePromises = files.map((file, index) => 
-      PublishedBookImage.create({
+    const imagePromises = files.map((file, index) => {
+      const imageUrl = `/uploads/books/${file.filename}`;
+      console.log(`💾 Guardando imagen en BD: ${imageUrl}`);
+      return PublishedBookImage.create({
         published_book_id: publishedBookId,
-        image_url: `/uploads/books/${file.filename}`, // URL relativa al archivo
+        image_url: imageUrl, // URL relativa al archivo
         is_primary: index === 0 // Primera imagen es primaria por defecto
-      })
-    )
+      });
+    })
 
     const savedImages = await Promise.all(imagePromises)
+    console.log(`✅ ${savedImages.length} imágenes guardadas en BD exitosamente`);
 
     res.status(201).json({
       message: `${savedImages.length} imágenes subidas exitosamente`,

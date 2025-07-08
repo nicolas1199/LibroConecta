@@ -1,5 +1,7 @@
 import "./config/configEnv.js"
 import express from "express"
+import { promises as fs } from 'fs'
+import path from 'path'
 
 import corsMiddleware from "./middlewares/cors.middleware.js"
 import jsonParserMiddleware from "./middlewares/jsonParser.middleware.js"
@@ -29,6 +31,15 @@ async function setupServer() {
 
   app.use(morganMiddleware)
 
+  // Crear directorio uploads si no existe
+  const uploadsDir = path.join(process.cwd(), 'uploads', 'books')
+  try {
+    await fs.mkdir(uploadsDir, { recursive: true })
+    console.log('=> Directorio uploads creado/verificado')
+  } catch (error) {
+    console.error('Error creando directorio uploads:', error)
+  }
+
   // Servir archivos estáticos (imágenes)
   app.use('/uploads', express.static('uploads'))
 
@@ -44,6 +55,24 @@ async function setupAPI() {
     await connectDB()
     await db.sequelize.sync()
     console.log("=> Base de datos sincronizada correctamente")
+    
+    // Limpiar placeholders antiguos
+    try {
+      const { PublishedBookImage } = db
+      const deleted = await PublishedBookImage.destroy({
+        where: {
+          image_url: {
+            [db.Sequelize.Op.like]: 'placeholder_%'
+          }
+        }
+      })
+      if (deleted > 0) {
+        console.log(`=> ${deleted} placeholders eliminados de la base de datos`)
+      }
+    } catch (error) {
+      console.error('Error limpiando placeholders:', error)
+    }
+    
     await setupServer()
   } catch (error) {
     console.error("Error al iniciar backend:", error)

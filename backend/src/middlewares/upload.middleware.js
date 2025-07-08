@@ -107,9 +107,10 @@ export const uploadBookImages = async (req, res, next) => {
     // Parsear los datos
     const { files, fields } = await parseMultipartData(req);
     
-    // Crear directorio si no existe
-    const uploadDir = path.join(__dirname, '../../uploads/books');
+    // Crear directorio si no existe (usar la misma ruta que el servidor)
+    const uploadDir = path.join(process.cwd(), 'uploads', 'books');
     await ensureDirectoryExists(uploadDir);
+    console.log('📁 Directorio de subida:', uploadDir);
 
     // Procesar archivos
     const processedFiles = [];
@@ -131,6 +132,7 @@ export const uploadBookImages = async (req, res, next) => {
 
       // Guardar archivo
       await fs.writeFile(filePath, file.buffer);
+      console.log(`📸 Archivo guardado: ${uniqueFileName} (${file.size} bytes)`);
 
       processedFiles.push({
         fieldname: file.fieldname,
