@@ -35,20 +35,69 @@ jobs:
       - name: SSH and deploy
         run: |
           ssh -p 1233 njimenez@146.83.198.35 << 'EOF'
+            set -e  # Salir si algún comando falla
+            
             export PATH="/home/njimenez/.local/share/fnm/:$PATH" 
-            eval "`fnm env`" 
+            eval "`fnm env`"
 
-
-            # Comandos de despliegue
+            echo "🚀 Iniciando deployment..."
+            
+            # Ir al directorio del proyecto
             cd LibroConecta/
-            pm2 stop all
-            git pull
+            
+            # Detener PM2 de forma segura
+            echo "⏹️ Deteniendo aplicaciones..."
+            pm2 stop all || echo "No hay procesos PM2 ejecutándose"
+            
+            # Backup del build anterior
+            echo "💾 Creando backup..."
+            if [ -d "frontend/dist" ]; then
+              mv frontend/dist frontend/dist.backup.$(date +%Y%m%d_%H%M%S) || true
+            fi
+            
+            # Pull de código
+            echo "📥 Descargando código..."
+            git stash || true  # Guardar cambios locales si los hay
+            git pull origin main
+            
+            # Limpiar y instalar dependencias del backend
+            echo "🔧 Instalando dependencias del backend..."
             cd backend/
-            npm install
+            npm install --production=false
+            
+            # Limpiar y instalar dependencias del frontend  
+            echo "🔧 Instalando dependencias del frontend..."
             cd ../frontend/
             npm install
+            
+            # Build del frontend
+            echo "🏗️ Construyendo frontend..."
             npm run build
-            pm2 start all
-            pm2 save
-
+            
+            # Verificar que el build se creó correctamente
+            if [ ! -d "dist" ]; then
+              echo "❌ Error: Build del frontend falló"
+              exit 1
+            fi
+            
+            # Volver a la raíz
+            cd ..
+            
+            # Iniciar aplicaciones
+            echo "▶️ Iniciando aplicaciones..."
+            pm2 start all || pm2 restart all
+            
+            # Verificar estado
+            echo "✅ Verificando estado de las aplicaciones..."
+            pm2 status
+            
+            echo "🎉 Deployment completado exitosamente!"
+            
           EOF
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verificando que el servidor responda..."
+          sleep 10
+          curl -f http://146.83.198.35:1235 || echo "❌ El servidor no responde como se esperaba"
+          echo "✅ El servidor responde correctamente"
