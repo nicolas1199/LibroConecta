@@ -10,6 +10,7 @@ import MapPin from "../components/icons/MapPin"
 import User from "../components/icons/Users"
 import BookOpen from "../components/icons/BookOpen"
 import Settings from "../components/icons/Settings"
+import MessageCircle from "../components/icons/MessageCircle"
 
 export default function UserProfile() {
   const navigate = useNavigate()
