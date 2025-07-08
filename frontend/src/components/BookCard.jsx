@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import MapPin from "./icons/MapPin"
 import Eye from "./icons/Eye"
 import MessageCircle from "./icons/MessageCircle"
 import Star from "./icons/Star"
 
 export default function BookCard({ book }) {
+  const navigate = useNavigate()
   const [imageError, setImageError] = useState(false)
 
   // Extraer datos del libro
@@ -48,6 +50,20 @@ export default function BookCard({ book }) {
     ))
   }
 
+  // Función para manejar el botón "Ver"
+  const handleViewBook = (e) => {
+    e.stopPropagation()
+    navigate(`/book/${book.published_book_id}`)
+  }
+
+  // Función para manejar el botón "Chat"
+  const handleStartChat = (e) => {
+    e.stopPropagation()
+    if (user?.user_id) {
+      navigate(`/dashboard/messages/new?user=${user.user_id}&book=${book.published_book_id}`)
+    }
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
       {/* Imagen del libro */}
@@ -68,10 +84,18 @@ export default function BookCard({ book }) {
 
         {/* Iconos de interacción */}
         <div className="absolute bottom-3 left-3 flex space-x-2">
-          <button className="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={handleViewBook}
+            className="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition-colors"
+            title="Ver detalles del libro"
+          >
             <Eye className="h-4 w-4" />
           </button>
-          <button className="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={handleStartChat}
+            className="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition-colors"
+            title="Iniciar chat con el dueño"
+          >
             <MessageCircle className="h-4 w-4" />
           </button>
         </div>

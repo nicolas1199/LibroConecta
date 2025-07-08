@@ -12,6 +12,7 @@ import MessageCircle from "../components/icons/MessageCircle"
 import Star from "../components/icons/Star"
 import Heart from "../components/icons/Heart"
 import BookCard from "../components/BookCard"
+import MatchCard from "../components/MatchCard"
 import { getPublishedBooks } from "../api/publishedBooks"
 import { getMatches, getSuggestedMatches } from "../api/matches"
 import { getConversations } from "../api/messages"
@@ -141,11 +142,18 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Books Section */}
+        {/* Content Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Libros recientes</h2>
-            <Link to="/dashboard/explore" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {activeTab === "matches" ? "Matches sugeridos" : 
+               activeTab === "cercanos" ? "Libros cercanos" : 
+               "Libros recientes"}
+            </h2>
+            <Link 
+              to={activeTab === "matches" ? "/dashboard/matches" : "/dashboard/explore"} 
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
               Ver todos
             </Link>
           </div>
@@ -164,27 +172,52 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Books Grid */}
-          {!loading && !error && publishedBooks.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {publishedBooks.map((book) => (
-                <BookCard key={book.published_book_id} book={book} />
-              ))}
-            </div>
+          {/* Content Grid */}
+          {!loading && !error && getCurrentData().length > 0 && (
+            <>
+              {activeTab === "matches" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {getCurrentData().map((match) => (
+                    <MatchCard key={match.user_id} match={match} />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {getCurrentData().map((book) => (
+                    <BookCard key={book.published_book_id} book={book} />
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Empty State */}
-          {!loading && !error && publishedBooks.length === 0 && (
+          {!loading && !error && getCurrentData().length === 0 && (
             <div className="dashboard-empty-state">
               <div className="dashboard-empty-icon">
-                <BookOpen className="h-8 w-8 text-gray-400" />
+                {activeTab === "matches" ? (
+                  <Heart className="h-8 w-8 text-gray-400" />
+                ) : (
+                  <BookOpen className="h-8 w-8 text-gray-400" />
+                )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay libros publicados aún</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {activeTab === "matches" ? "No hay matches disponibles" : 
+                 activeTab === "cercanos" ? "No hay libros cercanos" : 
+                 "No hay libros publicados aún"}
+              </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Sé el primero en compartir un libro con la comunidad
+                {activeTab === "matches" ? "Publica más libros para encontrar usuarios compatibles" : 
+                 activeTab === "cercanos" ? "No hay libros disponibles en tu área" : 
+                 "Sé el primero en compartir un libro con la comunidad"}
               </p>
-              <Link to="/dashboard/publish" className="btn btn-primary btn-lg inline-flex items-center space-x-2">
-                <span>Publicar mi primer libro</span>
+              <Link 
+                to={activeTab === "matches" ? "/dashboard/publish" : "/dashboard/publish"} 
+                className="btn btn-primary btn-lg inline-flex items-center space-x-2"
+              >
+                <span>
+                  {activeTab === "matches" ? "Publicar libro" : "Publicar mi primer libro"}
+                </span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

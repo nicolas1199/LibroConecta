@@ -20,6 +20,7 @@ import Wishlist from "../pages/Wishlist";
 import Drafts from "../pages/Drafts";
 import History from "../pages/History";
 import MyBooks from "../pages/MyBooks";
+import BookDetails from "../pages/BookDetails";
 
 export default function AppRouter() {
   return (
@@ -158,6 +159,16 @@ export default function AppRouter() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/dashboard/messages/new"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Messages />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
 
         {/* Ratings routes */}
         <Route
@@ -215,6 +226,16 @@ export default function AppRouter() {
               <DashboardLayout>
                 <History />
               </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Book details route */}
+        <Route
+          path="/book/:bookId"
+          element={
+            <PrivateRoute>
+              <BookDetails />
             </PrivateRoute>
           }
         />
