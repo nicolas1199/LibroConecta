@@ -100,3 +100,8 @@ backend/.env
 .dynamodb/
 .tern-port
 .vscode-test
+
+# ───── Uploads ─────
+# Ignorar imágenes subidas por usuarios pero mantener la estructura de carpetas
+backend/uploads/books/*
+!backend/uploads/books/.gitkeep

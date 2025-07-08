@@ -10,8 +10,29 @@ import {
 } from "../controllers/PublishedBookImage.controller.js"
 import { authenticateToken } from "../middlewares/auth.middleware.js"
 import { uploadBookImages } from "../middlewares/upload.middleware.js"
+import { promises as fs } from 'fs'
+import path from 'path'
 
 const router = Router()
+
+// Endpoint de prueba para verificar archivos estáticos
+router.get("/test-static", async (req, res) => {
+  try {
+    const uploadsDir = path.join(process.cwd(), 'uploads', 'books')
+    const files = await fs.readdir(uploadsDir)
+    res.json({
+      message: "Archivos en uploads/books:",
+      directory: uploadsDir,
+      files: files,
+      count: files.length
+    })
+  } catch (error) {
+    res.status(500).json({
+      error: "Error accediendo a directorio uploads",
+      message: error.message
+    })
+  }
+})
 
 // Rutas públicas
 router.get("/published-book/:publishedBookId", getImagesByPublishedBook)
