@@ -18,7 +18,7 @@ export default function MatchCard({ match }) {
     last_name,
     email,
     score,
-    commonCategories = [],
+    commonCategories = 0,
     booksCount = 0
   } = match
 
@@ -102,30 +102,20 @@ export default function MatchCard({ match }) {
           <div className="text-center">
             <div className="flex items-center justify-center mb-1">
               <Heart className="h-4 w-4 text-red-500 mr-1" />
-              <span className="text-lg font-semibold text-gray-900">{commonCategories.length}</span>
+              <span className="text-lg font-semibold text-gray-900">{commonCategories}</span>
             </div>
             <div className="text-xs text-gray-500">Categorías en común</div>
           </div>
         </div>
 
         {/* Categorías comunes */}
-        {commonCategories.length > 0 && (
+        {commonCategories > 0 && (
           <div className="mb-4">
-            <div className="text-xs text-gray-500 mb-2">Categorías en común:</div>
+            <div className="text-xs text-gray-500 mb-2">Intereses en común:</div>
             <div className="flex flex-wrap gap-1">
-              {commonCategories.slice(0, 3).map((category, index) => (
-                <span 
-                  key={index}
-                  className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full"
-                >
-                  {category}
-                </span>
-              ))}
-              {commonCategories.length > 3 && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
-                  +{commonCategories.length - 3} más
-                </span>
-              )}
+              <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                {commonCategories} categoría{commonCategories > 1 ? 's' : ''} en común
+              </span>
             </div>
           </div>
         )}
