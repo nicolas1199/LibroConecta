@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Clock, X, CheckCircle, MessageCircle, Heart, ArrowLeftRight } from "./icons";
+import Clock from "./icons/Clock";
+import X from "./icons/X";
+import Star from "./icons/Star";
+import MessageCircle from "./icons/MessageCircle";
+import Heart from "./icons/Heart";
+import ArrowLeftRight from "./icons/ArrowLeftRight";
 
 export default function NotificationDropdown({ isOpen, onClose }) {
   const [notifications, setNotifications] = useState([]);

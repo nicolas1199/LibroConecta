@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { List, Search, Plus, BookOpen, X } from "../components/icons";
+import List from "../components/icons/List";
+import Search from "../components/icons/Search";
+import Plus from "../components/icons/Plus";
+import BookOpen from "../components/icons/BookOpen";
+import X from "../components/icons/X";
 
 export default function Wishlist() {
   const [wishlist, setWishlist] = useState([]);

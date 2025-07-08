@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { Heart, Search, Filter, BookOpen } from "../components/icons";
+import Heart from "../components/icons/Heart";
+import Search from "../components/icons/Search";
+import Filter from "../components/icons/Filter";
+import BookOpen from "../components/icons/BookOpen";
 import BookCard from "../components/BookCard";
 
 export default function Favorites() {

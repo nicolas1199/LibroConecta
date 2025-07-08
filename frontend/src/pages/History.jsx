@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Clock, Search, Filter, ArrowLeftRight, DollarSign, CheckCircle, XCircle } from "../components/icons";
+import Clock from "../components/icons/Clock";
+import Search from "../components/icons/Search";
+import Filter from "../components/icons/Filter";
+import ArrowLeftRight from "../components/icons/ArrowLeftRight";
+import DollarSign from "../components/icons/DollarSign";
+import Star from "../components/icons/Star";
+import X from "../components/icons/X";
 
 export default function History() {
   const [history, setHistory] = useState([]);
@@ -31,9 +37,9 @@ export default function History() {
   const getStatusIcon = (status) => {
     switch (status) {
       case "completed":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <Star className="h-5 w-5 text-green-500" />;
       case "cancelled":
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <X className="h-5 w-5 text-red-500" />;
       case "pending":
         return <Clock className="h-5 w-5 text-yellow-500" />;
       default:

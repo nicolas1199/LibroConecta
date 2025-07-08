@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { FileText, Search, Edit, Trash, Plus, Clock } from "../components/icons";
+import FileText from "../components/icons/FileText";
+import Search from "../components/icons/Search";
+import Edit from "../components/icons/Edit";
+import Trash from "../components/icons/Trash";
+import Plus from "../components/icons/Plus";
+import Clock from "../components/icons/Clock";
 import { Link } from "react-router-dom";
 
 export default function Drafts() {
