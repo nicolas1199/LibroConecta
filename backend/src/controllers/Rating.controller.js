@@ -429,7 +429,7 @@ export const getPendingRatings = async (req, res) => {
       JOIN "Users" u2 ON ub2.user_id = u2.user_id
       JOIN "State" s ON e.state_id = s.state_id
       WHERE (ub1.user_id = :userId OR ub2.user_id = :userId)
-        AND s.state_name = 'Completado'
+        AND s.name = 'Completado'
         AND NOT EXISTS (
           SELECT 1 FROM "Rating" r 
           WHERE r.rater_id = :userId 
@@ -466,7 +466,7 @@ export const getPendingRatings = async (req, res) => {
       JOIN "Users" u_buyer ON s.user_id_buyer = u_buyer.user_id
       JOIN "State" st ON s.state_id = st.state_id
       WHERE (s.user_id_seller = :userId OR s.user_id_buyer = :userId)
-        AND st.state_name = 'Completado'
+        AND st.name = 'Completado'
         AND NOT EXISTS (
           SELECT 1 FROM "Rating" r 
           WHERE r.rater_id = :userId 
