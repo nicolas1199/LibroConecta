@@ -17,6 +17,7 @@ pids
 *.pid.lock
 
 # ───── Package locks (cross-platform issues) ─────
+package-lock.json
 frontend/package-lock.json
 backend/package-lock.json
 
