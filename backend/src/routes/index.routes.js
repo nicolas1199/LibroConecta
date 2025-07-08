@@ -10,6 +10,9 @@ import bookConditionRoutes from "./BookCondition.routes.js";
 import locationBookRoutes from "./LocationBook.routes.js";
 import publishedBooksRoutes from "./PublishedBooks.routes.js";
 import publishedBookImageRoutes from "./PublishedBookImage.routes.js";
+import matchRoutes from "./Match.routes.js";
+import messageRoutes from "./Message.routes.js";
+import ratingRoutes from "./Rating.routes.js";
 
 const router = Router();
 
@@ -42,5 +45,14 @@ router.use("/published-books", publishedBooksRoutes);
 
 // Rutas de imágenes de libros publicados
 router.use("/published-book-images", publishedBookImageRoutes);
+
+// Rutas de matches
+router.use("/matches", matchRoutes);
+
+// Rutas de mensajería
+router.use("/messages", messageRoutes);
+
+// Rutas de calificaciones
+router.use("/ratings", ratingRoutes);
 
 export default router;
