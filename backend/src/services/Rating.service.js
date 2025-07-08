@@ -307,12 +307,12 @@ export async function getPendingRatingsService(userId) {
         END as book_title,
         'exchange' as transaction_type
       FROM "Exchange" e
-      JOIN "UserBook" ub1 ON e.user_book_id_1 = ub1.user_book_id
-      JOIN "UserBook" ub2 ON e.user_book_id_2 = ub2.user_book_id
+      JOIN "UserBooks" ub1 ON e.user_book_id_1 = ub1.user_book_id
+      JOIN "UserBooks" ub2 ON e.user_book_id_2 = ub2.user_book_id
       JOIN "Books" b1 ON ub1.book_id = b1.book_id
       JOIN "Books" b2 ON ub2.book_id = b2.book_id
-      JOIN "User" u1 ON ub1.user_id = u1.user_id
-      JOIN "User" u2 ON ub2.user_id = u2.user_id
+      JOIN "Users" u1 ON ub1.user_id = u1.user_id
+      JOIN "Users" u2 ON ub2.user_id = u2.user_id
       WHERE (ub1.user_id = :userId OR ub2.user_id = :userId)
         AND e.exchange_id NOT IN (
           SELECT exchange_id FROM "Rating" 
@@ -342,11 +342,11 @@ export async function getPendingRatingsService(userId) {
         END as other_last_name,
         b.title as book_title,
         'sell' as transaction_type
-      FROM "Sell" s
-      JOIN "UserBook" ubk ON s.user_book_id = ubk.user_book_id
+      FROM "Sells" s
+      JOIN "UserBooks" ubk ON s.user_book_id = ubk.user_book_id
       JOIN "Books" b ON ubk.book_id = b.book_id
-      JOIN "User" us ON s.user_id_seller = us.user_id
-      JOIN "User" ub ON s.user_id_buyer = ub.user_id
+      JOIN "Users" us ON s.user_id_seller = us.user_id
+      JOIN "Users" ub ON s.user_id_buyer = ub.user_id
       WHERE (s.user_id_seller = :userId OR s.user_id_buyer = :userId)
         AND s.sell_id NOT IN (
           SELECT sell_id FROM "Rating" 

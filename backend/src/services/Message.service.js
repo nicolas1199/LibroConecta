@@ -134,8 +134,8 @@ export async function getConversationsService(userId, options = {}) {
         last_msg.sender_id AS last_message_sender_id,
         unread_count.count AS unread_count
       FROM "Match" m
-      LEFT JOIN "User" u1 ON m.user_id_1 = u1.user_id
-      LEFT JOIN "User" u2 ON m.user_id_2 = u2.user_id
+      LEFT JOIN "Users" u1 ON m.user_id_1 = u1.user_id
+      LEFT JOIN "Users" u2 ON m.user_id_2 = u2.user_id
       LEFT JOIN LATERAL (
         SELECT message_text, sent_at, sender_id
         FROM "Message"

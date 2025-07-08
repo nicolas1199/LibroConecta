@@ -423,10 +423,10 @@ export const getPendingRatings = async (req, res) => {
           ELSE u1.last_name
         END as other_user_last_name
       FROM "Exchange" e
-      JOIN "UserBook" ub1 ON e.user_book_id_1 = ub1.user_book_id
-      JOIN "UserBook" ub2 ON e.user_book_id_2 = ub2.user_book_id
-      JOIN "User" u1 ON ub1.user_id = u1.user_id
-      JOIN "User" u2 ON ub2.user_id = u2.user_id
+      JOIN "UserBooks" ub1 ON e.user_book_id_1 = ub1.user_book_id
+      JOIN "UserBooks" ub2 ON e.user_book_id_2 = ub2.user_book_id
+      JOIN "Users" u1 ON ub1.user_id = u1.user_id
+      JOIN "Users" u2 ON ub2.user_id = u2.user_id
       JOIN "State" s ON e.state_id = s.state_id
       WHERE (ub1.user_id = :userId OR ub2.user_id = :userId)
         AND s.state_name = 'Completado'
@@ -461,9 +461,9 @@ export const getPendingRatings = async (req, res) => {
           WHEN s.user_id_seller = :userId THEN u_buyer.last_name
           ELSE u_seller.last_name
         END as other_user_last_name
-      FROM "Sell" s
-      JOIN "User" u_seller ON s.user_id_seller = u_seller.user_id
-      JOIN "User" u_buyer ON s.user_id_buyer = u_buyer.user_id
+      FROM "Sells" s
+      JOIN "Users" u_seller ON s.user_id_seller = u_seller.user_id
+      JOIN "Users" u_buyer ON s.user_id_buyer = u_buyer.user_id
       JOIN "State" st ON s.state_id = st.state_id
       WHERE (s.user_id_seller = :userId OR s.user_id_buyer = :userId)
         AND st.state_name = 'Completado'
