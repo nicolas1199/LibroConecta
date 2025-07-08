@@ -5,12 +5,17 @@ import {
   createMatch,
   deleteMatch,
 } from "../controllers/Match.controller.js";
-import authMiddleware from "../middlewares/auth.middleware.js";
+import { authenticateToken } from "../middlewares/auth.middleware.js";
+import {
+  validateMatchCreation,
+  validateMatchParams,
+  validateMatchOwnership,
+} from "../middlewares/match.middleware.js";
 
 const router = Router();
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/matches - Obtener matches del usuario
 router.get("/", getMatches);
@@ -19,9 +24,9 @@ router.get("/", getMatches);
 router.get("/suggested", getSuggestedMatches);
 
 // POST /api/matches - Crear un nuevo match
-router.post("/", createMatch);
+router.post("/", validateMatchCreation, createMatch);
 
 // DELETE /api/matches/:match_id - Eliminar un match
-router.delete("/:match_id", deleteMatch);
+router.delete("/:match_id", validateMatchParams, validateMatchOwnership, deleteMatch);
 
 export default router; 
