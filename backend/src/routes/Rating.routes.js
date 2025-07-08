@@ -40,4 +40,4 @@ router.put("/:rating_id", validateRatingParams, validateRatingOwnership, validat
 // DELETE /api/ratings/:rating_id - Eliminar una calificación
 router.delete("/:rating_id", validateRatingParams, validateRatingOwnership, deleteRating);
 
-export default router; 
+export default router;

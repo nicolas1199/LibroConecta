@@ -29,4 +29,4 @@ router.post("/", validateMatchCreation, createMatch);
 // DELETE /api/matches/:match_id - Eliminar un match
 router.delete("/:match_id", validateMatchParams, validateMatchOwnership, deleteMatch);
 
-export default router; 
+export default router;

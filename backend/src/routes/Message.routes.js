@@ -35,4 +35,4 @@ router.put("/:match_id/read", validateMessageParams, validateConversationAccess,
 // DELETE /api/messages/message/:message_id - Eliminar un mensaje específico
 router.delete("/message/:message_id", validateMessageIdParams, validateMessageOwnership, deleteMessage);
 
-export default router; 
+export default router;
