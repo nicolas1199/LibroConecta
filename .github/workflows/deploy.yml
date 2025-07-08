@@ -49,11 +49,6 @@ jobs:
             echo "⏹️ Deteniendo aplicaciones..."
             pm2 stop all || echo "No hay procesos PM2 ejecutándose"
             
-            # Backup del build anterior
-            echo "💾 Creando backup..."
-            if [ -d "frontend/dist" ]; then
-              mv frontend/dist frontend/dist.backup.$(date +%Y%m%d_%H%M%S) || true
-            fi
             
             # Pull de código
             echo "📥 Descargando código..."
