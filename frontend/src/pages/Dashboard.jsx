@@ -10,11 +10,19 @@ import Gift from "../components/icons/Gift"
 import DollarSign from "../components/icons/DollarSign"
 import BookCard from "../components/BookCard"
 import { getPublishedBooks } from "../api/publishedBooks"
+import { getMatches, getSuggestedMatches } from "../api/matches"
+import { getConversations } from "../api/messages"
+import { getPendingRatings, getMyRatings } from "../api/ratings"
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState("recientes")
   const [publishedBooks, setPublishedBooks] = useState([])
+  const [matches, setMatches] = useState([])
+  const [suggestedMatches, setSuggestedMatches] = useState([])
+  const [conversations, setConversations] = useState([])
+  const [pendingRatings, setPendingRatings] = useState([])
+  const [myRatings, setMyRatings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -26,20 +34,49 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    const loadPublishedBooks = async () => {
+    const loadData = async () => {
       try {
         setLoading(true)
-        const response = await getPublishedBooks({ limit: 6 })
-        setPublishedBooks(response.publishedBooks || [])
+        
+        // Cargar datos solo si el usuario está logueado
+        const token = localStorage.getItem("token")
+        if (token) {
+          const [
+            booksResponse,
+            matchesResponse,
+            suggestedResponse,
+            conversationsResponse,
+            pendingRatingsResponse,
+            myRatingsResponse
+          ] = await Promise.all([
+            getPublishedBooks({ limit: 6 }),
+            getMatches({ limit: 5 }),
+            getSuggestedMatches({ limit: 3 }),
+            getConversations({ limit: 5 }),
+            getPendingRatings(),
+            getMyRatings({ type: "received", limit: 5 })
+          ])
+
+          setPublishedBooks(booksResponse.publishedBooks || [])
+          setMatches(matchesResponse.data || [])
+          setSuggestedMatches(suggestedResponse.data || [])
+          setConversations(conversationsResponse.data || [])
+          setPendingRatings(pendingRatingsResponse.data || [])
+          setMyRatings(myRatingsResponse.data || [])
+        } else {
+          // Solo cargar libros publicados si no hay usuario
+          const response = await getPublishedBooks({ limit: 6 })
+          setPublishedBooks(response.publishedBooks || [])
+        }
       } catch (error) {
-        console.error("Error loading published books:", error)
-        setError("Error al cargar los libros")
+        console.error("Error loading data:", error)
+        setError("Error al cargar los datos")
       } finally {
         setLoading(false)
       }
     }
 
-    loadPublishedBooks()
+    loadData()
   }, [])
 
   const tabs = [
@@ -48,11 +85,28 @@ export default function Dashboard() {
     { id: "cercanos", label: "Cercanos" },
   ]
 
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case "matches":
+        return suggestedMatches.map(match => ({
+          ...match.user,
+          score: match.score,
+          commonCategories: match.commonCategories,
+          booksCount: match.booksCount,
+          type: "suggested_match"
+        }))
+      case "cercanos":
+        return publishedBooks.filter(book => book.LocationBook?.location_name)
+      default:
+        return publishedBooks
+    }
+  }
+
   const stats = [
     { icon: BookOpen, label: "Libros publicados", value: publishedBooks.length, color: "blue" },
-    { icon: RefreshCw, label: "Intercambios", value: 0, color: "purple" },
-    { icon: Gift, label: "Regalos", value: 0, color: "green" },
-    { icon: DollarSign, label: "Ventas", value: 0, color: "cyan" },
+    { icon: RefreshCw, label: "Matches", value: matches.length, color: "purple" },
+    { icon: Gift, label: "Mensajes", value: conversations.length, color: "green" },
+    { icon: DollarSign, label: "Calificaciones", value: myRatings.length, color: "cyan" },
   ]
 
   return (
@@ -140,10 +194,86 @@ export default function Dashboard() {
         {/* Recent Activity */}
         <div className="card p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Actividad reciente</h3>
-          <p className="text-sm text-gray-600 mb-6">Últimos intercambios y calificaciones</p>
+          <p className="text-sm text-gray-600 mb-6">Últimos matches, mensajes y calificaciones</p>
 
-          <div className="text-center py-8">
-            <p className="text-gray-500">No hay actividad reciente para mostrar.</p>
+          <div className="space-y-4">
+            {/* Pending Ratings */}
+            {pendingRatings.length > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Star className="h-5 w-5 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-900">
+                      {pendingRatings.length} calificación{pendingRatings.length > 1 ? 'es' : ''} pendiente{pendingRatings.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <Link 
+                    to="/dashboard/ratings" 
+                    className="text-sm text-orange-600 hover:text-orange-700"
+                  >
+                    Ver todas
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Suggested Matches */}
+            {suggestedMatches.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Heart className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">
+                      {suggestedMatches.length} match{suggestedMatches.length > 1 ? 'es' : ''} sugerido{suggestedMatches.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <Link 
+                    to="/dashboard/matches" 
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    Ver todos
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Recent Conversations */}
+            {conversations.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-900">Conversaciones recientes</h4>
+                {conversations.slice(0, 3).map((conversation) => (
+                  <Link
+                    key={conversation.match_id}
+                    to={`/dashboard/messages/${conversation.match_id}`}
+                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
+                  >
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <MessageCircle className="h-4 w-4 text-gray-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {conversation.other_user.first_name} {conversation.other_user.last_name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {conversation.last_message || "No hay mensajes"}
+                      </p>
+                    </div>
+                    {conversation.unread_count > 0 && (
+                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                        {conversation.unread_count}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {pendingRatings.length === 0 && suggestedMatches.length === 0 && conversations.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No hay actividad reciente para mostrar.</p>
+              </div>
+            )}
           </div>
         </div>
 

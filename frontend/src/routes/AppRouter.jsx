@@ -11,6 +11,9 @@ import MyLibrary from "../pages/MyLibrary";
 import AddToLibrary from "../pages/AddToLibrary";
 import EditLibraryBook from "../pages/EditLibraryBook";
 import LibraryInsights from "../pages/LibraryInsights";
+import Matches from "../pages/Matches";
+import Messages from "../pages/Messages";
+import Ratings from "../pages/Ratings";
 
 export default function AppRouter() {
   return (
@@ -87,7 +90,43 @@ export default function AppRouter() {
           }
         />
 
-        {/* Future dashboard routes can be added here */}
+        {/* Matches routes */}
+        <Route
+          path="/dashboard/matches"
+          element={
+            <DashboardLayout>
+              <Matches />
+            </DashboardLayout>
+          }
+        />
+
+        {/* Messages routes */}
+        <Route
+          path="/dashboard/messages"
+          element={
+            <DashboardLayout>
+              <Messages />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="/dashboard/messages/:matchId"
+          element={
+            <DashboardLayout>
+              <Messages />
+            </DashboardLayout>
+          }
+        />
+
+        {/* Ratings routes */}
+        <Route
+          path="/dashboard/ratings"
+          element={
+            <DashboardLayout>
+              <Ratings />
+            </DashboardLayout>
+          }
+        />
       </Routes>
     </Router>
   );

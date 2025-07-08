@@ -15,6 +15,8 @@ export default ({
   LocationBook,
   PublishedBooks,
   PublishedBookImage,
+  Message,
+  Rating,
 }) => {
   //  UserType 1:N User
   UserType.hasMany(User, { foreignKey: "user_type_id" });
@@ -108,4 +110,34 @@ export default ({
   PublishedBookImage.belongsTo(PublishedBooks, {
     foreignKey: "published_book_id",
   });
+
+  // Message Relations
+  // User 1:N Message (as sender)
+  User.hasMany(Message, { as: "SentMessages", foreignKey: "sender_id" });
+  Message.belongsTo(User, { as: "Sender", foreignKey: "sender_id" });
+
+  // User 1:N Message (as receiver)
+  User.hasMany(Message, { as: "ReceivedMessages", foreignKey: "receiver_id" });
+  Message.belongsTo(User, { as: "Receiver", foreignKey: "receiver_id" });
+
+  // Match 1:N Message
+  Match.hasMany(Message, { foreignKey: "match_id" });
+  Message.belongsTo(Match, { foreignKey: "match_id" });
+
+  // Rating Relations
+  // User 1:N Rating (as rater)
+  User.hasMany(Rating, { as: "GivenRatings", foreignKey: "rater_id" });
+  Rating.belongsTo(User, { as: "Rater", foreignKey: "rater_id" });
+
+  // User 1:N Rating (as rated)
+  User.hasMany(Rating, { as: "ReceivedRatings", foreignKey: "rated_id" });
+  Rating.belongsTo(User, { as: "Rated", foreignKey: "rated_id" });
+
+  // Exchange 1:N Rating
+  Exchange.hasMany(Rating, { foreignKey: "exchange_id" });
+  Rating.belongsTo(Exchange, { foreignKey: "exchange_id" });
+
+  // Sell 1:N Rating
+  Sell.hasMany(Rating, { foreignKey: "sell_id" });
+  Rating.belongsTo(Sell, { foreignKey: "sell_id" });
 };

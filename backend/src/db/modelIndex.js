@@ -17,6 +17,8 @@ import BookCondition from "./models/BookCondition.js"
 import LocationBook from "./models/LocationBook.js"
 import PublishedBooks from "./models/PublishedBooks.js"
 import PublishedBookImage from "./models/PublishedBookImage.js"
+import Message from "./models/Message.js"
+import Rating from "./models/Rating.js"
 
 // Configurar relaciones una sola vez
 setupRelations({
@@ -36,6 +38,8 @@ setupRelations({
   LocationBook,
   PublishedBooks,
   PublishedBookImage,
+  Message,
+  Rating,
 })
 
 // Sincronizar modelos con la base de datos para crear tablas automáticamente
@@ -64,5 +68,7 @@ export {
   LocationBook,
   PublishedBooks,
   PublishedBookImage,
+  Message,
+  Rating,
   sequelize,
 }
