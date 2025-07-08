@@ -7,12 +7,12 @@ import {
   deleteRating,
   getPendingRatings,
 } from "../controllers/Rating.controller.js";
-import authMiddleware from "../middlewares/auth.middleware.js";
+import { authenticateToken } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/ratings/my - Obtener mis calificaciones (recibidas o dadas)
 router.get("/my", getMyRatings);
@@ -32,4 +32,4 @@ router.put("/:rating_id", updateRating);
 // DELETE /api/ratings/:rating_id - Eliminar una calificación
 router.delete("/:rating_id", deleteRating);
 
-export default router; 
+export default router;

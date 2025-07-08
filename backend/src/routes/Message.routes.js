@@ -6,12 +6,12 @@ import {
   deleteMessage,
   markMessagesAsRead,
 } from "../controllers/Message.controller.js";
-import authMiddleware from "../middlewares/auth.middleware.js";
+import { authenticateToken } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/messages/conversations - Obtener todas las conversaciones del usuario
 router.get("/conversations", getConversations);
@@ -28,4 +28,4 @@ router.put("/:match_id/read", markMessagesAsRead);
 // DELETE /api/messages/message/:message_id - Eliminar un mensaje específico
 router.delete("/message/:message_id", deleteMessage);
 
-export default router; 
+export default router;
