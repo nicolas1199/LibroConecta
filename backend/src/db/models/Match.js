@@ -10,10 +10,10 @@ const Match = sequelize.define(
       autoIncrement: true,
     },
     user_id_1: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
     },
     user_id_2: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
     },
     date_match: {
       type: DataTypes.DATE,

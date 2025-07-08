@@ -10,7 +10,7 @@ const UserLibrary = sequelize.define(
       autoIncrement: true,
     },
     user_id: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
     },
     title: {
       type: DataTypes.STRING(200),

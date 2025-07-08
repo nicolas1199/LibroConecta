@@ -10,11 +10,11 @@ const Rating = sequelize.define(
       autoIncrement: true,
     },
     rater_id: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     rated_id: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     exchange_id: {

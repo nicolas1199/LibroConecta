@@ -14,7 +14,7 @@ const PublishedBooks = sequelize.define(
       allowNull: false,
     },
     user_id: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     transaction_type_id: {
