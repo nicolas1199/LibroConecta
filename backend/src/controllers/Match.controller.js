@@ -88,13 +88,13 @@ export const getSuggestedMatches = async (req, res) => {
             {
               model: Category,
               as: "Categories",
-              attributes: ["category_id", "category_name"],
+              attributes: ["category_id", "title"],
             },
           ],
         },
         {
           model: LocationBook,
-          attributes: ["location_name"],
+          attributes: ["region", "comuna"],
         },
       ],
     });
@@ -108,7 +108,9 @@ export const getSuggestedMatches = async (req, res) => {
     });
 
     // Obtener ubicaciones del usuario
-    const userLocations = userBooks.map((book) => book.LocationBook?.location_name).filter(Boolean);
+    const userLocations = userBooks.map((book) => 
+      book.LocationBook ? `${book.LocationBook.region}-${book.LocationBook.comuna}` : null
+    ).filter(Boolean);
 
     // Obtener usuarios que ya son matches
     const existingMatches = await Match.findAll({
@@ -142,13 +144,13 @@ export const getSuggestedMatches = async (req, res) => {
                 {
                   model: Category,
                   as: "Categories",
-                  attributes: ["category_id", "category_name"],
+                  attributes: ["category_id", "title"],
                 },
               ],
             },
             {
               model: LocationBook,
-              attributes: ["location_name"],
+              attributes: ["region", "comuna"],
             },
           ],
         },
@@ -171,8 +173,11 @@ export const getSuggestedMatches = async (req, res) => {
         });
 
         // Verificar ubicaciones comunes
-        if (publishedBook.LocationBook && userLocations.includes(publishedBook.LocationBook.location_name)) {
-          locationMatch = true;
+        if (publishedBook.LocationBook) {
+          const bookLocation = `${publishedBook.LocationBook.region}-${publishedBook.LocationBook.comuna}`;
+          if (userLocations.includes(bookLocation)) {
+            locationMatch = true;
+          }
         }
       });
 

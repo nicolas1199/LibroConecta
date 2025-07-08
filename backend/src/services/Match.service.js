@@ -23,13 +23,13 @@ export async function calculateCompatibilityService(userId, targetUserId) {
             {
               model: Category,
               as: "Categories",
-              attributes: ["category_id", "category_name"],
+              attributes: ["category_id", "title"],
             },
           ],
         },
         {
           model: LocationBook,
-          attributes: ["location_name"],
+          attributes: ["region", "comuna"],
         },
       ],
     });
@@ -44,13 +44,13 @@ export async function calculateCompatibilityService(userId, targetUserId) {
             {
               model: Category,
               as: "Categories",
-              attributes: ["category_id", "category_name"],
+              attributes: ["category_id", "title"],
             },
           ],
         },
         {
           model: LocationBook,
-          attributes: ["location_name"],
+          attributes: ["region", "comuna"],
         },
       ],
     });
@@ -63,8 +63,8 @@ export async function calculateCompatibilityService(userId, targetUserId) {
       publishedBook.Book.Categories.forEach((category) => {
         userCategories.add(category.category_id);
       });
-      if (publishedBook.LocationBook?.location_name) {
-        userLocations.add(publishedBook.LocationBook.location_name);
+      if (publishedBook.LocationBook) {
+        userLocations.add(`${publishedBook.LocationBook.region}-${publishedBook.LocationBook.comuna}`);
       }
     });
 
@@ -75,8 +75,8 @@ export async function calculateCompatibilityService(userId, targetUserId) {
       publishedBook.Book.Categories.forEach((category) => {
         targetCategories.add(category.category_id);
       });
-      if (publishedBook.LocationBook?.location_name) {
-        targetLocations.add(publishedBook.LocationBook.location_name);
+      if (publishedBook.LocationBook) {
+        targetLocations.add(`${publishedBook.LocationBook.region}-${publishedBook.LocationBook.comuna}`);
       }
     });
 
@@ -154,13 +154,13 @@ export async function getSuggestedMatchesService(userId, options = {}) {
                 {
                   model: Category,
                   as: "Categories",
-                  attributes: ["category_id", "category_name"],
+                  attributes: ["category_id", "title"],
                 },
               ],
             },
             {
               model: LocationBook,
-              attributes: ["location_name"],
+              attributes: ["region", "comuna"],
             },
           ],
         },
