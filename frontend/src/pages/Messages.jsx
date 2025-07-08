@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { getConversations, getMessages, sendMessage, markMessagesAsRead } from "../api/messages";
 import MessageCircle from "../components/icons/MessageCircle";
@@ -62,7 +62,7 @@ export default function Messages() {
     }
   };
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = React.useCallback(async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConversation) return;
 
@@ -85,7 +85,7 @@ export default function Messages() {
     } finally {
       setSendingMessage(false);
     }
-  };
+  }, [newMessage, selectedConversation]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -108,7 +108,8 @@ export default function Messages() {
     }
   };
 
-  const ConversationList = () => (
+  // Componente separado para evitar re-renderizados
+  const ConversationList = React.useMemo(() => (
     <div className="bg-white border-r border-gray-200 h-full">
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900">Conversaciones</h2>
@@ -168,9 +169,9 @@ export default function Messages() {
         )}
       </div>
     </div>
-  );
+  ), [loading, conversations, selectedConversation, formatDate]);
 
-  const ChatArea = () => {
+  const ChatArea = React.useCallback(() => {
     if (!selectedConversation) {
       return (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
@@ -223,11 +224,15 @@ export default function Messages() {
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     message.sender_id === currentUser.user_id
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-900 border border-gray-200"
+                      ? "bg-blue-600"
+                      : "bg-white border border-gray-200"
                   }`}
                 >
-                  <p className="text-sm">{message.message_text}</p>
+                  <p className={`text-sm ${
+                    message.sender_id === currentUser.user_id ? "text-white" : "text-gray-900"
+                  }`}>
+                    {message.message_text}
+                  </p>
                   <p
                     className={`text-xs mt-1 ${
                       message.sender_id === currentUser.user_id ? "text-blue-200" : "text-gray-500"
@@ -274,21 +279,21 @@ export default function Messages() {
         </div>
       </div>
     );
-  };
+  }, [selectedConversation, messages, currentUser, newMessage, sendingMessage, handleSendMessage, formatDate]);
 
   return (
     <div className="h-screen flex flex-col">
       {/* Mobile: Show either conversation list or chat */}
       <div className="md:hidden flex-1">
-        {matchId ? <ChatArea /> : <ConversationList />}
+        {matchId ? ChatArea() : ConversationList}
       </div>
 
       {/* Desktop: Show both side by side */}
       <div className="hidden md:flex flex-1">
         <div className="w-1/3 min-w-0">
-          <ConversationList />
+          {ConversationList}
         </div>
-        <ChatArea />
+        {ChatArea()}
       </div>
 
       {error && (
