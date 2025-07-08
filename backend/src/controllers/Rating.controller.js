@@ -4,6 +4,7 @@ import {
   Rating,
   Exchange,
   Sell,
+  UserBook,
   sequelize,
 } from "../db/modelIndex.js";
 import { createResponse } from "../utils/responses.util.js";
@@ -61,12 +62,12 @@ export const createRating = async (req, res) => {
         },
         include: [
           {
-            model: sequelize.models.UserBook,
+            model: UserBook,
             as: "Book1",
             attributes: ["user_id"],
           },
           {
-            model: sequelize.models.UserBook,
+            model: UserBook,
             as: "Book2",
             attributes: ["user_id"],
           }
