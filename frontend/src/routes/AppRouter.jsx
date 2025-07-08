@@ -21,6 +21,7 @@ import Drafts from "../pages/Drafts";
 import History from "../pages/History";
 import MyBooks from "../pages/MyBooks";
 import BookDetails from "../pages/BookDetails";
+import UserProfile from "../pages/UserProfile";
 
 export default function AppRouter() {
   return (
@@ -236,6 +237,26 @@ export default function AppRouter() {
           element={
             <PrivateRoute>
               <BookDetails />
+            </PrivateRoute>
+          }
+        />
+
+        {/* User profile route */}
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <UserProfile />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Public profile route */}
+        <Route
+          path="/profile/:userId"
+          element={
+            <PrivateRoute>
+              <UserProfile />
             </PrivateRoute>
           }
         />

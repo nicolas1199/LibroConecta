@@ -13,6 +13,7 @@ import publishedBookImageRoutes from "./PublishedBookImage.routes.js";
 import matchRoutes from "./Match.routes.js";
 import messageRoutes from "./Message.routes.js";
 import ratingRoutes from "./Rating.routes.js";
+import userRoutes from "./User.routes.js";
 
 const router = Router();
 
@@ -54,5 +55,8 @@ router.use("/messages", messageRoutes);
 
 // Rutas de calificaciones
 router.use("/ratings", ratingRoutes);
+
+// Rutas de usuarios
+router.use("/users", userRoutes);
 
 export default router;

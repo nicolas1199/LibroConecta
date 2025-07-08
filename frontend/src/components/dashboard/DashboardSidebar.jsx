@@ -16,6 +16,7 @@ import BarChart from "../icons/BarChart";
 import Settings from "../icons/Settings";
 import LogOut from "../icons/LogOut";
 import ChevronDown from "../icons/ChevronDown";
+import User from "../icons/Users";
 import { useState } from "react";
 
 export default function DashboardSidebar({ user, onLogout, currentPath }) {
@@ -75,7 +76,7 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
       <div className="sidebar-section">
         {/* User Profile */}
         <div className="sidebar-user-profile">
-          <div className="flex items-center space-x-3">
+          <Link to="/profile" className="flex items-center space-x-3 w-full hover:bg-gray-50 p-2 rounded-lg transition-colors">
             <div className="user-avatar">
               {user.first_name?.charAt(0) || "U"}
             </div>
@@ -89,7 +90,7 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
                 <span className="user-badge">Pro</span>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Navigation */}
@@ -205,7 +206,21 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
         {expandedSections.configuracion && (
           <ul className="space-y-1 mb-4">
             <li>
-              <Link to="/dashboard/settings" className="sidebar-nav-item">
+              <Link 
+                to="/profile" 
+                className={`sidebar-nav-item ${currentPath === "/profile" ? "active" : ""}`}
+              >
+                <div className="sidebar-nav-content">
+                  <User className="h-4 w-4" />
+                  <span>Mi Perfil</span>
+                </div>
+              </Link>
+            </li>
+            <li>
+              <Link 
+                to="/dashboard/settings" 
+                className={`sidebar-nav-item ${currentPath === "/dashboard/settings" ? "active" : ""}`}
+              >
                 <div className="sidebar-nav-content">
                   <Settings className="h-4 w-4" />
                   <span>Configuración</span>

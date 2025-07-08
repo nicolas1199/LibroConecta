@@ -149,6 +149,7 @@ export const login = async (req, res) => {
         email: user.get("email"),
         first_name: user.get("first_name"),
         last_name: user.get("last_name"),
+        location: user.get("location"),
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -156,5 +157,111 @@ export const login = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Error en el servidor", error: err.message });
+  }
+};
+
+// Obtener perfil del usuario autenticado
+export const getUserProfile = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+
+    const user = await User.findByPk(user_id, {
+      attributes: ['user_id', 'first_name', 'last_name', 'email', 'username', 'location', 'user_type_id']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    return res.status(200).json({
+      message: "Perfil obtenido exitosamente",
+      data: {
+        user_id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        username: user.username,
+        location: user.location,
+        user_type_id: user.user_type_id
+      }
+    });
+  } catch (error) {
+    console.error("Error al obtener perfil:", error);
+    return res.status(500).json({ message: "Error interno del servidor", error: error.message });
+  }
+};
+
+// Actualizar perfil del usuario autenticado
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+    const { first_name, last_name, email, username, location } = req.body;
+
+    // Validar datos obligatorios
+    if (!first_name || !last_name || !email || !username) {
+      return res.status(400).json({ message: "Faltan datos obligatorios" });
+    }
+
+    // Verificar si el usuario existe
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    // Verificar si el email ya está en uso por otro usuario
+    if (email !== user.email) {
+      const existingUser = await User.findOne({
+        where: {
+          email: email,
+          user_id: { [Op.ne]: user_id }
+        },
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: "El email ya está en uso por otro usuario" });
+      }
+    }
+
+    // Verificar si el username ya está en uso por otro usuario
+    if (username !== user.username) {
+      const existingUsername = await User.findOne({
+        where: {
+          username: username,
+          user_id: { [Op.ne]: user_id }
+        },
+      });
+
+      if (existingUsername) {
+        return res.status(400).json({ message: "El nombre de usuario ya está en uso por otro usuario" });
+      }
+    }
+
+    // Actualizar el usuario
+    await user.update({
+      first_name,
+      last_name,
+      email,
+      username,
+      location: location || null
+    });
+
+    // Respuesta sin contraseña
+    const userResponse = {
+      user_id: user.user_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      username: user.username,
+      location: user.location,
+      user_type_id: user.user_type_id
+    };
+
+    return res.status(200).json({
+      message: "Perfil actualizado exitosamente",
+      data: userResponse
+    });
+  } catch (error) {
+    console.error("Error al actualizar perfil:", error);
+    return res.status(500).json({ message: "Error interno del servidor", error: error.message });
   }
 };
