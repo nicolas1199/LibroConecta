@@ -42,13 +42,12 @@ jobs:
             # Comandos de despliegue
             cd LibroConecta/
             pm2 stop all
-            git pull
+            git pull origin main
             cd backend/
             npm install
             cd ../frontend/
             npm install
             npm run build
             pm2 start all
-            pm2 save
 
           EOF
