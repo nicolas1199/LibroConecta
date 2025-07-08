@@ -7,6 +7,8 @@ import ArrowRight from "../components/icons/ArrowRight"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
+import Search from "../components/icons/Search"
+import Plus from "../components/icons/Plus"
 import {
   getTransactionTypes,
   getBookConditions,
@@ -29,6 +31,13 @@ export default function PublishBook() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
+  
+  // Google Books search
+  const [searchTerm, setSearchTerm] = useState("")
+  const [googleBooks, setGoogleBooks] = useState([])
+  const [searchingGoogle, setSearchingGoogle] = useState(false)
+  const [showGoogleSearch, setShowGoogleSearch] = useState(false)
+  const [showManualForm, setShowManualForm] = useState(false)
 
   // Datos de referencia
   const [transactionTypes, setTransactionTypes] = useState([])
@@ -165,6 +174,148 @@ export default function PublishBook() {
     }))
   }
 
+  // Google Books search function
+  const searchGoogleBooks = async (query) => {
+    if (!query.trim()) {
+      setGoogleBooks([])
+      return
+    }
+
+    try {
+      setSearchingGoogle(true)
+      const response = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&langRestrict=es&printType=books`
+      )
+      const data = await response.json()
+
+      if (!data.items) {
+        setGoogleBooks([])
+        return
+      }
+
+      const books = data.items.map((item) => {
+        const bookInfo = item.volumeInfo
+
+        let isbn = null
+        if (bookInfo.industryIdentifiers) {
+          const isbn13 = bookInfo.industryIdentifiers.find(
+            (id) => id.type === "ISBN_13"
+          )
+          const isbn10 = bookInfo.industryIdentifiers.find(
+            (id) => id.type === "ISBN_10"
+          )
+          isbn = isbn13?.identifier || isbn10?.identifier || null
+        }
+
+        let imageUrl = null
+        if (bookInfo.imageLinks) {
+          imageUrl =
+            bookInfo.imageLinks.thumbnail ||
+            bookInfo.imageLinks.smallThumbnail ||
+            null
+          if (imageUrl) {
+            imageUrl = imageUrl.replace("http://", "https://")
+          }
+        }
+
+        return {
+          id: item.id,
+          title: bookInfo.title || "Título desconocido",
+          author: bookInfo.authors
+            ? bookInfo.authors.join(", ")
+            : "Autor desconocido",
+          isbn: isbn,
+          image_url: imageUrl,
+          date_of_pub: bookInfo.publishedDate ? bookInfo.publishedDate.split('-')[0] : null,
+          publisher: bookInfo.publisher || null,
+          description: bookInfo.description || null,
+          language: bookInfo.language || "es",
+          categories: bookInfo.categories || [],
+        }
+      })
+
+      setGoogleBooks(books)
+    } catch (error) {
+      console.error("Error searching Google Books:", error)
+      alert("Error al buscar libros")
+    } finally {
+      setSearchingGoogle(false)
+    }
+  }
+
+  // Handle Google Books search with debounce
+  useEffect(() => {
+    if (showGoogleSearch) {
+      const timeoutId = setTimeout(() => {
+        searchGoogleBooks(searchTerm)
+      }, 500)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [searchTerm, showGoogleSearch])
+
+  // Handle Google Book selection
+  const handleGoogleBookSelect = (book) => {
+    // Auto-populate form with Google Books data
+    setFormData(prev => ({
+      ...prev,
+      title: book.title,
+      author: book.author,
+      date_of_pub: book.date_of_pub || "",
+      // Try to match categories from Google Books to our categories
+      category_ids: matchGoogleCategories(book.categories)
+    }))
+    
+    setShowGoogleSearch(false)
+    setShowManualForm(true)
+  }
+
+  // Helper function to match Google Books categories to our database categories
+  const matchGoogleCategories = (googleCategories) => {
+    if (!googleCategories || !Array.isArray(googleCategories)) return []
+    
+    const matchedIds = []
+    const categoryMap = {
+      'Fiction': 'Ficción',
+      'Science Fiction': 'Ciencia Ficción',
+      'Fantasy': 'Fantasía',
+      'Romance': 'Romance',
+      'Mystery': 'Misterio',
+      'Thriller': 'Suspenso',
+      'Horror': 'Terror',
+      'Biography': 'Biografía',
+      'History': 'Historia',
+      'Science': 'Ciencia',
+      'Technology': 'Tecnología',
+      'Philosophy': 'Filosofía',
+      'Religion': 'Religión',
+      'Poetry': 'Poesía',
+      'Drama': 'Drama',
+      'Education': 'Educación',
+      'Health': 'Salud',
+      'Business': 'Negocios',
+      'Economics': 'Economía',
+      'Psychology': 'Psicología',
+      'Art': 'Arte',
+      'Music': 'Música',
+      'Sports': 'Deportes',
+      'Travel': 'Viajes',
+      'Cooking': 'Cocina',
+      'Self-Help': 'Autoayuda'
+    }
+
+    googleCategories.forEach(googleCat => {
+      const matchedCategory = categories.find(cat => 
+        cat.title.toLowerCase() === googleCat.toLowerCase() ||
+        cat.title.toLowerCase() === categoryMap[googleCat]?.toLowerCase()
+      )
+      if (matchedCategory && !matchedIds.includes(matchedCategory.category_id)) {
+        matchedIds.push(matchedCategory.category_id)
+      }
+    })
+
+    return matchedIds
+  }
+
   const handleSubmit = async () => {
     if (!validateStep(4)) return
 
@@ -217,7 +368,21 @@ export default function PublishBook() {
     switch (currentStep) {
       case 1:
         return (
-          <Step1 formData={formData} handleInputChange={handleInputChange} errors={errors} categories={categories} />
+          <Step1 
+            formData={formData} 
+            handleInputChange={handleInputChange} 
+            errors={errors} 
+            categories={categories}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            googleBooks={googleBooks}
+            searchingGoogle={searchingGoogle}
+            showGoogleSearch={showGoogleSearch}
+            setShowGoogleSearch={setShowGoogleSearch}
+            showManualForm={showManualForm}
+            setShowManualForm={setShowManualForm}
+            handleGoogleBookSelect={handleGoogleBookSelect}
+          />
         )
       case 2:
         return (
@@ -347,79 +512,247 @@ export default function PublishBook() {
 }
 
 // Componentes para cada paso
-function Step1({ formData, handleInputChange, errors, categories }) {
+function Step1({ 
+  formData, 
+  handleInputChange, 
+  errors, 
+  categories,
+  searchTerm,
+  setSearchTerm,
+  googleBooks,
+  searchingGoogle,
+  showGoogleSearch,
+  setShowGoogleSearch,
+  showManualForm,
+  setShowManualForm,
+  handleGoogleBookSelect
+}) {
+  // If showing manual form, show the regular form
+  if (showManualForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-medium text-gray-900">Información del libro</h3>
+          <button
+            onClick={() => {
+              setShowManualForm(false)
+              setShowGoogleSearch(false)
+            }}
+            className="text-blue-600 hover:text-blue-700 text-sm"
+          >
+            ← Volver a opciones
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="form-label">
+              Título del libro <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => handleInputChange("title", e.target.value)}
+              className={`form-control ${errors.title ? "border-red-500" : ""}`}
+              placeholder="Ej. Cien años de soledad"
+            />
+            {errors.title && <p className="form-error">{errors.title}</p>}
+          </div>
+
+          <div>
+            <label className="form-label">
+              Autor <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.author}
+              onChange={(e) => handleInputChange("author", e.target.value)}
+              className={`form-control ${errors.author ? "border-red-500" : ""}`}
+              placeholder="Ej. Gabriel García Márquez"
+            />
+            {errors.author && <p className="form-error">{errors.author}</p>}
+          </div>
+        </div>
+
+        <div>
+          <label className="form-label">Año de publicación (opcional)</label>
+          <input
+            type="number"
+            value={formData.date_of_pub}
+            onChange={(e) => handleInputChange("date_of_pub", e.target.value)}
+            className="form-control"
+            placeholder="Ej. 1967"
+            min="1000"
+            max={new Date().getFullYear()}
+          />
+        </div>
+
+        <div>
+          <label className="form-label">Categorías (opcional)</label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto border rounded-lg p-4">
+            {categories.map((category) => (
+              <label key={category.category_id} className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.category_ids.includes(category.category_id)}
+                  onChange={(e) => {
+                    const categoryId = category.category_id
+                    if (e.target.checked) {
+                      handleInputChange("category_ids", [...formData.category_ids, categoryId])
+                    } else {
+                      handleInputChange(
+                        "category_ids",
+                        formData.category_ids.filter((id) => id !== categoryId),
+                      )
+                    }
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">{category.title}</span>
+              </label>
+            ))}
+          </div>
+          {categories.length === 0 && <p className="text-sm text-gray-500 mt-2">Cargando categorías...</p>}
+          <p className="form-text">Selecciona las categorías que mejor describan tu libro</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If showing Google search, show search results
+  if (showGoogleSearch) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-medium text-gray-900">Buscar en Google Books</h3>
+          <button
+            onClick={() => setShowGoogleSearch(false)}
+            className="text-blue-600 hover:text-blue-700 text-sm"
+          >
+            ← Volver a opciones
+          </button>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar libros por título, autor o ISBN..."
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {searchingGoogle && (
+          <div className="text-center py-4">
+            <div className="inline-flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="text-gray-600">Buscando...</span>
+            </div>
+          </div>
+        )}
+
+        {googleBooks.length > 0 && (
+          <div className="space-y-4">
+            <h4 className="font-medium text-gray-900">Resultados de búsqueda</h4>
+            <div className="grid gap-4">
+              {googleBooks.map((book) => (
+                <div
+                  key={book.id}
+                  className="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-colors"
+                  onClick={() => handleGoogleBookSelect(book)}
+                >
+                  {book.image_url && (
+                    <img
+                      src={book.image_url}
+                      alt={book.title}
+                      className="w-12 h-16 object-cover rounded flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h5 className="font-medium text-gray-900 truncate">{book.title}</h5>
+                    <p className="text-sm text-gray-600 truncate">{book.author}</p>
+                    {book.date_of_pub && (
+                      <p className="text-xs text-gray-500">Publicado en {book.date_of_pub}</p>
+                    )}
+                    {book.categories && book.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {book.categories.slice(0, 2).map((category, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                          >
+                            {category}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div className="text-blue-600 hover:text-blue-700">
+                      <Plus className="h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {searchTerm && !searchingGoogle && googleBooks.length === 0 && (
+          <div className="text-center py-8">
+            <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600">No se encontraron libros</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Intenta con un término diferente o{" "}
+              <button
+                onClick={() => setShowManualForm(true)}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                agrega el libro manualmente
+              </button>
+            </p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Default view - show options
   return (
     <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">¿Cómo quieres agregar el libro?</h3>
+        <p className="text-gray-600">Elige la opción que prefieras</p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="form-label">
-            Título del libro <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) => handleInputChange("title", e.target.value)}
-            className={`form-control ${errors.title ? "border-red-500" : ""}`}
-            placeholder="Ej. Cien años de soledad"
-          />
-          {errors.title && <p className="form-error">{errors.title}</p>}
+        <div
+          className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-colors"
+          onClick={() => setShowGoogleSearch(true)}
+        >
+          <div className="text-center">
+            <Search className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <h4 className="text-lg font-medium text-gray-900 mb-2">Buscar en Google Books</h4>
+            <p className="text-sm text-gray-600">
+              Busca tu libro en Google Books para autocompletar la información
+            </p>
+          </div>
         </div>
 
-        <div>
-          <label className="form-label">
-            Autor <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={formData.author}
-            onChange={(e) => handleInputChange("author", e.target.value)}
-            className={`form-control ${errors.author ? "border-red-500" : ""}`}
-            placeholder="Ej. Gabriel García Márquez"
-          />
-          {errors.author && <p className="form-error">{errors.author}</p>}
+        <div
+          className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-colors"
+          onClick={() => setShowManualForm(true)}
+        >
+          <div className="text-center">
+            <Plus className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <h4 className="text-lg font-medium text-gray-900 mb-2">Agregar manualmente</h4>
+            <p className="text-sm text-gray-600">
+              Completa la información del libro manualmente
+            </p>
+          </div>
         </div>
-      </div>
-
-      <div>
-        <label className="form-label">Año de publicación (opcional)</label>
-        <input
-          type="number"
-          value={formData.date_of_pub}
-          onChange={(e) => handleInputChange("date_of_pub", e.target.value)}
-          className="form-control"
-          placeholder="Ej. 1967"
-          min="1000"
-          max={new Date().getFullYear()}
-        />
-      </div>
-
-      <div>
-        <label className="form-label">Categorías (opcional)</label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto border rounded-lg p-4">
-          {categories.map((category) => (
-            <label key={category.category_id} className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.category_ids.includes(category.category_id)}
-                onChange={(e) => {
-                  const categoryId = category.category_id
-                  if (e.target.checked) {
-                    handleInputChange("category_ids", [...formData.category_ids, categoryId])
-                  } else {
-                    handleInputChange(
-                      "category_ids",
-                      formData.category_ids.filter((id) => id !== categoryId),
-                    )
-                  }
-                }}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">{category.title}</span>
-            </label>
-          ))}
-        </div>
-        {categories.length === 0 && <p className="text-sm text-gray-500 mt-2">Cargando categorías...</p>}
-        <p className="form-text">Selecciona las categorías que mejor describan tu libro</p>
       </div>
     </div>
   )

@@ -19,6 +19,7 @@ import Favorites from "../pages/Favorites";
 import Wishlist from "../pages/Wishlist";
 import Drafts from "../pages/Drafts";
 import History from "../pages/History";
+import MyBooks from "../pages/MyBooks";
 
 export default function AppRouter() {
   return (
@@ -79,6 +80,16 @@ export default function AppRouter() {
             <PrivateRoute>
               <DashboardLayout>
                 <MyLibrary />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/my-books"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <MyBooks />
               </DashboardLayout>
             </PrivateRoute>
           }
