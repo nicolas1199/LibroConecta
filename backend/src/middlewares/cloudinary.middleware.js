@@ -1,26 +1,11 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { v2 as cloudinary } from 'cloudinary';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Función para asegurar que el directorio existe
-async function ensureDirectoryExists(dirPath) {
-  try {
-    await fs.access(dirPath);
-  } catch (error) {
-    await fs.mkdir(dirPath, { recursive: true });
-  }
-}
-
-// Función para generar nombre único de archivo
-function generateUniqueFileName(originalName) {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  const ext = path.extname(originalName);
-  return `${timestamp}_${random}${ext}`;
-}
+// Configurar Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Función para procesar multipart/form-data manualmente
 function parseMultipartData(req) {
@@ -96,9 +81,44 @@ function parseMultipartData(req) {
   });
 }
 
-// Middleware para manejar upload de imágenes
-export const uploadBookImages = async (req, res, next) => {
+// Función para subir buffer a Cloudinary
+function uploadToCloudinary(buffer, filename) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'image',
+        folder: 'libroconecta/books', // Organizar en carpetas
+        public_id: `book_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
+        transformation: [
+          { width: 800, height: 600, crop: 'limit' }, // Redimensionar automáticamente
+          { quality: 'auto' }, // Optimización automática
+          { format: 'auto' } // Formato automático (WebP si es compatible)
+        ]
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+}
+
+// Middleware para subir imágenes a Cloudinary
+export const uploadBookImagesCloudinary = async (req, res, next) => {
   try {
+    // Verificar configuración de Cloudinary
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return res.status(500).json({ 
+        error: 'Configuración de Cloudinary no encontrada',
+        message: 'Variables de entorno CLOUDINARY_* no configuradas' 
+      });
+    }
+
     // Verificar que sea multipart/form-data
     if (!req.headers['content-type']?.startsWith('multipart/form-data')) {
       return res.status(400).json({ error: 'Content-Type debe ser multipart/form-data' });
@@ -107,10 +127,9 @@ export const uploadBookImages = async (req, res, next) => {
     // Parsear los datos
     const { files, fields } = await parseMultipartData(req);
     
-    // Crear directorio si no existe (usar la misma ruta que el servidor)
-    const uploadDir = path.join(process.cwd(), 'uploads', 'books');
-    await ensureDirectoryExists(uploadDir);
-    console.log('📁 Directorio de subida:', uploadDir);
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No se proporcionaron archivos' });
+    }
 
     // Procesar archivos
     const processedFiles = [];
@@ -121,28 +140,33 @@ export const uploadBookImages = async (req, res, next) => {
         return res.status(400).json({ error: `Archivo ${file.originalname} no es una imagen válida` });
       }
 
-      // Validar tamaño (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        return res.status(400).json({ error: `Archivo ${file.originalname} excede el tamaño máximo de 5MB` });
+      // Validar tamaño (máximo 10MB para Cloudinary)
+      if (file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ error: `Archivo ${file.originalname} excede el tamaño máximo de 10MB` });
       }
 
-      // Generar nombre único
-      const uniqueFileName = generateUniqueFileName(file.originalname);
-      const filePath = path.join(uploadDir, uniqueFileName);
-
-      // Guardar archivo
-      await fs.writeFile(filePath, file.buffer);
-      console.log(`📸 Archivo guardado: ${uniqueFileName} (${file.size} bytes)`);
-
-      processedFiles.push({
-        fieldname: file.fieldname,
-        originalname: file.originalname,
-        encoding: file.encoding,
-        mimetype: file.mimetype,
-        filename: uniqueFileName,
-        path: filePath,
-        size: file.size
-      });
+      try {
+        // Subir a Cloudinary
+        console.log(`☁️ Subiendo ${file.originalname} a Cloudinary...`);
+        const result = await uploadToCloudinary(file.buffer, file.originalname);
+        
+        console.log(`✅ Imagen subida exitosamente: ${result.secure_url}`);
+        
+        processedFiles.push({
+          fieldname: file.fieldname,
+          originalname: file.originalname,
+          encoding: file.encoding,
+          mimetype: file.mimetype,
+          filename: result.public_id,
+          url: result.secure_url, // URL pública de Cloudinary
+          size: file.size,
+          width: result.width,
+          height: result.height
+        });
+      } catch (uploadError) {
+        console.error(`❌ Error subiendo ${file.originalname}:`, uploadError);
+        return res.status(500).json({ error: `Error subiendo ${file.originalname}: ${uploadError.message}` });
+      }
     }
 
     // Agregar archivos y campos al request
@@ -151,14 +175,25 @@ export const uploadBookImages = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Error en uploadBookImages:', error);
+    console.error('Error en uploadBookImagesCloudinary:', error);
     res.status(500).json({ error: 'Error al procesar archivos' });
   }
 };
 
-// Middleware alternativo si no se pueden subir archivos
-export const uploadBookImagesLegacy = (req, res, next) => {
-  // Para casos donde no se pueden subir archivos, crear placeholders
+// Función para eliminar imagen de Cloudinary
+export const deleteFromCloudinary = async (publicId) => {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result;
+  } catch (error) {
+    console.error('Error eliminando imagen de Cloudinary:', error);
+    throw error;
+  }
+};
+
+// Middleware alternativo si Cloudinary no está configurado
+export const uploadBookImagesLocal = (req, res, next) => {
+  console.log('⚠️ Cloudinary no configurado, usando sistema local');
   req.files = [];
   next();
 }; 

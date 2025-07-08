@@ -102,6 +102,5 @@ backend/.env
 .vscode-test
 
 # ───── Uploads ─────
-# Ignorar imágenes subidas por usuarios pero mantener la estructura de carpetas
-backend/uploads/books/*
-!backend/uploads/books/.gitkeep
+# Ya no necesitamos el directorio uploads local - usando Cloudinary
+# backend/uploads/

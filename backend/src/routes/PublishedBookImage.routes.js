@@ -9,26 +9,26 @@ import {
   uploadImagesForPublishedBook,
 } from "../controllers/PublishedBookImage.controller.js"
 import { authenticateToken } from "../middlewares/auth.middleware.js"
-import { uploadBookImages } from "../middlewares/upload.middleware.js"
-import { promises as fs } from 'fs'
-import path from 'path'
+import { uploadBookImagesCloudinary } from "../middlewares/cloudinary.middleware.js"
 
 const router = Router()
 
-// Endpoint de prueba para verificar archivos estáticos
-router.get("/test-static", async (req, res) => {
+// Endpoint de prueba para verificar configuración de Cloudinary
+router.get("/test-cloudinary", async (req, res) => {
   try {
-    const uploadsDir = path.join(process.cwd(), 'uploads', 'books')
-    const files = await fs.readdir(uploadsDir)
+    const hasConfig = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+    
     res.json({
-      message: "Archivos en uploads/books:",
-      directory: uploadsDir,
-      files: files,
-      count: files.length
+      message: "Estado de configuración de Cloudinary",
+      configured: hasConfig,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? "✅ Configurado" : "❌ No configurado",
+      api_key: process.env.CLOUDINARY_API_KEY ? "✅ Configurado" : "❌ No configurado",
+      api_secret: process.env.CLOUDINARY_API_SECRET ? "✅ Configurado" : "❌ No configurado",
+      ready: hasConfig ? "✅ Listo para subir imágenes" : "❌ Requiere configuración"
     })
   } catch (error) {
     res.status(500).json({
-      error: "Error accediendo a directorio uploads",
+      error: "Error verificando configuración de Cloudinary",
       message: error.message
     })
   }
@@ -39,8 +39,8 @@ router.get("/published-book/:publishedBookId", getImagesByPublishedBook)
 router.get("/:id", getPublishedBookImageById)
 
 // Rutas protegidas (requieren autenticación)
-// Nueva ruta para subir archivos reales
-router.post("/upload/:publishedBookId", authenticateToken, uploadBookImages, uploadImagesForPublishedBook)
+// Nueva ruta para subir archivos a Cloudinary
+router.post("/upload/:publishedBookId", authenticateToken, uploadBookImagesCloudinary, uploadImagesForPublishedBook)
 // Ruta legacy para URLs directas
 router.post("/published-book/:publishedBookId", authenticateToken, addImageToPublishedBook)
 router.put("/:id", authenticateToken, updatePublishedBookImage)

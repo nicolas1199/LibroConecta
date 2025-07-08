@@ -196,11 +196,11 @@ export async function uploadImagesForPublishedBook(req, res) {
 
     // Crear registros de imagen para cada archivo subido
     const imagePromises = files.map((file, index) => {
-      const imageUrl = `/uploads/books/${file.filename}`;
+      const imageUrl = file.url; // URL completa de Cloudinary
       console.log(`💾 Guardando imagen en BD: ${imageUrl}`);
       return PublishedBookImage.create({
         published_book_id: publishedBookId,
-        image_url: imageUrl, // URL relativa al archivo
+        image_url: imageUrl, // URL completa de Cloudinary
         is_primary: index === 0 // Primera imagen es primaria por defecto
       });
     })
