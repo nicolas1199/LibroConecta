@@ -27,7 +27,7 @@ export const validateRatingCreation = (req, res, next) => {
   }
 
   // Validar que no se califique a sí mismo
-  if (rated_id === req.user.id) {
+  if (rated_id === req.user.user_id) {
     return res.status(400).json({
       error: "Calificación inválida",
       message: "No puedes calificarte a ti mismo",
@@ -178,7 +178,7 @@ export const validateUserParams = (req, res, next) => {
 // Middleware para validar ownership de calificación
 export const validateRatingOwnership = async (req, res, next) => {
   const { rating_id } = req.params;
-  const userId = req.user.id;
+  const userId = req.user.user_id;
 
   try {
     const { Rating } = await import("../db/modelIndex.js");

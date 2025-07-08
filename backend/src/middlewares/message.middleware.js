@@ -77,7 +77,7 @@ export const validateMessageIdParams = (req, res, next) => {
 // Middleware para validar acceso a conversación
 export const validateConversationAccess = async (req, res, next) => {
   const { match_id } = req.params;
-  const userId = req.user.id;
+  const userId = req.user.user_id; // Corregido: usar user_id del token JWT
 
   try {
     const { Match } = await import("../db/modelIndex.js");
@@ -90,8 +90,8 @@ export const validateConversationAccess = async (req, res, next) => {
       });
     }
 
-    // Verificar que el usuario sea parte del match
-    if (match.user_id !== userId && match.matched_user_id !== userId) {
+    // Verificar que el usuario sea parte del match (corregido: usar user_id_1 y user_id_2)
+    if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
       return res.status(403).json({
         error: "Acceso denegado",
         message: "Solo puedes acceder a tus propias conversaciones",
@@ -112,7 +112,7 @@ export const validateConversationAccess = async (req, res, next) => {
 // Middleware para validar ownership de mensaje
 export const validateMessageOwnership = async (req, res, next) => {
   const { message_id } = req.params;
-  const userId = req.user.id;
+  const userId = req.user.user_id; // Corregido: usar user_id del token JWT
 
   try {
     const { Message } = await import("../db/modelIndex.js");

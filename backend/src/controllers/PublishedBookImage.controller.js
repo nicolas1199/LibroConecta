@@ -59,7 +59,7 @@ export async function addImageToPublishedBook(req, res) {
       return res.status(404).json({ error: "Libro publicado no encontrado" })
     }
 
-    if (publishedBook.user_id !== req.user.id) {
+    if (publishedBook.user_id !== req.user.user_id) {
       return res.status(403).json({ error: "No tienes permisos para agregar imágenes a este libro" })
     }
 
@@ -96,7 +96,7 @@ export async function updatePublishedBookImage(req, res) {
     }
 
     // Verificar permisos
-    if (image.PublishedBooks.user_id !== req.user.id) {
+    if (image.PublishedBooks.user_id !== req.user.user_id) {
       return res.status(403).json({ error: "No tienes permisos para actualizar esta imagen" })
     }
 
@@ -131,7 +131,7 @@ export async function deletePublishedBookImage(req, res) {
     }
 
     // Verificar permisos
-    if (image.PublishedBooks.user_id !== req.user.id) {
+    if (image.PublishedBooks.user_id !== req.user.user_id) {
       return res.status(403).json({ error: "No tienes permisos para eliminar esta imagen" })
     }
 
@@ -157,7 +157,7 @@ export async function setPrimaryImage(req, res) {
     }
 
     // Verificar permisos
-    if (image.PublishedBooks.user_id !== req.user.id) {
+    if (image.PublishedBooks.user_id !== req.user.user_id) {
       return res.status(403).json({ error: "No tienes permisos para modificar esta imagen" })
     }
 

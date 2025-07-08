@@ -60,7 +60,7 @@ export function validatePublishedBookData(req, res, next) {
 export async function validatePublishedBookOwnership(req, res, next) {
   try {
     const { id } = req.params
-    const userId = req.user.id
+    const userId = req.user.user_id
 
     const publishedBook = await PublishedBooks.findOne({
       where: {

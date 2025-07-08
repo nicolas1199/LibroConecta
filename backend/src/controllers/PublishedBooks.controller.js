@@ -196,7 +196,7 @@ export async function createPublishedBook(req, res) {
       images = [],
     } = req.body
 
-    const user_id = req.user.id
+    const user_id = req.user.user_id
 
     console.log("Datos recibidos para publicar libro:", {
       book_id,
@@ -297,7 +297,7 @@ export async function updatePublishedBook(req, res) {
     }
 
     // Verificar que el usuario sea el propietario
-    if (publishedBook.user_id !== req.user.id) {
+    if (publishedBook.user_id !== req.user.user_id) {
       return res.status(403).json({ error: "No tienes permisos para actualizar este libro" })
     }
 
@@ -357,7 +357,7 @@ export async function deletePublishedBook(req, res) {
     }
 
     // Verificar que el usuario sea el propietario
-    if (publishedBook.user_id !== req.user.id) {
+    if (publishedBook.user_id !== req.user.user_id) {
       return res.status(403).json({ error: "No tienes permisos para eliminar este libro" })
     }
 

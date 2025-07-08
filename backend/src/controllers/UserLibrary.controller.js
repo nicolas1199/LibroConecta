@@ -11,7 +11,7 @@ import {
 // Agregar libro a la biblioteca personal
 export async function addToLibrary(req, res) {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const bookData = req.body;
 
     const result = await addToLibraryService(userId, bookData);
@@ -31,7 +31,7 @@ export async function addToLibrary(req, res) {
 // Obtener biblioteca personal del usuario
 export async function getUserLibrary(req, res) {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const options = {
       status: req.query.status,
       page: req.query.page,
@@ -74,7 +74,7 @@ export async function updateReadingStatus(req, res) {
 // Obtener estadísticas de lectura del usuario
 export async function getReadingStats(req, res) {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const stats = await getReadingStatsService(userId);
     res.json(stats);
   } catch (error) {
@@ -89,7 +89,7 @@ export async function getReadingStats(req, res) {
 export async function removeFromLibrary(req, res) {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     const result = await removeFromLibraryService(id, userId);
     res.json(result);
@@ -105,7 +105,7 @@ export async function removeFromLibrary(req, res) {
 export async function getUserLibraryBookById(req, res) {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     const userLibrary = await findUserLibraryByIdService(id, userId);
     res.json(userLibrary);
@@ -120,7 +120,7 @@ export async function getUserLibraryBookById(req, res) {
 // Obtener insights avanzados de la biblioteca
 export async function getLibraryInsights(req, res) {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const insights = await getAdvancedLibraryInsights(userId);
     res.json(insights);
   } catch (error) {

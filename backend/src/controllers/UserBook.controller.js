@@ -7,7 +7,7 @@ export async function swipeBook(req, res) {
     const { book_id, liked } = req.body;
 
     // Obtener el ID del usuario autenticado
-    const user_id = req.user.id;
+    const user_id = req.user.user_id;
 
     // Buscamos si ya existe una entrada en UserBooks para este usuario y libro
     const [userBook, created] = await UserBook.findOrCreate({
@@ -31,7 +31,7 @@ export async function swipeBook(req, res) {
 // Resetear todos los swipes de un usuario
 export async function resetUserSwipes(req, res) {
   try {
-    const user_id = req.user.id;
+    const user_id = req.user.user_id;
 
     await UserBook.destroy({
       where: { user_id },
@@ -47,7 +47,7 @@ export async function resetUserSwipes(req, res) {
 export async function createUserBook(req, res) {
   try {
     const { user_id, book_id, liked, is_for_sale } = req.body;
-    const currentUserId = req.user?.id;
+    const currentUserId = req.user?.user_id;
 
     if (!currentUserId) {
       return res.status(401).json({ error: "Usuario no autenticado" });
@@ -70,7 +70,7 @@ export async function createUserBook(req, res) {
 // Obtener todos los UserBooks (solo para admin)
 export async function getAllUserBooks(req, res) {
   try {
-    const currentUserId = req.user?.id;
+    const currentUserId = req.user?.user_id;
     if (!currentUserId) {
       return res.status(401).json({ error: "Usuario no autenticado" });
     }
@@ -87,7 +87,7 @@ export async function getAllUserBooks(req, res) {
 export async function getUserBookById(req, res) {
   try {
     const { id } = req.params;
-    const currentUserId = req.user?.id;
+    const currentUserId = req.user?.user_id;
 
     if (!currentUserId) {
       return res.status(401).json({ error: "Usuario no autenticado" });
@@ -110,7 +110,7 @@ export async function updateUserBook(req, res) {
   try {
     const { id } = req.params;
     const { liked, is_for_sale } = req.body;
-    const currentUserId = req.user?.id;
+    const currentUserId = req.user?.user_id;
 
     if (!currentUserId) {
       return res.status(401).json({ error: "Usuario no autenticado" });
@@ -133,7 +133,7 @@ export async function updateUserBook(req, res) {
 export async function deleteUserBook(req, res) {
   try {
     const { id } = req.params;
-    const currentUserId = req.user?.id;
+    const currentUserId = req.user?.user_id;
 
     if (!currentUserId) {
       return res.status(401).json({ error: "Usuario no autenticado" });

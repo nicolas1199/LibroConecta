@@ -53,7 +53,7 @@ export const validateMatchParams = (req, res, next) => {
 // Middleware para validar ownershipde match
 export const validateMatchOwnership = async (req, res, next) => {
   const { match_id } = req.params;
-  const userId = req.user.id;
+  const userId = req.user.user_id;
 
   try {
     const { Match } = await import("../db/modelIndex.js");
