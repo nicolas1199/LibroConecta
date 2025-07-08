@@ -11,9 +11,11 @@ export default function PrivateRoute({ children }) {
 
   const checkAuthStatus = async () => {
     try {
-      // Verificar si hay token en localStorage
-      const token = localStorage.getItem("authToken");
-      if (!token) {
+      // Verificar si hay token en localStorage (mismo nombre que usa Login.jsx)
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+      
+      if (!token || !user) {
         setIsAuthenticated(false);
         setLoading(false);
         return;
@@ -27,15 +29,17 @@ export default function PrivateRoute({ children }) {
       // if (response.data.valid) {
       //   setIsAuthenticated(true);
       // } else {
-      //   localStorage.removeItem("authToken");
+      //   localStorage.removeItem("token");
+      //   localStorage.removeItem("user");
       //   setIsAuthenticated(false);
       // }
 
-      // Simulación temporal - en producción debería verificar con el servidor
+      // Simulación temporal - verificar que el token y user existan
       setIsAuthenticated(true);
     } catch (error) {
       console.error("Error verificando autenticación:", error);
-      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       setIsAuthenticated(false);
     } finally {
       setLoading(false);

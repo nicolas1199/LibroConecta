@@ -8,7 +8,14 @@ export default defineConfig({
     postcss: "./postcss.config.js",
   },
   server: {
-    historyApiFallback: true,
+    // Para dev server
+    host: true,
+    port: 1235,
+  },
+  preview: {
+    // Para preview server (production build)
+    host: true,
+    port: 1235,
   },
   build: {
     rollupOptions: {
@@ -16,5 +23,7 @@ export default defineConfig({
         manualChunks: undefined,
       },
     },
+    // Copiar archivos de configuración del servidor
+    copyPublicDir: true,
   },
 })

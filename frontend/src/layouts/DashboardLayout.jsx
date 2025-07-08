@@ -21,25 +21,21 @@ export default function DashboardLayout({ children }) {
   }, [])
 
   useEffect(() => {
+    // Solo cargar datos de usuario, la autenticación la maneja PrivateRoute
     const userData = localStorage.getItem("user")
-    const token = localStorage.getItem("token")
-
-    if (!userData || !token) {
-      if (location.pathname.startsWith("/dashboard")) {
-        navigate("/login")
+    
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData))
+      } catch (error) {
+        console.error("Error parsing user data:", error)
+        // Si hay error en los datos, limpiar y recargar
+        localStorage.removeItem("user")
+        localStorage.removeItem("token")
+        window.location.reload()
       }
-      return
     }
-
-    try {
-      setUser(JSON.parse(userData))
-    } catch (error) {
-      console.error("Error parsing user data:", error)
-      localStorage.removeItem("user")
-      localStorage.removeItem("token")
-      navigate("/login")
-    }
-  }, [navigate, location.pathname])
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -47,10 +43,11 @@ export default function DashboardLayout({ children }) {
     navigate("/")
   }
 
+  // Mostrar loading solo si no hay datos de usuario
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="spinner border-gray-300 border-t-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }

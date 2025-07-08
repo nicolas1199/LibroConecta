@@ -64,8 +64,11 @@ export default function Login() {
 
       setMessage("¡Inicio de sesión exitoso! Redirigiendo...")
 
-      // Redirección inmediata
-      navigate("/dashboard")
+      // Pequeño delay para asegurar que se guarden los datos
+      setTimeout(() => {
+        navigate("/dashboard", { replace: true })
+      }, 100)
+      
     } catch (error) {
       setMessage(error?.response?.data?.message || "Error al iniciar sesión. Inténtalo de nuevo.")
     } finally {
