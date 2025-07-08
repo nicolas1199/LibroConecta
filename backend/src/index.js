@@ -29,9 +29,6 @@ async function setupServer() {
 
   app.use(morganMiddleware)
 
-  // Servir archivos estáticos (imágenes)
-  app.use('/uploads', express.static('uploads'))
-
   app.use("/api", indexRoutes)
 
   app.listen(PORT, () => {
