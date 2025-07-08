@@ -16,7 +16,7 @@ import {
   getCategories,
   createBook,
   publishBook,
-  uploadBookImage,
+  uploadBookImages,
 } from "../api/publishedBooks"
 
 const STEPS = [
@@ -345,13 +345,14 @@ export default function PublishBook() {
 
       const publishedBook = await publishBook(publishData)
 
-      // 3. Subir imágenes
-      for (const image of formData.images) {
-        const imageData = {
-          image_url: `placeholder_${Date.now()}_${Math.random()}`, // En producción, subirías a un servicio de almacenamiento
-          is_primary: image.is_primary,
-        }
-        await uploadBookImage(publishedBook.published_book_id, imageData)
+      // 3. Subir imágenes reales
+      if (formData.images.length > 0) {
+        const imageFormData = new FormData()
+        formData.images.forEach((image) => {
+          imageFormData.append('images', image.file)
+        })
+        
+        await uploadBookImages(publishedBook.published_book_id, imageFormData)
       }
 
       // Redirigir al dashboard con mensaje de éxito

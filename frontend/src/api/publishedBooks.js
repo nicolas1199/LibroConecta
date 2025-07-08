@@ -41,7 +41,17 @@ export const publishBook = async (publishData) => {
   return res.data
 }
 
-// Subir imagen de libro publicado
+// Subir múltiples imágenes reales de libro publicado
+export const uploadBookImages = async (publishedBookId, formData) => {
+  const res = await api.post(`/published-book-images/upload/${publishedBookId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return res.data
+}
+
+// Subir imagen de libro publicado (legacy)
 export const uploadBookImage = async (publishedBookId, imageData) => {
   const res = await api.post(`/published-book-images/published-book/${publishedBookId}`, imageData)
   return res.data

@@ -173,3 +173,45 @@ export async function setPrimaryImage(req, res) {
     res.status(500).json({ error: "Error al establecer imagen primaria" })
   }
 }
+
+// Subir múltiples imágenes con archivos reales
+export async function uploadImagesForPublishedBook(req, res) {
+  try {
+    const { publishedBookId } = req.params
+    const files = req.files
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "No se proporcionaron archivos" })
+    }
+
+    // Verificar que el libro publicado existe y pertenece al usuario
+    const publishedBook = await PublishedBooks.findByPk(publishedBookId)
+    if (!publishedBook) {
+      return res.status(404).json({ error: "Libro publicado no encontrado" })
+    }
+
+    if (publishedBook.user_id !== req.user.user_id) {
+      return res.status(403).json({ error: "No tienes permisos para agregar imágenes a este libro" })
+    }
+
+    // Crear registros de imagen para cada archivo subido
+    const imagePromises = files.map((file, index) => 
+      PublishedBookImage.create({
+        published_book_id: publishedBookId,
+        image_url: `/uploads/books/${file.filename}`, // URL relativa al archivo
+        is_primary: index === 0 // Primera imagen es primaria por defecto
+      })
+    )
+
+    const savedImages = await Promise.all(imagePromises)
+
+    res.status(201).json({
+      message: `${savedImages.length} imágenes subidas exitosamente`,
+      images: savedImages
+    })
+
+  } catch (error) {
+    console.error("Error en uploadImagesForPublishedBook:", error)
+    res.status(500).json({ error: "Error al subir imágenes" })
+  }
+}

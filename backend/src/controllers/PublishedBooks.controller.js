@@ -232,17 +232,8 @@ export async function createPublishedBook(req, res) {
 
     console.log("Libro publicado creado:", newPublishedBook.dataValues)
 
-    // Agregar imágenes si se proporcionan
-    if (images && images.length > 0) {
-      const imagePromises = images.map((image, index) =>
-        PublishedBookImage.create({
-          published_book_id: newPublishedBook.published_book_id,
-          image_url: image.url || `placeholder_${Date.now()}_${index}`,
-          is_primary: index === 0 || image.is_primary || false,
-        }),
-      )
-      await Promise.all(imagePromises)
-    }
+    // Nota: Las imágenes se suben por separado usando /api/published-book-images/upload/:publishedBookId
+    // No crear placeholders aquí
 
     // Obtener el libro publicado completo
     const publishedBookComplete = await PublishedBooks.findByPk(newPublishedBook.published_book_id, {

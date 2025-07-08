@@ -6,8 +6,10 @@ import {
   updatePublishedBookImage,
   deletePublishedBookImage,
   setPrimaryImage,
+  uploadImagesForPublishedBook,
 } from "../controllers/PublishedBookImage.controller.js"
 import { authenticateToken } from "../middlewares/auth.middleware.js"
+import { uploadBookImages, handleUploadError } from "../middlewares/upload.middleware.js"
 
 const router = Router()
 
@@ -16,6 +18,9 @@ router.get("/published-book/:publishedBookId", getImagesByPublishedBook)
 router.get("/:id", getPublishedBookImageById)
 
 // Rutas protegidas (requieren autenticación)
+// Nueva ruta para subir archivos reales
+router.post("/upload/:publishedBookId", authenticateToken, uploadBookImages, handleUploadError, uploadImagesForPublishedBook)
+// Ruta legacy para URLs directas
 router.post("/published-book/:publishedBookId", authenticateToken, addImageToPublishedBook)
 router.put("/:id", authenticateToken, updatePublishedBookImage)
 router.put("/:id/primary", authenticateToken, setPrimaryImage)
