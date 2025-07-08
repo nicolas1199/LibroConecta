@@ -16,7 +16,7 @@ export const register = async (req, res) => {
   // Desestructurar fullname en first_name y last_name de manera más robusta
   const nameParts = fullname.trim().split(" ");
   const first_name = nameParts[0];
-  const last_name = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+  const last_name = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Usuario";
 
   if (!first_name || !last_name) {
     return res
@@ -24,14 +24,23 @@ export const register = async (req, res) => {
       .json({ message: "El nombre completo debe incluir nombre y apellido" });
   }
   try {
-    // Asegurar que existan los tipos de usuario necesarios
-    const regularUserType = await UserType.findOne({
+    // Asegurar que existan los tipos de usuario necesarios o crear uno por defecto
+    let regularUserType = await UserType.findOne({
       where: { user_type_id: 2 },
     });
+    
     if (!regularUserType) {
-      return res.status(500).json({
-        message: "Tipo de usuario regular no encontrado en la base de datos",
-      });
+      // Intentar crear el tipo de usuario regular si no existe
+      try {
+        regularUserType = await UserType.create({
+          user_type_id: 2,
+          type_name: 'regular',
+          description: 'Usuario regular del sistema'
+        });
+      } catch (error) {
+        // Si falla, usar user_type_id = 1 o null
+        console.warn("No se pudo crear el tipo de usuario regular, usando valor por defecto");
+      }
     }
 
     // Validar email y username
@@ -65,19 +74,33 @@ export const register = async (req, res) => {
     const newUser = await User.create({
       first_name,
       last_name,
-      location,
-      user_type_id: 2, // Asignar tipo de usuario regular
+      location: location || null,
+      user_type_id: regularUserType ? 2 : null, // Usar el tipo encontrado o null
       email,
       username,
       password: hashedPassword,
     });
 
-    return res.status(201).json({
+    // Generar JWT para el usuario recién registrado
+    const payload = {
+      user_id: newUser.dataValues.user_id,
       username: newUser.dataValues.username,
-      email: newUser.dataValues.email,
-      first_name: newUser.dataValues.first_name,
-      last_name: newUser.dataValues.last_name,
       user_type_id: newUser.dataValues.user_type_id,
+    };
+    const token = jwt.sign(payload, JWT.ACCESS_TOKEN_SECRET, {
+      expiresIn: Number(JWT.ACCESS_TOKEN_EXPIRES_IN) || 15 * 60,
+    });
+
+    return res.status(201).json({
+      token,
+      user: {
+        user_id: newUser.dataValues.user_id,
+        username: newUser.dataValues.username,
+        email: newUser.dataValues.email,
+        first_name: newUser.dataValues.first_name,
+        last_name: newUser.dataValues.last_name,
+        user_type_id: newUser.dataValues.user_type_id,
+      },
     });
   } catch (err) {
     return res
