@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
+import PrivateRoute from "../components/PrivateRoute";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
@@ -14,6 +15,10 @@ import LibraryInsights from "../pages/LibraryInsights";
 import Matches from "../pages/Matches";
 import Messages from "../pages/Messages";
 import Ratings from "../pages/Ratings";
+import Favorites from "../pages/Favorites";
+import Wishlist from "../pages/Wishlist";
+import Drafts from "../pages/Drafts";
+import History from "../pages/History";
 
 export default function AppRouter() {
   return (
@@ -37,9 +42,11 @@ export default function AppRouter() {
         <Route
           path="/dashboard"
           element={
-            <DashboardLayout>
-              <Dashboard />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <Dashboard />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
 
@@ -47,46 +54,63 @@ export default function AppRouter() {
         <Route
           path="/dashboard/explore"
           element={
-            <DashboardLayout>
-              <Explore />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <Explore />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
 
         {/* Publish book route */}
-        <Route path="/dashboard/publish" element={<PublishBook />} />
+        <Route 
+          path="/dashboard/publish" 
+          element={
+            <PrivateRoute>
+              <PublishBook />
+            </PrivateRoute>
+          } 
+        />
 
         {/* Library routes */}
         <Route
           path="/dashboard/library"
           element={
-            <DashboardLayout>
-              <MyLibrary />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <MyLibrary />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
         <Route
           path="/dashboard/library/add"
           element={
-            <DashboardLayout>
-              <AddToLibrary />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <AddToLibrary />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
         <Route
           path="/dashboard/library/edit/:id"
           element={
-            <DashboardLayout>
-              <EditLibraryBook />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <EditLibraryBook />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
         <Route
           path="/dashboard/library/insights"
           element={
-            <DashboardLayout>
-              <LibraryInsights />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <LibraryInsights />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
 
@@ -94,9 +118,11 @@ export default function AppRouter() {
         <Route
           path="/dashboard/matches"
           element={
-            <DashboardLayout>
-              <Matches />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <Matches />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
 
@@ -104,17 +130,21 @@ export default function AppRouter() {
         <Route
           path="/dashboard/messages"
           element={
-            <DashboardLayout>
-              <Messages />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <Messages />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
         <Route
           path="/dashboard/messages/:matchId"
           element={
-            <DashboardLayout>
-              <Messages />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <Messages />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
 
@@ -122,9 +152,59 @@ export default function AppRouter() {
         <Route
           path="/dashboard/ratings"
           element={
-            <DashboardLayout>
-              <Ratings />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <Ratings />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Favorites routes */}
+        <Route
+          path="/dashboard/favorites"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Favorites />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Wishlist routes */}
+        <Route
+          path="/dashboard/wishlist"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Wishlist />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Drafts routes */}
+        <Route
+          path="/dashboard/drafts"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Drafts />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* History routes */}
+        <Route
+          path="/dashboard/history"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <History />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
       </Routes>

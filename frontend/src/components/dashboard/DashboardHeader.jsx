@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom"
+import { useState } from "react"
 import BookOpen from "../icons/BookOpen"
 import Search from "../icons/Search"
 import Bell from "../icons/Bell"
 import Plus from "../icons/Plus"
+import NotificationDropdown from "../NotificationDropdown"
 
 export default function DashboardHeader({ user }) {
+  const [showNotifications, setShowNotifications] = useState(false);
+
   return (
     <header className="dashboard-header">
       <div className="flex items-center justify-between h-full">
@@ -30,10 +34,20 @@ export default function DashboardHeader({ user }) {
             <span>Publicar</span>
           </Link>
 
-          <button className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100">
-            <Bell className="h-5 w-5" />
-            <span className="notification-badge">2</span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="notification-badge">2</span>
+            </button>
+            
+            <NotificationDropdown 
+              isOpen={showNotifications} 
+              onClose={() => setShowNotifications(false)} 
+            />
+          </div>
         </div>
       </div>
     </header>
