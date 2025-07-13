@@ -19,7 +19,13 @@ import ChevronDown from "../icons/ChevronDown";
 import User from "../icons/Users";
 import { useState } from "react";
 
-export default function DashboardSidebar({ user, onLogout, currentPath }) {
+export default function DashboardSidebar({
+  user,
+  onLogout,
+  currentPath,
+  isOpen,
+  onClose,
+}) {
   const [expandedSections, setExpandedSections] = useState({
     misLibros: true,
     actividad: false,
@@ -72,11 +78,17 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
   };
 
   return (
-    <aside className="dashboard-sidebar">
+    <aside
+      className={`dashboard-sidebar ${isOpen ? "dashboard-sidebar-open" : ""}`}
+    >
       <div className="sidebar-section">
         {/* User Profile */}
         <div className="sidebar-user-profile">
-          <Link to="/profile" className="flex items-center space-x-3 w-full hover:bg-gray-50 p-2 rounded-lg transition-colors">
+          <Link
+            to="/profile"
+            className="flex items-center space-x-3 w-full hover:bg-gray-50 p-2 rounded-lg transition-colors"
+            onClick={() => window.innerWidth < 1024 && onClose && onClose()}
+          >
             <div className="user-avatar">
               {user.first_name?.charAt(0) || "U"}
             </div>
@@ -104,6 +116,9 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
                   <Link
                     to={item.path}
                     className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                    onClick={() =>
+                      window.innerWidth < 1024 && onClose && onClose()
+                    }
                   >
                     <div className="sidebar-nav-content">
                       <item.icon className="h-4 w-4" />
@@ -143,6 +158,9 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
                     <Link
                       to={item.path}
                       className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                      onClick={() =>
+                        window.innerWidth < 1024 && onClose && onClose()
+                      }
                     >
                       <div className="sidebar-nav-content">
                         <item.icon className="h-4 w-4" />
@@ -206,8 +224,8 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
         {expandedSections.configuracion && (
           <ul className="space-y-1 mb-4">
             <li>
-              <Link 
-                to="/profile" 
+              <Link
+                to="/profile"
                 className={`sidebar-nav-item ${currentPath === "/profile" ? "active" : ""}`}
               >
                 <div className="sidebar-nav-content">
@@ -217,8 +235,8 @@ export default function DashboardSidebar({ user, onLogout, currentPath }) {
               </Link>
             </li>
             <li>
-              <Link 
-                to="/dashboard/settings" 
+              <Link
+                to="/dashboard/settings"
                 className={`sidebar-nav-item ${currentPath === "/dashboard/settings" ? "active" : ""}`}
               >
                 <div className="sidebar-nav-content">

@@ -946,6 +946,10 @@ body.dashboard .card:hover {
     z-index: 40;
   }
 
+  .dashboard-sidebar-open {
+    transform: translateX(0);
+  }
+
   .dashboard-main {
     margin-left: 0;
   }
@@ -958,6 +962,10 @@ body.dashboard .card:hover {
 @media (max-width: 768px) {
   .dashboard-header {
     padding: 0.75rem;
+  }
+
+  .dashboard-header .flex {
+    gap: 0.75rem;
   }
 
   .dashboard-main {
