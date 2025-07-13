@@ -70,7 +70,6 @@ export default function MyLibrary() {
   const handleDeleteBook = async (bookId) => {
     try {
       await removeFromLibrary(bookId);
-      // Reload both library data and stats
       const statusMap = {
         todos: null,
         por_leer: "por_leer",
@@ -170,7 +169,7 @@ export default function MyLibrary() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Tarjetas de estadisticas */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
           <div className="flex items-center">
@@ -250,7 +249,7 @@ export default function MyLibrary() {
         </div>
       </div>
 
-      {/* Filters and Search */}
+      {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow p-4 md:p-6">
         <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
           {/* Tabs */}
@@ -272,7 +271,7 @@ export default function MyLibrary() {
             </div>
           </div>
 
-          {/* Search */}
+          {/* Búsqueda */}
           <div className="relative w-full md:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -319,13 +318,12 @@ export default function MyLibrary() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {filteredLibrary.map((userBook) => (
             <div
               key={userBook.user_library_id}
-              className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 md:p-6"
+              className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-3 md:p-4"
             >
-              {/* Header with title and actions */}
               <div className="flex justify-between items-start mb-3 md:mb-4">
                 <div className="flex-1 min-w-0 mr-3 md:mr-4">
                   <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm md:text-base">
@@ -351,8 +349,8 @@ export default function MyLibrary() {
                 </div>
               </div>
 
-              {/* Book details */}
-              <div className="flex gap-3 md:gap-4 mb-3 md:mb-4">
+              {/* Detalles del libro */}
+              <div className="flex gap-2 md:gap-3 mb-3 md:mb-4">
                 {userBook.image_url ? (
                   <img
                     src={userBook.image_url}
@@ -364,7 +362,7 @@ export default function MyLibrary() {
                   />
                 ) : (
                   <div className="w-12 h-16 md:w-16 md:h-20 bg-gray-100 rounded-md flex-shrink-0 flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 md:w-6 md:h-6 text-gray-400" />
+                    <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -392,16 +390,6 @@ export default function MyLibrary() {
                           />
                         ))}
                       </div>
-                    </div>
-                  )}
-                  {userBook.progress && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs md:text-sm text-gray-600">
-                        Progreso:
-                      </span>
-                      <span className="text-xs md:text-sm font-medium">
-                        {userBook.progress}%
-                      </span>
                     </div>
                   )}
                 </div>

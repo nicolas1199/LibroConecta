@@ -7,6 +7,8 @@ import BookOpen from "../components/icons/BookOpen";
 import Search from "../components/icons/Search";
 import Plus from "../components/icons/Plus";
 import ArrowLeft from "../components/icons/ArrowLeft";
+import CustomDatePicker from "../components/CustomDatePicker";
+import CustomSelect from "../components/CustomSelect";
 
 export default function AddToLibrary() {
   const navigate = useNavigate();
@@ -29,6 +31,30 @@ export default function AddToLibrary() {
     date_started: "",
     date_finished: "",
   });
+
+  // Opciones para el selector de estado
+  const readingStatusOptions = [
+    {
+      value: "por_leer",
+      label: "Quiero leer",
+      description: "Añadir a lista de pendientes",
+    },
+    {
+      value: "leyendo",
+      label: "Leyendo",
+      description: "Actualmente en progreso",
+    },
+    {
+      value: "leido",
+      label: "Leído",
+      description: "Lectura completada",
+    },
+    {
+      value: "abandonado",
+      label: "Abandonado",
+      description: "Lectura interrumpida",
+    },
+  ];
 
   useEffect(() => {
     if (activeSearchType === "google") {
@@ -243,16 +269,21 @@ export default function AddToLibrary() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fecha de publicación
-                </label>
-                <input
-                  type="date"
-                  value={formData.date_of_pub}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date_of_pub: e.target.value })
+                <CustomDatePicker
+                  selected={
+                    formData.date_of_pub ? new Date(formData.date_of_pub) : null
                   }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(dateString) =>
+                    setFormData({
+                      ...formData,
+                      date_of_pub: dateString,
+                    })
+                  }
+                  placeholder="Selecciona fecha de publicación"
+                  label="Fecha de publicación"
+                  optional={false}
+                  maxDate={new Date()}
+                  minDate={null}
                 />
               </div>
             </div>
@@ -273,21 +304,15 @@ export default function AddToLibrary() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Estado de lectura
-              </label>
-              <select
+              <CustomSelect
                 value={formData.reading_status}
-                onChange={(e) =>
-                  setFormData({ ...formData, reading_status: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, reading_status: value })
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="por_leer">Quiero leer</option>
-                <option value="leyendo">Leyendo</option>
-                <option value="leido">Leído</option>
-                <option value="abandonado">Abandonado</option>
-              </select>
+                options={readingStatusOptions}
+                label="Estado de lectura"
+                placeholder="Selecciona el estado del libro"
+              />
             </div>
 
             {formData.reading_status === "leido" && (
@@ -335,6 +360,59 @@ export default function AddToLibrary() {
                 placeholder="Escribe tus notas sobre este libro..."
               />
             </div>
+
+            {(formData.reading_status === "leyendo" ||
+              formData.reading_status === "leido" ||
+              formData.reading_status === "abandonado") && (
+              <div>
+                <CustomDatePicker
+                  selected={
+                    formData.date_started
+                      ? new Date(formData.date_started)
+                      : null
+                  }
+                  onChange={(dateString) =>
+                    setFormData({
+                      ...formData,
+                      date_started: dateString,
+                    })
+                  }
+                  placeholder="Selecciona fecha de inicio"
+                  label="Fecha de inicio"
+                  optional={true}
+                  maxDate={new Date()}
+                  minDate={null}
+                />
+              </div>
+            )}
+
+            {(formData.reading_status === "leido" ||
+              formData.reading_status === "abandonado") && (
+              <div>
+                <CustomDatePicker
+                  selected={
+                    formData.date_finished
+                      ? new Date(formData.date_finished)
+                      : null
+                  }
+                  onChange={(dateString) =>
+                    setFormData({
+                      ...formData,
+                      date_finished: dateString,
+                    })
+                  }
+                  placeholder="Selecciona fecha de finalización"
+                  label="Fecha de finalización"
+                  optional={true}
+                  maxDate={new Date()}
+                  minDate={
+                    formData.date_started
+                      ? new Date(formData.date_started)
+                      : null
+                  }
+                />
+              </div>
+            )}
 
             <div className="flex justify-end space-x-3">
               <button
@@ -385,21 +463,15 @@ export default function AddToLibrary() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Estado de lectura
-              </label>
-              <select
+              <CustomSelect
                 value={formData.reading_status}
-                onChange={(e) =>
-                  setFormData({ ...formData, reading_status: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, reading_status: value })
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="por_leer">Quiero leer</option>
-                <option value="leyendo">Leyendo</option>
-                <option value="leido">Leído</option>
-                <option value="abandonado">Abandonado</option>
-              </select>
+                options={readingStatusOptions}
+                label="Estado de lectura"
+                placeholder="Selecciona el estado del libro"
+              />
             </div>
 
             {formData.reading_status === "leido" && (
@@ -447,6 +519,59 @@ export default function AddToLibrary() {
                 placeholder="Escribe tus notas sobre este libro..."
               />
             </div>
+
+            {(formData.reading_status === "leyendo" ||
+              formData.reading_status === "leido" ||
+              formData.reading_status === "abandonado") && (
+              <div>
+                <CustomDatePicker
+                  selected={
+                    formData.date_started
+                      ? new Date(formData.date_started)
+                      : null
+                  }
+                  onChange={(dateString) =>
+                    setFormData({
+                      ...formData,
+                      date_started: dateString,
+                    })
+                  }
+                  placeholder="Selecciona fecha de inicio"
+                  label="Fecha de inicio"
+                  optional={true}
+                  maxDate={new Date()}
+                  minDate={null}
+                />
+              </div>
+            )}
+
+            {(formData.reading_status === "leido" ||
+              formData.reading_status === "abandonado") && (
+              <div>
+                <CustomDatePicker
+                  selected={
+                    formData.date_finished
+                      ? new Date(formData.date_finished)
+                      : null
+                  }
+                  onChange={(dateString) =>
+                    setFormData({
+                      ...formData,
+                      date_finished: dateString,
+                    })
+                  }
+                  placeholder="Selecciona fecha de finalización"
+                  label="Fecha de finalización"
+                  optional={true}
+                  maxDate={new Date()}
+                  minDate={
+                    formData.date_started
+                      ? new Date(formData.date_started)
+                      : null
+                  }
+                />
+              </div>
+            )}
 
             <div className="flex justify-end space-x-3">
               <button

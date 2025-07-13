@@ -1,33 +1,54 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getUserLibraryBookById,
   updateReadingStatus,
 } from "../api/userLibrary";
 import ArrowLeft from "../components/icons/ArrowLeft";
+import CustomDatePicker from "../components/CustomDatePicker";
+import CustomSelect from "../components/CustomSelect";
 
 export default function EditLibraryBook() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [book, setBook] = useState(null);
+  const [book, setBook] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     status: "por_leer",
     rating: 0,
-    progress: 0,
     review: "",
     startedAt: "",
     finishedAt: "",
   });
 
-  useEffect(() => {
-    loadBook();
-  }, [id]);
+  // Opciones para el selector de estado
+  const readingStatusOptions = [
+    {
+      value: "por_leer",
+      label: "Quiero leer",
+      description: "Añadir a lista de pendientes",
+    },
+    {
+      value: "leyendo",
+      label: "Leyendo",
+      description: "Actualmente en progreso",
+    },
+    {
+      value: "leido",
+      label: "Leído",
+      description: "Lectura completada",
+    },
+    {
+      value: "abandonado",
+      label: "Abandonado",
+      description: "Lectura interrumpida",
+    },
+  ];
 
-  const loadBook = async () => {
+  const loadBook = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getUserLibraryBookById(id);
@@ -35,7 +56,6 @@ export default function EditLibraryBook() {
       setFormData({
         status: response.reading_status || "por_leer",
         rating: response.rating || 0,
-        progress: response.progress || 0,
         review: response.review || "",
         startedAt: response.date_started
           ? response.date_started.split("T")[0]
@@ -50,7 +70,11 @@ export default function EditLibraryBook() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadBook();
+  }, [id, loadBook]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,7 +82,6 @@ export default function EditLibraryBook() {
       const dataToSend = {
         reading_status: formData.status,
         rating: formData.rating > 0 ? formData.rating : null,
-        progress: formData.progress || null,
         review: formData.review || null,
         date_started: formData.startedAt || null,
         date_finished: formData.finishedAt || null,
@@ -95,177 +118,167 @@ export default function EditLibraryBook() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => navigate("/dashboard/library")}
-          className="text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Editar libro</h1>
-          <p className="text-gray-600">
-            Actualiza el estado de lectura de tu libro
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            {book.title}
-          </h2>
-          <p className="text-gray-600">por {book.author}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto px-4">
+        {/* Header */}
+        <div className="flex items-center space-x-4 mb-1">
+          <button
+            onClick={() => navigate("/dashboard/library")}
+            className="text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estado de lectura
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) =>
-                setFormData({ ...formData, status: e.target.value })
-              }
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="por_leer">Quiero leer</option>
-              <option value="leyendo">Leyendo</option>
-              <option value="leido">Leído</option>
-              <option value="abandonado">Abandonado</option>
-            </select>
+            <h1 className="text-2xl font-bold text-gray-900">Editar libro</h1>
+            <p className="text-gray-600">
+              Actualiza el estado de lectura de tu libro
+            </p>
+          </div>
+        </div>
+
+        {/* Card centrada */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+          {/* Header del libro */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 border-b border-gray-100 rounded-t-xl">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {book["title"] || "Título no disponible"}
+            </h2>
+            <p className="text-gray-600 flex items-center">
+              <span className="text-gray-400 mr-2">por</span>
+              {book["author"] || "Autor no disponible"}
+            </p>
           </div>
 
-          {formData.status === "leyendo" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Progreso (%)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={formData.progress}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    progress: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          )}
+          {/* Formulario */}
+          <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <CustomSelect
+                  value={formData.status}
+                  onChange={(value) =>
+                    setFormData({ ...formData, status: value })
+                  }
+                  options={readingStatusOptions}
+                  label="Estado de lectura"
+                  placeholder="Selecciona el estado del libro"
+                />
+              </div>
 
-          {(formData.status === "leido" ||
-            formData.status === "abandonado") && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Valoración
-              </label>
-              <div className="flex space-x-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, rating: star })}
-                    className={`p-2 ${
-                      (formData.rating || 0) >= star
-                        ? "text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  >
-                    ★
-                  </button>
-                ))}
+              {(formData.status === "leido" ||
+                formData.status === "abandonado") && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Valoración
+                  </label>
+                  <div className="flex items-center space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() =>
+                          setFormData({ ...formData, rating: star })
+                        }
+                        className={`p-2 rounded-lg transition-colors ${
+                          (formData.rating || 0) >= star
+                            ? "text-yellow-400 hover:text-yellow-500"
+                            : "text-gray-300 hover:text-gray-400"
+                        }`}
+                      >
+                        <span className="text-xl">★</span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, rating: 0 })}
+                      className="text-sm text-gray-500 ml-3 px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(formData.status === "leyendo" ||
+                formData.status === "leido" ||
+                formData.status === "abandonado") && (
+                <div>
+                  <CustomDatePicker
+                    selected={
+                      formData.startedAt ? new Date(formData.startedAt) : null
+                    }
+                    onChange={(dateString) =>
+                      setFormData({
+                        ...formData,
+                        startedAt: dateString,
+                      })
+                    }
+                    placeholder="Selecciona fecha de inicio"
+                    label="Fecha de inicio"
+                    optional={true}
+                    maxDate={new Date()}
+                    minDate={null}
+                  />
+                </div>
+              )}
+
+              {(formData.status === "leido" ||
+                formData.status === "abandonado") && (
+                <div>
+                  <CustomDatePicker
+                    selected={
+                      formData.finishedAt ? new Date(formData.finishedAt) : null
+                    }
+                    onChange={(dateString) =>
+                      setFormData({
+                        ...formData,
+                        finishedAt: dateString,
+                      })
+                    }
+                    placeholder="Selecciona fecha de finalización"
+                    label="Fecha de finalización"
+                    optional={true}
+                    maxDate={new Date()}
+                    minDate={
+                      formData.startedAt ? new Date(formData.startedAt) : null
+                    }
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notas <span className="text-gray-400">(opcional)</span>
+                </label>
+                <textarea
+                  value={formData.review}
+                  onChange={(e) =>
+                    setFormData({ ...formData, review: e.target.value })
+                  }
+                  rows={4}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
+                  placeholder="Escribe tus notas sobre este libro..."
+                />
+              </div>
+
+              {/* Botones */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, rating: 0 })}
-                  className="text-sm text-gray-500 ml-2"
+                  onClick={() => navigate("/dashboard/library")}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Limpiar
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                >
+                  Guardar cambios
                 </button>
               </div>
-            </div>
-          )}
-
-          {formData.status === "reading" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de inicio
-              </label>
-              <input
-                type="date"
-                value={formData.startedAt}
-                onChange={(e) =>
-                  setFormData({ ...formData, startedAt: e.target.value })
-                }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          )}
-
-          {(formData.status === "read" || formData.status === "abandoned") && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fecha de inicio
-                </label>
-                <input
-                  type="date"
-                  value={formData.startedAt}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startedAt: e.target.value })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fecha de finalización
-                </label>
-                <input
-                  type="date"
-                  value={formData.finishedAt}
-                  onChange={(e) =>
-                    setFormData({ ...formData, finishedAt: e.target.value })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notas (opcional)
-            </label>
-            <textarea
-              value={formData.review}
-              onChange={(e) =>
-                setFormData({ ...formData, review: e.target.value })
-              }
-              rows={4}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Escribe tus notas sobre este libro..."
-            />
+            </form>
           </div>
-
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard/library")}
-              className="btn btn-secondary"
-            >
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Guardar cambios
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

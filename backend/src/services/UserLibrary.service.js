@@ -12,6 +12,8 @@ export async function addToLibraryService(userId, bookData) {
     reading_status,
     rating,
     review,
+    date_started,
+    date_finished,
   } = bookData;
 
   // Verificar si el libro ya está en la biblioteca del usuario (por título y autor)
@@ -35,31 +37,47 @@ export async function addToLibraryService(userId, bookData) {
       date_of_pub,
     };
 
-    // Lógica para fechas
-    if (
-      reading_status === "leyendo" &&
-      existingUserLibrary.dataValues.reading_status !== "leyendo"
-    ) {
-      updateData.date_started = new Date();
-      updateData.date_finished = null;
-    } else if (
-      reading_status === "leido" &&
-      existingUserLibrary.dataValues.reading_status !== "leido"
-    ) {
-      updateData.date_finished = new Date();
-
-      if (!existingUserLibrary.dataValues.date_started) {
+    // Usar fechas manuales si están disponibles, sino usar lógica automática
+    if (date_started !== undefined) {
+      updateData.date_started = date_started ? new Date(date_started) : null;
+    } else {
+      // Lógica automática para fecha de inicio
+      if (
+        reading_status === "leyendo" &&
+        existingUserLibrary.dataValues.reading_status !== "leyendo"
+      ) {
         updateData.date_started = new Date();
+      } else if (reading_status === "por_leer") {
+        updateData.date_started = null;
       }
-    } else if (reading_status === "por_leer") {
-      updateData.date_started = null;
-      updateData.date_finished = null;
+    }
+
+    if (date_finished !== undefined) {
+      updateData.date_finished = date_finished ? new Date(date_finished) : null;
+    } else {
+      // Lógica automática para fecha de finalización
+      if (
+        reading_status === "leido" &&
+        existingUserLibrary.dataValues.reading_status !== "leido"
+      ) {
+        updateData.date_finished = new Date();
+        if (
+          !existingUserLibrary.dataValues.date_started &&
+          date_started === undefined
+        ) {
+          updateData.date_started = new Date();
+        }
+      } else if (reading_status === "leyendo") {
+        updateData.date_finished = null;
+      } else if (reading_status === "por_leer") {
+        updateData.date_finished = null;
+      }
     }
 
     await existingUserLibrary.update(updateData);
     userLibrary = existingUserLibrary;
   } else {
-    // Si no existe, crear nueva entrada con lógica de fechas mejorada
+    // Si no existe, crear nueva entrada
     let createData = {
       user_id: userId,
       title: title.trim(),
@@ -72,16 +90,28 @@ export async function addToLibraryService(userId, bookData) {
       review,
     };
 
-    // Establecer fechas según el estado inicial
-    if (reading_status === "leyendo") {
-      createData.date_started = new Date();
-      createData.date_finished = null;
-    } else if (reading_status === "leido") {
-      createData.date_started = new Date();
-      createData.date_finished = new Date();
+    // Usar fechas manuales si están disponibles, sino usar lógica automática
+    if (date_started !== undefined) {
+      createData.date_started = date_started ? new Date(date_started) : null;
     } else {
-      createData.date_started = null;
-      createData.date_finished = null;
+      // Establecer fechas según el estado inicial
+      if (reading_status === "leyendo") {
+        createData.date_started = new Date();
+      } else if (reading_status === "leido") {
+        createData.date_started = new Date();
+      } else {
+        createData.date_started = null;
+      }
+    }
+
+    if (date_finished !== undefined) {
+      createData.date_finished = date_finished ? new Date(date_finished) : null;
+    } else {
+      if (reading_status === "leido") {
+        createData.date_finished = new Date();
+      } else {
+        createData.date_finished = null;
+      }
     }
 
     userLibrary = await UserLibrary.create(createData);
@@ -127,28 +157,43 @@ export async function getUserLibraryService(userId, options = {}) {
 
 // Actualizar el estado de lectura de un libro específico
 export async function updateReadingStatusService(userLibrary, updateData) {
-  const { reading_status, rating, review } = updateData;
+  const { reading_status, rating, review, date_started, date_finished } =
+    updateData;
 
-  // Gestionar fechas automáticamente
+  // Usar fechas del frontend si están disponibles, sino usar lógica automática
   const finalUpdateData = { reading_status, rating, review };
 
-  if (
-    reading_status === "leyendo" &&
-    userLibrary.dataValues.reading_status !== "leyendo"
-  ) {
-    finalUpdateData.date_started = new Date();
-    finalUpdateData.date_finished = null; // Limpiar fecha de finalización si vuelve a leer
-  } else if (
-    reading_status === "leido" &&
-    userLibrary.dataValues.reading_status !== "leido"
-  ) {
-    finalUpdateData.date_finished = new Date();
-    if (!userLibrary.dataValues.date_started) {
+  // Si se proporcionan fechas desde el frontend, usarlas
+  if (date_started !== undefined) {
+    finalUpdateData.date_started = date_started ? new Date(date_started) : null;
+  }
+
+  if (date_finished !== undefined) {
+    finalUpdateData.date_finished = date_finished
+      ? new Date(date_finished)
+      : null;
+  }
+
+  // Solo aplicar lógica automática si no se proporcionaron fechas desde el frontend
+  if (date_started === undefined && date_finished === undefined) {
+    if (
+      reading_status === "leyendo" &&
+      userLibrary.dataValues.reading_status !== "leyendo"
+    ) {
       finalUpdateData.date_started = new Date();
+      finalUpdateData.date_finished = null; // Limpiar fecha de finalización si vuelve a leer
+    } else if (
+      reading_status === "leido" &&
+      userLibrary.dataValues.reading_status !== "leido"
+    ) {
+      finalUpdateData.date_finished = new Date();
+      if (!userLibrary.dataValues.date_started) {
+        finalUpdateData.date_started = new Date();
+      }
+    } else if (reading_status === "por_leer") {
+      finalUpdateData.date_started = null;
+      finalUpdateData.date_finished = null;
     }
-  } else if (reading_status === "por_leer") {
-    finalUpdateData.date_started = null;
-    finalUpdateData.date_finished = null;
   }
 
   await userLibrary.update(finalUpdateData);
