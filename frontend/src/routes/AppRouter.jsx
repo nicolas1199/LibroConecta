@@ -22,6 +22,7 @@ import History from "../pages/History";
 import MyBooks from "../pages/MyBooks";
 import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
+import Swipe from "../pages/Swipe";
 
 export default function AppRouter() {
   return (
@@ -60,6 +61,18 @@ export default function AppRouter() {
             <PrivateRoute>
               <DashboardLayout>
                 <Explore />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Swipe books route */}
+        <Route
+          path="/dashboard/swipe"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Swipe />
               </DashboardLayout>
             </PrivateRoute>
           }

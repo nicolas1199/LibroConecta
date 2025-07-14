@@ -7,8 +7,10 @@ import {
   LocationBook,
   PublishedBookImage,
   Category,
+  UserPublishedBookInteraction,
 } from "../db/modelIndex.js";
-import { Op } from "sequelize";
+import { Op, fn, col } from "sequelize";
+import { createResponse, success, error } from "../utils/responses.util.js";
 
 // Obtener todos los libros publicados con filtros
 export async function getAllPublishedBooks(req, res) {
@@ -398,5 +400,193 @@ export async function deletePublishedBook(req, res) {
   } catch (error) {
     console.error("Error en deletePublishedBook:", error);
     res.status(500).json({ error: "Error al eliminar libro publicado" });
+  }
+}
+
+// Obtener recomendaciones inteligentes para swipe
+export async function getRecommendations(req, res) {
+  try {
+    const { user_id } = req.user;
+    const { limit = 20 } = req.query;
+
+    console.log(`🔍 Obteniendo recomendaciones para usuario: ${user_id}`);
+
+    // Obtener los IDs de libros publicados que el usuario ya evaluó
+    const interactedBooks = await UserPublishedBookInteraction.findAll({
+      where: { user_id },
+      attributes: ['published_book_id'],
+      raw: true
+    });
+
+    const interactedBookIds = interactedBooks.map(interaction => 
+      interaction.published_book_id
+    );
+
+    console.log(`📚 Libros ya evaluados por el usuario: [${interactedBookIds.join(', ')}]`);
+
+    // Construir condiciones WHERE para excluir libros ya evaluados
+    const whereConditions = {
+      user_id: { [Op.ne]: user_id }, // No mostrar los propios libros
+    };
+
+    if (interactedBookIds.length > 0) {
+      whereConditions.published_book_id = { [Op.notIn]: interactedBookIds };
+    }
+
+    console.log(`🎯 Condiciones WHERE:`, whereConditions);
+
+    const recommendations = await PublishedBooks.findAll({
+      where: whereConditions,
+      include: [
+        {
+          model: Book,
+          include: [
+            {
+              model: Category,
+              as: "Categories",
+              through: { attributes: [] },
+            },
+          ],
+        },
+        {
+          model: User,
+          attributes: ['user_id', 'first_name', 'last_name', 'email'],
+        },
+        {
+          model: TransactionType,
+        },
+        {
+          model: BookCondition,
+        },
+        {
+          model: LocationBook,
+        },
+        {
+          model: PublishedBookImage,
+        },
+      ],
+      order: [
+        // Priorizar libros recién publicados
+        ['date_published', 'DESC'],
+        // Ordenar aleatoriamente para diversidad
+        [fn('RANDOM')]
+      ],
+      limit: parseInt(limit),
+    });
+
+    console.log(`✅ Recomendaciones encontradas: ${recommendations.length}`);
+    console.log(`📋 IDs de libros recomendados: [${recommendations.map(r => r.published_book_id).join(', ')}]`);
+
+    // Si no hay más libros para mostrar, enviar mensaje específico
+    if (recommendations.length === 0) {
+      console.log(`🎯 No hay más libros para mostrar al usuario ${user_id}`);
+      return success(res, [], "Has revisado todos los libros disponibles");
+    }
+
+    return success(res, recommendations, `${recommendations.length} recomendaciones encontradas`);
+
+  } catch (err) {
+    console.error("Error en getRecommendations:", err);
+    return error(res, "Error al obtener recomendaciones", 500);
+  }
+}
+
+// Registrar interacción del usuario con un libro publicado (swipe)
+export async function recordInteraction(req, res) {
+  try {
+    const { user_id } = req.user;
+    const { published_book_id, interaction_type } = req.body;
+
+    // Validar datos
+    if (!published_book_id || !interaction_type) {
+      return error(res, "published_book_id e interaction_type son requeridos", 400);
+    }
+
+    if (!['like', 'dislike', 'super_like'].includes(interaction_type)) {
+      return error(res, "interaction_type debe ser: like, dislike o super_like", 400);
+    }
+
+    // Verificar que el libro publicado existe
+    const publishedBook = await PublishedBooks.findByPk(published_book_id);
+    if (!publishedBook) {
+      return error(res, "Libro publicado no encontrado", 404);
+    }
+
+    // Verificar que no es su propio libro
+    if (publishedBook.user_id === user_id) {
+      return error(res, "No puedes interactuar con tus propios libros", 400);
+    }
+
+    console.log(`👆 Registrando interacción: usuario ${user_id}, libro ${published_book_id}, tipo: ${interaction_type}`);
+
+    // Buscar si ya existe una interacción
+    let interaction = await UserPublishedBookInteraction.findOne({
+      where: {
+        user_id,
+        published_book_id
+      }
+    });
+
+    let message;
+    if (interaction) {
+      // Si ya existe, actualizar el tipo de interacción
+      console.log(`🔄 Actualizando interacción existente: ${interaction.interaction_type} → ${interaction_type}`);
+      interaction.interaction_type = interaction_type;
+      await interaction.save();
+      message = "Interacción actualizada";
+    } else {
+      // Si no existe, crear nueva interacción
+      console.log(`✨ Creando nueva interacción`);
+      interaction = await UserPublishedBookInteraction.create({
+        user_id,
+        published_book_id,
+        interaction_type,
+      });
+      message = "Interacción registrada";
+    }
+
+    console.log(`✅ Interacción ${message.toLowerCase()}: ID ${interaction.interaction_id}`);
+
+    return success(res, interaction, message);
+
+  } catch (err) {
+    console.error("Error en recordInteraction:", err);
+    return error(res, "Error al registrar interacción", 500);
+  }
+}
+
+// Obtener estadísticas de interacciones del usuario
+export async function getUserInteractionStats(req, res) {
+  try {
+    const { user_id } = req.user;
+
+    const stats = await UserPublishedBookInteraction.findAll({
+      where: { user_id },
+      attributes: [
+        'interaction_type',
+        [fn('COUNT', col('interaction_type')), 'count']
+      ],
+      group: ['interaction_type'],
+      raw: true
+    });
+
+    const formattedStats = {
+      likes: 0,
+      dislikes: 0,
+      super_likes: 0,
+      total: 0
+    };
+
+    stats.forEach(stat => {
+      const count = parseInt(stat.count);
+      formattedStats[stat.interaction_type + 's'] = count;
+      formattedStats.total += count;
+    });
+
+    return success(res, formattedStats, "Estadísticas obtenidas correctamente");
+
+  } catch (err) {
+    console.error("Error en getUserInteractionStats:", err);
+    return error(res, "Error al obtener estadísticas", 500);
   }
 }

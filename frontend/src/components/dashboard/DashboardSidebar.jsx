@@ -17,6 +17,7 @@ import Settings from "../icons/Settings";
 import LogOut from "../icons/LogOut";
 import ChevronDown from "../icons/ChevronDown";
 import User from "../icons/Users";
+import ArrowLeftRight from "../icons/ArrowLeftRight";
 import { useState } from "react";
 
 export default function DashboardSidebar({
@@ -48,6 +49,12 @@ export default function DashboardSidebar({
         label: "Explorar",
         path: "/dashboard/explore",
         badge: "Nuevo",
+      },
+      {
+        icon: ArrowLeftRight,
+        label: "Swipe",
+        path: "/dashboard/swipe",
+        badge: "Hot",
       },
       { icon: Users, label: "Matches", path: "/dashboard/matches", count: 0 },
       {

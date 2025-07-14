@@ -17,6 +17,7 @@ export default ({
   PublishedBookImage,
   Message,
   Rating,
+  UserPublishedBookInteraction,
 }) => {
   //  UserType 1:N User
   UserType.hasMany(User, { foreignKey: "user_type_id" });
@@ -140,4 +141,25 @@ export default ({
   // Sell 1:N Rating
   Sell.hasMany(Rating, { foreignKey: "sell_id" });
   Rating.belongsTo(Sell, { foreignKey: "sell_id" });
+
+  // UserPublishedBookInteraction Relations
+  // User 1:N UserPublishedBookInteraction
+  User.hasMany(UserPublishedBookInteraction, { 
+    as: "PublishedBookInteractions", 
+    foreignKey: "user_id" 
+  });
+  UserPublishedBookInteraction.belongsTo(User, { 
+    as: "User", 
+    foreignKey: "user_id" 
+  });
+
+  // PublishedBooks 1:N UserPublishedBookInteraction
+  PublishedBooks.hasMany(UserPublishedBookInteraction, { 
+    as: "UserInteractions", 
+    foreignKey: "published_book_id" 
+  });
+  UserPublishedBookInteraction.belongsTo(PublishedBooks, { 
+    as: "PublishedBook", 
+    foreignKey: "published_book_id" 
+  });
 };

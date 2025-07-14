@@ -19,6 +19,7 @@ import PublishedBooks from "./models/PublishedBooks.js"
 import PublishedBookImage from "./models/PublishedBookImage.js"
 import Message from "./models/Message.js"
 import Rating from "./models/Rating.js"
+import UserPublishedBookInteraction from "./models/UserPublishedBookInteraction.js"
 
 // Configurar relaciones una sola vez
 setupRelations({
@@ -40,6 +41,7 @@ setupRelations({
   PublishedBookImage,
   Message,
   Rating,
+  UserPublishedBookInteraction,
 })
 
 // Sincronizar modelos con la base de datos para crear tablas automáticamente
@@ -70,5 +72,6 @@ export {
   PublishedBookImage,
   Message,
   Rating,
+  UserPublishedBookInteraction,
   sequelize,
 }

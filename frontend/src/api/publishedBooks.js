@@ -74,3 +74,21 @@ export const getPublishedBookById = async (id) => {
   const res = await api.get(`/published-books/${id}`)
   return res.data
 }
+
+// Obtener recomendaciones para swipe
+export const getRecommendations = async (params = {}) => {
+  const res = await api.get("/published-books/recommendations/swipe", { params })
+  return res.data
+}
+
+// Registrar interacción de swipe
+export const recordSwipeInteraction = async (interactionData) => {
+  const res = await api.post("/published-books/interactions", interactionData)
+  return res.data
+}
+
+// Obtener estadísticas de interacciones del usuario
+export const getUserSwipeStats = async () => {
+  const res = await api.get("/published-books/interactions/stats")
+  return res.data
+}

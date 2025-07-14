@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import Filter from "../components/icons/Filter"
 import ArrowRight from "../components/icons/ArrowRight"
+import Search from "../components/icons/Search"
 import BookOpen from "../components/icons/BookOpen"
 import RefreshCw from "../components/icons/RefreshCw"
 import Gift from "../components/icons/Gift"
@@ -99,7 +100,7 @@ export default function Dashboard() {
 
   const getCurrentData = () => {
     switch (activeTab) {
-      case "matches":
+      case "matches": {
         // TEMPORAL: Usar matches existentes con datos simulados de compatibilidad
         // hasta que la API de matches sugeridos esté funcionando correctamente
         const processedMatches = matches.map(match => ({
@@ -110,6 +111,7 @@ export default function Dashboard() {
           type: "existing_match"
         }))
         return processedMatches
+      }
       case "cercanos":
         return publishedBooks.filter(book => book.LocationBook?.location_name)
       default:
@@ -130,6 +132,54 @@ export default function Dashboard() {
       <div className="dashboard-welcome">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Bienvenido, {user?.first_name || "Lector"}</h1>
         <p className="text-gray-600">Descubre nuevos libros y conecta con otros lectores</p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link
+          to="/dashboard/swipe"
+          className="group bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">📚 Swipe Libros</h3>
+              <p className="text-gray-600 text-sm">Descubre tu próximo libro favorito</p>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg group-hover:bg-blue-100 transition-colors">
+              <ArrowRight className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          to="/dashboard/explore"
+          className="group bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">🔍 Explorar</h3>
+              <p className="text-gray-600 text-sm">Busca libros específicos</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg group-hover:bg-gray-100 transition-colors">
+              <Search className="h-6 w-6 text-gray-600" />
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          to="/dashboard/matches"
+          className="group bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">💖 Matches</h3>
+              <p className="text-gray-600 text-sm">Ve tus coincidencias</p>
+            </div>
+            <div className="bg-red-50 p-3 rounded-lg group-hover:bg-red-100 transition-colors">
+              <Heart className="h-6 w-6 text-red-500" />
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* Tabs and Content */}

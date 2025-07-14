@@ -6,6 +6,9 @@ import {
   createPublishedBook,
   updatePublishedBook,
   deletePublishedBook,
+  getRecommendations,
+  recordInteraction,
+  getUserInteractionStats,
 } from "../controllers/PublishedBooks.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import {
@@ -49,6 +52,25 @@ router.delete(
   authenticateToken,
   validatePublishedBookOwnership,
   deletePublishedBook
+);
+
+// Rutas para recomendaciones y swipe
+router.get(
+  "/recommendations/swipe",
+  authenticateToken,
+  getRecommendations
+);
+
+router.post(
+  "/interactions",
+  authenticateToken,
+  recordInteraction
+);
+
+router.get(
+  "/interactions/stats",
+  authenticateToken,
+  getUserInteractionStats
 );
 
 export default router;
