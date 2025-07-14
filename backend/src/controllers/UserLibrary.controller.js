@@ -6,6 +6,7 @@ import {
   removeFromLibraryService,
   findUserLibraryByIdService,
   getAdvancedLibraryInsights,
+  getRecommendationsService,
 } from "../services/UserLibrary.service.js";
 import { RESPONSE_MESSAGES } from "../utils/constants.util.js";
 
@@ -37,6 +38,12 @@ export async function getUserLibrary(req, res) {
       status: req.query.status,
       page: req.query.page,
       limit: req.query.limit,
+      search: req.query.search,
+      author: req.query.author,
+      rating: req.query.rating,
+      year: req.query.year,
+      sortBy: req.query.sortBy,
+      sortOrder: req.query.sortOrder,
     };
 
     const result = await getUserLibraryService(userId, options);
@@ -128,6 +135,20 @@ export async function getLibraryInsights(req, res) {
     console.error("Error en getLibraryInsights:", error);
     res.status(500).json({
       error: error.message || "Error al obtener insights de biblioteca",
+    });
+  }
+}
+
+// Obtener recomendaciones personalizadas
+export async function getRecommendations(req, res) {
+  try {
+    const userId = req.user.user_id;
+    const recommendations = await getRecommendationsService(userId);
+    res.json(recommendations);
+  } catch (error) {
+    console.error("Error en getRecommendations:", error);
+    res.status(500).json({
+      error: error.message || "Error al obtener recomendaciones",
     });
   }
 }

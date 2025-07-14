@@ -6,6 +6,7 @@ import {
   PAGINATION_DEFAULTS,
   RESPONSE_MESSAGES,
   RATING_LIMITS,
+  REVIEW_LIMITS,
 } from "../utils/constants.util.js";
 
 // Agregar o actualizar un libro en la biblioteca personal
@@ -22,6 +23,20 @@ export async function addToLibraryService(userId, bookData) {
     date_started,
     date_finished,
   } = bookData;
+
+  // Validaciones de negocio
+  if (rating !== undefined && rating !== null) {
+    validateRatingService(rating);
+    validateRatingConsistency(rating, reading_status);
+  }
+
+  if (review) {
+    validateReviewLength(review);
+  }
+
+  if (date_started && date_finished) {
+    validateDatesService(date_started, date_finished);
+  }
 
   // Verificar si el libro ya está en la biblioteca del usuario (por título y autor)
   const existingUserLibrary = await UserLibrary.findOne({
@@ -75,9 +90,11 @@ export async function addToLibraryService(userId, bookData) {
         ) {
           updateData.date_started = new Date();
         }
-      } else if (reading_status === "leyendo") {
+      } else if (reading_status === READING_STATUSES.READING) {
         updateData.date_finished = null;
-      } else if (reading_status === "por_leer") {
+      } else if (reading_status === READING_STATUSES.TO_READ) {
+        updateData.date_finished = null;
+      } else if (reading_status === READING_STATUSES.ABANDONED) {
         updateData.date_finished = null;
       }
     }
@@ -115,7 +132,7 @@ export async function addToLibraryService(userId, bookData) {
     if (date_finished !== undefined) {
       createData.date_finished = date_finished ? new Date(date_finished) : null;
     } else {
-      if (reading_status === "leido") {
+      if (reading_status === READING_STATUSES.READ) {
         createData.date_finished = new Date();
       } else {
         createData.date_finished = null;
@@ -134,19 +151,61 @@ export async function getUserLibraryService(userId, options = {}) {
     status,
     page = PAGINATION_DEFAULTS.PAGE,
     limit = PAGINATION_DEFAULTS.LIMIT,
+    search,
+    author,
+    rating,
+    year,
+    sortBy = "updatedAt",
+    sortOrder = "DESC",
   } = options;
 
   // Construir condiciones de búsqueda
   const whereConditions = { user_id: userId };
+
   if (status) {
     whereConditions.reading_status = status;
   }
+
+  if (search) {
+    whereConditions[Op.or] = [
+      { title: { [Op.iLike]: `%${search}%` } },
+      { author: { [Op.iLike]: `%${search}%` } },
+    ];
+  }
+
+  if (author) {
+    whereConditions.author = { [Op.iLike]: `%${author}%` };
+  }
+
+  if (rating) {
+    whereConditions.rating = parseInt(rating);
+  }
+
+  if (year) {
+    whereConditions.date_of_pub = {
+      [Op.between]: [new Date(`${year}-01-01`), new Date(`${year}-12-31`)],
+    };
+  }
+
+  // Validar campos de ordenamiento
+  const validSortFields = [
+    "title",
+    "author",
+    "rating",
+    "updatedAt",
+    "date_started",
+    "date_finished",
+  ];
+  const finalSortBy = validSortFields.includes(sortBy) ? sortBy : "updatedAt";
+  const finalSortOrder = ["ASC", "DESC"].includes(sortOrder.toUpperCase())
+    ? sortOrder.toUpperCase()
+    : "DESC";
 
   const offset = (page - 1) * limit;
 
   const { count, rows: userLibraries } = await UserLibrary.findAndCountAll({
     where: whereConditions,
-    order: [["updatedAt", "DESC"]],
+    order: [[finalSortBy, finalSortOrder]],
     limit: parseInt(limit),
     offset: offset,
   });
@@ -171,6 +230,16 @@ export async function getUserLibraryService(userId, options = {}) {
 export async function updateReadingStatusService(userLibrary, updateData) {
   const { reading_status, rating, review, date_started, date_finished } =
     updateData;
+
+  // Validaciones de negocio
+  if (rating !== undefined && rating !== null) {
+    validateRatingService(rating);
+    validateRatingConsistency(rating, reading_status);
+  }
+
+  if (date_started && date_finished) {
+    validateDatesService(date_started, date_finished);
+  }
 
   // Usar fechas del frontend si están disponibles, sino usar lógica automática
   const finalUpdateData = { reading_status, rating, review };
@@ -204,6 +273,9 @@ export async function updateReadingStatusService(userLibrary, updateData) {
       }
     } else if (reading_status === READING_STATUSES.TO_READ) {
       finalUpdateData.date_started = null;
+      finalUpdateData.date_finished = null;
+    } else if (reading_status === READING_STATUSES.ABANDONED) {
+      // Mantener date_started pero limpiar date_finished ya que no se completó
       finalUpdateData.date_finished = null;
     }
   }
@@ -291,6 +363,39 @@ export async function getReadingStatsService(userId) {
   };
 }
 
+// Validar que las fechas tengan sentido lógico
+export function validateDatesService(dateStarted, dateFinished) {
+  if (dateStarted && dateFinished) {
+    const startDate = new Date(dateStarted);
+    const finishDate = new Date(dateFinished);
+
+    if (finishDate < startDate) {
+      throw new Error(
+        "La fecha de finalización no puede ser anterior a la fecha de inicio"
+      );
+    }
+  }
+  return true;
+}
+
+// Validar que el rating sea consistente con el estado
+export function validateRatingConsistency(rating, readingStatus) {
+  if (rating && readingStatus !== READING_STATUSES.READ) {
+    throw new Error("Solo puedes calificar libros que hayas terminado de leer");
+  }
+  return true;
+}
+
+// Validar longitud de review
+export function validateReviewLength(review) {
+  if (review && review.length > REVIEW_LIMITS.MAX_LENGTH) {
+    throw new Error(
+      `La reseña no puede exceder ${REVIEW_LIMITS.MAX_LENGTH} caracteres`
+    );
+  }
+  return true;
+}
+
 // Validar que un rating esté en el rango correcto
 export function validateRatingService(rating) {
   if (rating !== null && rating !== undefined) {
@@ -335,6 +440,57 @@ export async function removeFromLibraryService(userLibraryId, userId) {
 
   await userLibrary.destroy();
   return { message: "Libro eliminado de la biblioteca correctamente" };
+}
+
+// Obtener recomendaciones basadas en las lecturas del usuario
+export async function getRecommendationsService(userId) {
+  try {
+    // Obtener libros con calificación alta del usuario
+    const favoriteBooks = await UserLibrary.findAll({
+      where: {
+        user_id: userId,
+        rating: { [Op.gte]: 4 },
+        reading_status: READING_STATUSES.READ,
+        author: { [Op.not]: null },
+      },
+      attributes: [
+        "author",
+        [Sequelize.fn("COUNT", Sequelize.col("user_library_id")), "count"],
+      ],
+      group: ["author"],
+      having: Sequelize.literal("COUNT(*) >= 2"), // Autores con al menos 2 libros bien calificados
+      order: [
+        [Sequelize.fn("COUNT", Sequelize.col("user_library_id")), "DESC"],
+      ],
+    });
+
+    const favoriteAuthors = favoriteBooks
+      .map((book) => ({
+        name: book.dataValues.author,
+        count: parseInt(book.dataValues.count),
+      }))
+      .filter((author) => author.name && author.name.trim() !== "");
+
+    // Si no hay suficientes datos, retornar recomendaciones generales
+    if (favoriteAuthors.length === 0) {
+      return {
+        message:
+          "Necesitas leer y calificar más libros para recibir recomendaciones personalizadas",
+        recommendedAuthors: [],
+        readingGoals:
+          "Intenta leer al menos 2 libros del mismo autor y calificalos para recibir mejores recomendaciones",
+      };
+    }
+
+    return {
+      recommendedAuthors: favoriteAuthors.slice(0, 5),
+      message:
+        "Basado en tus lecturas previas, podrías disfrutar más libros de estos autores",
+    };
+  } catch (error) {
+    console.error("Error en getRecommendationsService:", error);
+    throw error;
+  }
 }
 
 // Obtener insights avanzados de la biblioteca del usuario

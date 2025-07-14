@@ -100,6 +100,20 @@ export default function AddToLibrary() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validación de fechas
+    if (formData.date_started && formData.date_finished) {
+      const startDate = new Date(formData.date_started);
+      const finishDate = new Date(formData.date_finished);
+
+      if (startDate > finishDate) {
+        alert(
+          "La fecha de inicio no puede ser posterior a la fecha de finalización",
+        );
+        return;
+      }
+    }
+
     try {
       const dataToSend = {
         title: formData.title,

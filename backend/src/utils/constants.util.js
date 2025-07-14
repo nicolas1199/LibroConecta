@@ -28,6 +28,11 @@ export const RATING_LIMITS = {
   MAX: 5,
 };
 
+// Límites para reviews
+export const REVIEW_LIMITS = {
+  MAX_LENGTH: 1000,
+};
+
 // Configuración de paginación
 export const PAGINATION_DEFAULTS = {
   PAGE: 1,
@@ -40,7 +45,7 @@ export const RESPONSE_MESSAGES = {
   USER_NOT_AUTHENTICATED: "Usuario no autenticado",
   BOOK_NOT_FOUND_IN_LIBRARY: "Libro no encontrado en tu biblioteca",
   INVALID_READING_STATUS:
-    "Estado de lectura inválido. Debe ser: por_leer, leyendo, o leido",
+    "Estado de lectura inválido. Debe ser: por_leer, leyendo, leido, o abandonado",
   INVALID_RATING: "La calificación debe estar entre 1 y 5",
   SWIPE_REGISTERED: "Swipe registrado correctamente",
   BOOK_ADDED_TO_LIBRARY: "Libro agregado/actualizado en biblioteca personal",

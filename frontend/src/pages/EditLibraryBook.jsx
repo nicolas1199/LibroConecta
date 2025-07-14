@@ -78,6 +78,20 @@ export default function EditLibraryBook() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validación de fechas
+    if (formData.startedAt && formData.finishedAt) {
+      const startDate = new Date(formData.startedAt);
+      const finishDate = new Date(formData.finishedAt);
+
+      if (startDate > finishDate) {
+        setError(
+          "La fecha de inicio no puede ser posterior a la fecha de finalización",
+        );
+        return;
+      }
+    }
+
     try {
       const dataToSend = {
         reading_status: formData.status,

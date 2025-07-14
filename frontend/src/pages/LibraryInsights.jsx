@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getLibraryInsights, getReadingStats } from "../api/userLibrary";
+import {
+  getLibraryInsights,
+  getReadingStats,
+  getRecommendations,
+} from "../api/userLibrary";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import BookOpen from "../components/icons/BookOpen";
 import TrendingUp from "../components/icons/TrendingUp";
@@ -16,6 +20,8 @@ export default function LibraryInsights() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recommendations, setRecommendations] = useState(null);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -28,8 +34,7 @@ export default function LibraryInsights() {
         getLibraryInsights(),
         getReadingStats(),
       ]);
-      console.log("Insights response:", insightsResponse);
-      console.log("Stats response:", statsResponse);
+
       setInsights(insightsResponse);
       setStats(statsResponse);
     } catch (error) {
@@ -37,6 +42,26 @@ export default function LibraryInsights() {
       setError("Error al cargar los datos");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRecommendationsData = async () => {
+    try {
+      setLoadingRecommendations(true);
+      const response = await getRecommendations();
+      console.log("Recommendations response:", response);
+      setRecommendations(response);
+    } catch (error) {
+      console.error("Error loading recommendations:", error);
+      // En caso de error, mostrar un mensaje amigable
+      setRecommendations({
+        message: "Error al cargar recomendaciones. Intenta más tarde.",
+        recommendedAuthors: [],
+        readingGoals:
+          "Agrega más libros a tu biblioteca y califícalos para recibir mejores recomendaciones.",
+      });
+    } finally {
+      setLoadingRecommendations(false);
     }
   };
 
@@ -364,6 +389,78 @@ export default function LibraryInsights() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Sección de Recomendaciones */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-900">
+            🎯 Recomendaciones Inteligentes
+          </h2>
+          <button
+            onClick={loadRecommendationsData}
+            disabled={loadingRecommendations}
+            className="btn btn-primary text-sm"
+          >
+            {loadingRecommendations ? "Cargando..." : "Obtener recomendaciones"}
+          </button>
+        </div>
+
+        {recommendations && (
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-800 font-medium">
+                💡 {recommendations.message}
+              </p>
+            </div>
+
+            {recommendations.recommendedAuthors &&
+              recommendations.recommendedAuthors.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    📚 Autores recomendados para ti
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {recommendations.recommendedAuthors.map((author, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span className="text-purple-600 font-bold text-sm">
+                              {author.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {author.name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {author.count} libro{author.count > 1 ? "s" : ""}{" "}
+                              con buena valoración
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
+
+        {!recommendations && !loadingRecommendations && (
+          <div className="text-center py-8">
+            <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Descubre tus recomendaciones personalizadas
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Basadas en tu historial de lectura y calificaciones
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
