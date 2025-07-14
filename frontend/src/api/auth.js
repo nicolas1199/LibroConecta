@@ -1,14 +1,26 @@
-import api from "./api"
+import api from "./api";
 
 export const login = async (email, password) => {
-  const res = await api.post("/auth/login", { email, password })
-  return res.data
-}
+  const res = await api.post("/auth/login", { email, password });
+  return res.data;
+};
 
 export const register = async (data) => {
-  const res = await api.post("/auth/register", data)
-  return res.data
-}
+  const res = await api.post("/auth/register", data);
+  return res.data;
+};
+
+// Función para cerrar sesión
+export const logout = async () => {
+  try {
+    const response = await api.post("/auth/logout");
+    return response.data;
+  } catch (error) {
+    // Aunque falle la llamada al backend, seguir con el logout local
+    console.error("Error en logout del servidor:", error);
+    throw error.response?.data || error;
+  }
+};
 
 // Función para obtener el perfil del usuario
 export const getUserProfile = async () => {

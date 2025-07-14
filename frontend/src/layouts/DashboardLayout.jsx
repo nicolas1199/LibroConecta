@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
+import { performLogout } from "../utils/auth";
 
 export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,10 +40,15 @@ export default function DashboardLayout({ children }) {
     }
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/");
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await performLogout(navigate);
+    } catch (error) {
+      // En caso de error, resetear el estado
+      setIsLoggingOut(false);
+      console.error("Error durante logout:", error);
+    }
   };
 
   const toggleSidebar = () => {
@@ -79,6 +86,7 @@ export default function DashboardLayout({ children }) {
         currentPath={location.pathname}
         isOpen={sidebarOpen}
         onClose={closeSidebar}
+        isLoggingOut={isLoggingOut}
       />
       <main className="dashboard-main">{children}</main>
     </div>

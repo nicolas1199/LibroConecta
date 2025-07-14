@@ -1,80 +1,110 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import BookOpen from "../components/icons/BookOpen"
-import { login as loginApi } from "../api/auth"
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import BookOpen from "../components/icons/BookOpen";
+import { login as loginApi } from "../api/auth";
 
 export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-  })
-  const [errors, setErrors] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState("")
-  const navigate = useNavigate()
+  });
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Manejar mensajes de error por URL
+  useEffect(() => {
+    const urlMessage = searchParams.get("message");
+    if (urlMessage) {
+      switch (urlMessage) {
+        case "session_expired":
+          setMessage(
+            "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+          );
+          break;
+        case "token_invalid":
+          setMessage(
+            "Token de autenticación inválido. Por favor, inicia sesión nuevamente.",
+          );
+          break;
+        case "unauthorized":
+          setMessage("No autorizado. Por favor, inicia sesión para continuar.");
+          break;
+        default:
+          if (urlMessage) {
+            setMessage(urlMessage);
+          }
+      }
+    }
+  }, [searchParams]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
+    }));
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
         [name]: "",
-      }))
+      }));
     }
-  }
+  };
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors = {};
 
     if (!formData.email) {
-      newErrors.email = "El email es requerido"
+      newErrors.email = "El email es requerido";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "El email no es válido"
+      newErrors.email = "El email no es válido";
     }
 
     if (!formData.password) {
-      newErrors.password = "La contraseña es requerida"
+      newErrors.password = "La contraseña es requerida";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!validateForm()) return
+    if (!validateForm()) return;
 
-    setIsLoading(true)
-    setMessage("")
+    setIsLoading(true);
+    setMessage("");
 
     try {
-      const res = await loginApi(formData.email, formData.password)
+      const res = await loginApi(formData.email, formData.password);
 
-      // Guardar datos inmediatamente
-      localStorage.setItem("token", res.token)
-      localStorage.setItem("user", JSON.stringify(res.user))
+      // Guardar datos inmediatamente - usar el nombre correcto de los tokens
+      localStorage.setItem("token", res.accessToken);
+      localStorage.setItem("refreshToken", res.refreshToken);
+      localStorage.setItem("user", JSON.stringify(res.user));
 
-      setMessage("¡Inicio de sesión exitoso! Redirigiendo...")
+      setMessage("¡Inicio de sesión exitoso! Redirigiendo...");
 
       // Pequeño delay para asegurar que se guarden los datos
       setTimeout(() => {
-        navigate("/dashboard", { replace: true })
-      }, 100)
-      
+        navigate("/dashboard", { replace: true });
+      }, 100);
     } catch (error) {
-      setMessage(error?.response?.data?.message || "Error al iniciar sesión. Inténtalo de nuevo.")
+      setMessage(
+        error?.response?.data?.message ||
+          "Error al iniciar sesión. Inténtalo de nuevo.",
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-12">
@@ -99,11 +129,11 @@ export default function Login() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`form-control ${errors.email ? "border-red-500" : ""}`}
+              className={`form-control ${errors["email"] ? "border-red-500" : ""}`}
               placeholder="tu@email.com"
               disabled={isLoading}
             />
-            {errors.email && <p className="form-error">{errors.email}</p>}
+            {errors["email"] && <p className="form-error">{errors["email"]}</p>}
           </div>
 
           <div className="form-group">
@@ -116,11 +146,13 @@ export default function Login() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className={`form-control ${errors.password ? "border-red-500" : ""}`}
+              className={`form-control ${errors["password"] ? "border-red-500" : ""}`}
               placeholder="••••••••"
               disabled={isLoading}
             />
-            {errors.password && <p className="form-error">{errors.password}</p>}
+            {errors["password"] && (
+              <p className="form-error">{errors["password"]}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between mb-4">
@@ -128,12 +160,19 @@ export default function Login() {
               <input type="checkbox" className="mr-2" />
               <span className="text-sm text-gray-600">Recordarme</span>
             </label>
-            <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-600 hover:underline"
+            >
               ¿Olvidaste tu contraseña?
             </Link>
           </div>
 
-          <button type="submit" disabled={isLoading} className="btn btn-primary w-full">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="btn btn-primary w-full"
+          >
             {isLoading ? (
               <div className="flex items-center justify-center">
                 <div className="spinner"></div>
@@ -169,5 +208,5 @@ export default function Login() {
         </div>
       </div>
     </div>
-  )
+  );
 }

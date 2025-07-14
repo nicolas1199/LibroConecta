@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import BookOpen from "../components/icons/BookOpen"
-import { register as registerApi } from "../api/auth"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import BookOpen from "../components/icons/BookOpen";
+import { register as registerApi } from "../api/auth";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -12,67 +12,67 @@ export default function Register() {
     password: "",
     confirmPassword: "",
     acceptTerms: false,
-  })
-  const [errors, setErrors] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState("")
-  const navigate = useNavigate()
+  });
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
-    }))
+    }));
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
         [name]: "",
-      }))
+      }));
     }
-  }
+  };
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "El nombre es requerido"
+      newErrors.name = "El nombre es requerido";
     }
 
     if (!formData.email) {
-      newErrors.email = "El email es requerido"
+      newErrors.email = "El email es requerido";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "El email no es válido"
+      newErrors.email = "El email no es válido";
     }
 
     if (!formData.password) {
-      newErrors.password = "La contraseña es requerida"
+      newErrors.password = "La contraseña es requerida";
     } else if (formData.password.length < 6) {
-      newErrors.password = "La contraseña debe tener al menos 6 caracteres"
+      newErrors.password = "La contraseña debe tener al menos 6 caracteres";
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Confirma tu contraseña"
+      newErrors.confirmPassword = "Confirma tu contraseña";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Las contraseñas no coinciden"
+      newErrors.confirmPassword = "Las contraseñas no coinciden";
     }
 
     if (!formData.acceptTerms) {
-      newErrors.acceptTerms = "Debes aceptar los términos y condiciones"
+      newErrors.acceptTerms = "Debes aceptar los términos y condiciones";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!validateForm()) return
+    if (!validateForm()) return;
 
-    setIsLoading(true)
-    setMessage("")
+    setIsLoading(true);
+    setMessage("");
 
     try {
       const res = await registerApi({
@@ -82,22 +82,26 @@ export default function Register() {
         email: formData.email,
         username: formData.email.split("@")[0],
         password: formData.password,
-      })
+      });
 
-      // Guardar datos inmediatamente
-      localStorage.setItem("token", res.token)
-      localStorage.setItem("user", JSON.stringify(res.user))
+      // Guardar datos inmediatamente - usar el nombre correcto de los tokens
+      localStorage.setItem("token", res.accessToken);
+      localStorage.setItem("refreshToken", res.refreshToken);
+      localStorage.setItem("user", JSON.stringify(res.user));
 
-      setMessage("¡Cuenta creada exitosamente! Redirigiendo...")
+      setMessage("¡Cuenta creada exitosamente! Redirigiendo...");
 
       // Redirección inmediata
-      navigate("/dashboard")
+      navigate("/dashboard");
     } catch (error) {
-      setMessage(error?.response?.data?.message || "Error al crear la cuenta. Inténtalo de nuevo.")
+      setMessage(
+        error?.response?.data?.message ||
+          "Error al crear la cuenta. Inténtalo de nuevo.",
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-12">
@@ -122,11 +126,11 @@ export default function Register() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`form-control ${errors.name ? "border-red-500" : ""}`}
+              className={`form-control ${errors["name"] ? "border-red-500" : ""}`}
               placeholder="Tu nombre"
               disabled={isLoading}
             />
-            {errors.name && <p className="form-error">{errors.name}</p>}
+            {errors["name"] && <p className="form-error">{errors["name"]}</p>}
           </div>
 
           <div className="form-group">
@@ -139,11 +143,11 @@ export default function Register() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`form-control ${errors.email ? "border-red-500" : ""}`}
+              className={`form-control ${errors["email"] ? "border-red-500" : ""}`}
               placeholder="tu@email.com"
               disabled={isLoading}
             />
-            {errors.email && <p className="form-error">{errors.email}</p>}
+            {errors["email"] && <p className="form-error">{errors["email"]}</p>}
           </div>
 
           <div className="form-group">
@@ -156,12 +160,17 @@ export default function Register() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className={`form-control ${errors.password ? "border-red-500" : ""}`}
+              className={`form-control ${errors["password"] ? "border-red-500" : ""}`}
               placeholder="••••••••"
               disabled={isLoading}
             />
-            {errors.password && <p className="form-error">{errors.password}</p>}
-            <p className="form-text">Debe contener al menos 6 caracteres, una mayúscula, una minúscula y un número</p>
+            {errors["password"] && (
+              <p className="form-error">{errors["password"]}</p>
+            )}
+            <p className="form-text">
+              Debe contener al menos 6 caracteres, una mayúscula, una minúscula
+              y un número
+            </p>
           </div>
 
           <div className="form-group">
@@ -174,11 +183,13 @@ export default function Register() {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className={`form-control ${errors.confirmPassword ? "border-red-500" : ""}`}
+              className={`form-control ${errors["confirmPassword"] ? "border-red-500" : ""}`}
               placeholder="••••••••"
               disabled={isLoading}
             />
-            {errors.confirmPassword && <p className="form-error">{errors.confirmPassword}</p>}
+            {errors["confirmPassword"] && (
+              <p className="form-error">{errors["confirmPassword"]}</p>
+            )}
           </div>
 
           <div className="form-group">
@@ -202,10 +213,16 @@ export default function Register() {
                 </Link>
               </span>
             </label>
-            {errors.acceptTerms && <p className="form-error">{errors.acceptTerms}</p>}
+            {errors["acceptTerms"] && (
+              <p className="form-error">{errors["acceptTerms"]}</p>
+            )}
           </div>
 
-          <button type="submit" disabled={isLoading} className="btn btn-primary w-full">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="btn btn-primary w-full"
+          >
             {isLoading ? (
               <div className="flex items-center justify-center">
                 <div className="spinner"></div>
@@ -235,5 +252,5 @@ export default function Register() {
         </div>
       </div>
     </div>
-  )
+  );
 }

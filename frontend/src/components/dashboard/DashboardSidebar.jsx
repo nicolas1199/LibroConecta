@@ -25,6 +25,7 @@ export default function DashboardSidebar({
   currentPath,
   isOpen,
   onClose,
+  isLoggingOut = false,
 }) {
   const [expandedSections, setExpandedSections] = useState({
     misLibros: true,
@@ -250,11 +251,16 @@ export default function DashboardSidebar({
 
         <button
           onClick={onLogout}
-          className="sidebar-nav-item text-red-600 hover:bg-red-50 w-full"
+          disabled={isLoggingOut}
+          className="sidebar-nav-item text-red-600 hover:bg-red-50 w-full disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="sidebar-nav-content">
-            <LogOut className="h-4 w-4" />
-            <span>Cerrar sesión</span>
+            {isLoggingOut ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+            ) : (
+              <LogOut className="h-4 w-4" />
+            )}
+            <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
           </div>
         </button>
       </div>

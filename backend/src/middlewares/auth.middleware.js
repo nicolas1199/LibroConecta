@@ -12,6 +12,19 @@ export const authenticateToken = (req, res, next) => {
     });
   }
 
+  // Validar formato básico del token JWT (debe tener 3 partes separadas por puntos)
+  if (token.split(".").length !== 3) {
+    console.error(
+      "Token malformado - formato inválido:",
+      token.substring(0, 20) + "..."
+    );
+    return res.status(403).json({
+      error: "Token malformado",
+      message:
+        "El formato del token no es válido. Por favor, inicie sesión nuevamente.",
+    });
+  }
+
   jwt.verify(token, JWT.ACCESS_TOKEN_SECRET, (err, user) => {
     if (err) {
       console.error("Error de verificación JWT:", err.message);
@@ -24,12 +37,19 @@ export const authenticateToken = (req, res, next) => {
       } else if (err.name === "JsonWebTokenError") {
         return res.status(403).json({
           error: "Token inválido",
-          message: "El token proporcionado no es válido",
+          message:
+            "El token proporcionado no es válido. Por favor, inicie sesión nuevamente.",
+        });
+      } else if (err.name === "NotBeforeError") {
+        return res.status(403).json({
+          error: "Token no válido aún",
+          message: "El token aún no es válido",
         });
       } else {
         return res.status(403).json({
           error: "Error de autenticación",
-          message: "No se pudo verificar su identidad",
+          message:
+            "No se pudo verificar su identidad. Por favor, inicie sesión nuevamente.",
         });
       }
     }
