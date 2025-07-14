@@ -40,10 +40,11 @@ export const getMatches = async (req, res) => {
 
     // Formatear respuesta para mostrar el otro usuario
     const formattedMatches = matches.map((match) => {
-      const otherUser = match.user_id_1 === user_id ? match.User2 : match.User1;
+      const otherUser =
+        match.get("user_id_1") === user_id ? match.User2 : match.User1;
       return {
-        match_id: match.match_id,
-        date_match: match.date_match,
+        match_id: match.get("match_id"),
+        date_match: match.get("date_match"),
         user: otherUser,
       };
     });
@@ -59,9 +60,11 @@ export const getMatches = async (req, res) => {
     );
   } catch (error) {
     console.error("Error al obtener matches:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
 };
 
@@ -73,9 +76,9 @@ export const getSuggestedMatches = async (req, res) => {
     // Obtener información del usuario actual
     const currentUser = await User.findByPk(user_id);
     if (!currentUser) {
-      return res.status(404).json(
-        createResponse(404, "Usuario no encontrado", null, null)
-      );
+      return res
+        .status(404)
+        .json(createResponse(404, "Usuario no encontrado", null, null));
     }
 
     // Obtener los libros publicados por el usuario y sus categorías
@@ -108,9 +111,13 @@ export const getSuggestedMatches = async (req, res) => {
     });
 
     // Obtener ubicaciones del usuario
-    const userLocations = userBooks.map((book) => 
-      book.LocationBook ? `${book.LocationBook.region}-${book.LocationBook.comuna}` : null
-    ).filter(Boolean);
+    const userLocations = userBooks
+      .map((book) =>
+        book.LocationBook
+          ? `${book.LocationBook.region}-${book.LocationBook.comuna}`
+          : null
+      )
+      .filter(Boolean);
 
     // Obtener usuarios que ya son matches
     const existingMatches = await Match.findAll({
@@ -122,8 +129,8 @@ export const getSuggestedMatches = async (req, res) => {
 
     const matchedUserIds = new Set();
     existingMatches.forEach((match) => {
-      matchedUserIds.add(match.user_id_1);
-      matchedUserIds.add(match.user_id_2);
+      matchedUserIds.add(match.get("user_id_1"));
+      matchedUserIds.add(match.get("user_id_2"));
     });
     matchedUserIds.add(user_id); // Excluir al usuario actual
 
@@ -187,10 +194,10 @@ export const getSuggestedMatches = async (req, res) => {
 
       return {
         user: {
-          user_id: user.user_id,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          email: user.email,
+          user_id: user.get("user_id"),
+          first_name: user.get("first_name"),
+          last_name: user.get("last_name"),
+          email: user.get("email"),
         },
         score,
         commonCategories,
@@ -216,9 +223,11 @@ export const getSuggestedMatches = async (req, res) => {
     );
   } catch (error) {
     console.error("Error al obtener matches sugeridos:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
 };
 
@@ -228,15 +237,24 @@ export const createMatch = async (req, res) => {
     const { target_user_id } = req.body;
 
     if (!target_user_id) {
-      return res.status(400).json(
-        createResponse(400, "El ID del usuario objetivo es requerido", null, null)
-      );
+      return res
+        .status(400)
+        .json(
+          createResponse(
+            400,
+            "El ID del usuario objetivo es requerido",
+            null,
+            null
+          )
+        );
     }
 
     if (user_id === target_user_id) {
-      return res.status(400).json(
-        createResponse(400, "No puedes hacer match contigo mismo", null, null)
-      );
+      return res
+        .status(400)
+        .json(
+          createResponse(400, "No puedes hacer match contigo mismo", null, null)
+        );
     }
 
     // Verificar si ya existe un match
@@ -250,17 +268,26 @@ export const createMatch = async (req, res) => {
     });
 
     if (existingMatch) {
-      return res.status(409).json(
-        createResponse(409, "Ya existe un match entre estos usuarios", null, null)
-      );
+      return res
+        .status(409)
+        .json(
+          createResponse(
+            409,
+            "Ya existe un match entre estos usuarios",
+            null,
+            null
+          )
+        );
     }
 
     // Verificar que el usuario objetivo existe
     const targetUser = await User.findByPk(target_user_id);
     if (!targetUser) {
-      return res.status(404).json(
-        createResponse(404, "Usuario objetivo no encontrado", null, null)
-      );
+      return res
+        .status(404)
+        .json(
+          createResponse(404, "Usuario objetivo no encontrado", null, null)
+        );
     }
 
     // Crear el match
@@ -286,14 +313,18 @@ export const createMatch = async (req, res) => {
       ],
     });
 
-    return res.status(201).json(
-      createResponse(201, "Match creado exitosamente", matchWithUsers, null)
-    );
+    return res
+      .status(201)
+      .json(
+        createResponse(201, "Match creado exitosamente", matchWithUsers, null)
+      );
   } catch (error) {
     console.error("Error al crear match:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
 };
 
@@ -310,9 +341,9 @@ export const deleteMatch = async (req, res) => {
     });
 
     if (!match) {
-      return res.status(404).json(
-        createResponse(404, "Match no encontrado", null, null)
-      );
+      return res
+        .status(404)
+        .json(createResponse(404, "Match no encontrado", null, null));
     }
 
     await match.destroy();
@@ -322,8 +353,10 @@ export const deleteMatch = async (req, res) => {
     );
   } catch (error) {
     console.error("Error al eliminar match:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
-}; 
+};

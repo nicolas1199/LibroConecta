@@ -1,5 +1,5 @@
-import { DataTypes } from "sequelize"
-import { sequelize } from "../../config/configDb.js"
+import { DataTypes } from "sequelize";
+import { sequelize } from "../../config/configDb.js";
 
 const PublishedBooks = sequelize.define(
   "PublishedBooks",
@@ -14,7 +14,7 @@ const PublishedBooks = sequelize.define(
       allowNull: false,
     },
     user_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
     },
     transaction_type_id: {
@@ -56,7 +56,7 @@ const PublishedBooks = sequelize.define(
   {
     tableName: "PublishedBooks",
     timestamps: false,
-  },
-)
+  }
+);
 
-export default PublishedBooks
+export default PublishedBooks;

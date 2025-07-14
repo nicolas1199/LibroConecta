@@ -1,10 +1,5 @@
 import { Op } from "sequelize";
-import {
-  User,
-  Message,
-  Match,
-  sequelize,
-} from "../db/modelIndex.js";
+import { User, Message, Match, sequelize } from "../db/modelIndex.js";
 import { createResponse } from "../utils/responses.util.js";
 
 export const getMessages = async (req, res) => {
@@ -22,9 +17,11 @@ export const getMessages = async (req, res) => {
     });
 
     if (!match) {
-      return res.status(404).json(
-        createResponse(404, "Match no encontrado o no autorizado", null, null)
-      );
+      return res
+        .status(404)
+        .json(
+          createResponse(404, "Match no encontrado o no autorizado", null, null)
+        );
     }
 
     // Obtener mensajes del match
@@ -69,22 +66,18 @@ export const getMessages = async (req, res) => {
     }
 
     return res.json(
-      createResponse(
-        200,
-        "Mensajes obtenidos exitosamente",
-        messages,
-        null,
-        { 
-          total: messages.length,
-          unread_count: unreadMessages.length
-        }
-      )
+      createResponse(200, "Mensajes obtenidos exitosamente", messages, null, {
+        total: messages.length,
+        unread_count: unreadMessages.length,
+      })
     );
   } catch (error) {
     console.error("Error al obtener mensajes:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
 };
 
@@ -95,9 +88,11 @@ export const sendMessage = async (req, res) => {
     const { message_text } = req.body;
 
     if (!message_text || message_text.trim() === "") {
-      return res.status(400).json(
-        createResponse(400, "El mensaje no puede estar vacío", null, null)
-      );
+      return res
+        .status(400)
+        .json(
+          createResponse(400, "El mensaje no puede estar vacío", null, null)
+        );
     }
 
     // Verificar que el usuario tiene acceso al match
@@ -109,13 +104,18 @@ export const sendMessage = async (req, res) => {
     });
 
     if (!match) {
-      return res.status(404).json(
-        createResponse(404, "Match no encontrado o no autorizado", null, null)
-      );
+      return res
+        .status(404)
+        .json(
+          createResponse(404, "Match no encontrado o no autorizado", null, null)
+        );
     }
 
     // Determinar el receptor (el otro usuario en el match)
-    const receiver_id = match.user_id_1 === user_id ? match.user_id_2 : match.user_id_1;
+    const receiver_id =
+      match.get("user_id_1") === user_id
+        ? match.get("user_id_2")
+        : match.get("user_id_1");
 
     // Crear el mensaje
     const newMessage = await Message.create({
@@ -142,14 +142,23 @@ export const sendMessage = async (req, res) => {
       ],
     });
 
-    return res.status(201).json(
-      createResponse(201, "Mensaje enviado exitosamente", messageWithUsers, null)
-    );
+    return res
+      .status(201)
+      .json(
+        createResponse(
+          201,
+          "Mensaje enviado exitosamente",
+          messageWithUsers,
+          null
+        )
+      );
   } catch (error) {
     console.error("Error al enviar mensaje:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
 };
 
@@ -159,7 +168,8 @@ export const getConversations = async (req, res) => {
     const { limit = 20, offset = 0 } = req.query;
 
     // Obtener todas las conversaciones del usuario
-    const conversations = await sequelize.query(`
+    const conversations = await sequelize.query(
+      `
       SELECT 
         m.match_id,
         m.user_id_1,
@@ -194,28 +204,31 @@ export const getConversations = async (req, res) => {
       WHERE (m.user_id_1 = :userId OR m.user_id_2 = :userId)
       ORDER BY COALESCE(last_msg.sent_at, m.date_match) DESC
       LIMIT :limit OFFSET :offset
-    `, {
-      replacements: { 
-        userId: user_id, 
-        limit: parseInt(limit), 
-        offset: parseInt(offset) 
-      },
-      type: sequelize.QueryTypes.SELECT
-    });
+    `,
+      {
+        replacements: {
+          userId: user_id,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+        },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
 
     // Formatear respuesta
     const formattedConversations = conversations.map((conv) => {
-      const otherUser = conv.user_id_1 === user_id 
-        ? {
-            user_id: conv.user_id_2,
-            first_name: conv.user2_first_name,
-            last_name: conv.user2_last_name,
-          }
-        : {
-            user_id: conv.user_id_1,
-            first_name: conv.user1_first_name,
-            last_name: conv.user1_last_name,
-          };
+      const otherUser =
+        conv.user_id_1 === user_id
+          ? {
+              user_id: conv.user_id_2,
+              first_name: conv.user2_first_name,
+              last_name: conv.user2_last_name,
+            }
+          : {
+              user_id: conv.user_id_1,
+              first_name: conv.user1_first_name,
+              last_name: conv.user1_last_name,
+            };
 
       return {
         match_id: conv.match_id,
@@ -239,9 +252,11 @@ export const getConversations = async (req, res) => {
     );
   } catch (error) {
     console.error("Error al obtener conversaciones:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
 };
 
@@ -259,9 +274,16 @@ export const deleteMessage = async (req, res) => {
     });
 
     if (!message) {
-      return res.status(404).json(
-        createResponse(404, "Mensaje no encontrado o no autorizado", null, null)
-      );
+      return res
+        .status(404)
+        .json(
+          createResponse(
+            404,
+            "Mensaje no encontrado o no autorizado",
+            null,
+            null
+          )
+        );
     }
 
     // Marcar como eliminado en lugar de eliminar físicamente
@@ -272,9 +294,11 @@ export const deleteMessage = async (req, res) => {
     );
   } catch (error) {
     console.error("Error al eliminar mensaje:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
 };
 
@@ -292,9 +316,11 @@ export const markMessagesAsRead = async (req, res) => {
     });
 
     if (!match) {
-      return res.status(404).json(
-        createResponse(404, "Match no encontrado o no autorizado", null, null)
-      );
+      return res
+        .status(404)
+        .json(
+          createResponse(404, "Match no encontrado o no autorizado", null, null)
+        );
     }
 
     // Marcar todos los mensajes no leídos como leídos
@@ -321,8 +347,10 @@ export const markMessagesAsRead = async (req, res) => {
     );
   } catch (error) {
     console.error("Error al marcar mensajes como leídos:", error);
-    return res.status(500).json(
-      createResponse(500, "Error interno del servidor", null, error.message)
-    );
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
   }
-}; 
+};

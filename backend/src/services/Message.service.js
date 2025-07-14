@@ -1,10 +1,5 @@
-import { Op } from "sequelize";
-import {
-  User,
-  Message,
-  Match,
-  sequelize,
-} from "../db/modelIndex.js";
+import { Op, QueryTypes } from "sequelize";
+import { User, Message, Match, sequelize } from "../db/modelIndex.js";
 
 // Servicio para obtener mensajes de una conversación
 export async function getMessagesService(matchId, userId, options = {}) {
@@ -53,8 +48,8 @@ export async function getMessagesService(matchId, userId, options = {}) {
       messages,
       total: messages.length,
       match: {
-        match_id: match.match_id,
-        date_match: match.date_match,
+        match_id: match.get("match_id"),
+        date_match: match.get("date_match"),
       },
     };
   } catch (error) {
@@ -79,7 +74,10 @@ export async function sendMessageService(matchId, senderId, messageText) {
     }
 
     // Determinar el receptor
-    const receiverId = match.user_id_1 === senderId ? match.user_id_2 : match.user_id_1;
+    const receiverId =
+      match.get("user_id_1") === senderId
+        ? match.get("user_id_2")
+        : match.get("user_id_1");
 
     // Crear el mensaje
     const newMessage = await Message.create({
@@ -91,7 +89,8 @@ export async function sendMessageService(matchId, senderId, messageText) {
     });
 
     // Obtener el mensaje con información de usuarios
-    const messageWithUsers = await Message.findByPk(newMessage.message_id, {
+    const messageId = newMessage.get("message_id");
+    const messageWithUsers = await Message.findByPk(messageId, {
       include: [
         {
           model: User,
@@ -119,7 +118,8 @@ export async function getConversationsService(userId, options = {}) {
     const { limit = 20, offset = 0 } = options;
 
     // Consulta SQL compleja optimizada para PostgreSQL
-    const [conversations] = await sequelize.query(`
+    const conversations = await sequelize.query(
+      `
       SELECT 
         m.match_id,
         m.user_id_1,
@@ -154,28 +154,31 @@ export async function getConversationsService(userId, options = {}) {
       WHERE (m.user_id_1 = :userId OR m.user_id_2 = :userId)
       ORDER BY COALESCE(last_msg.sent_at, m.date_match) DESC
       LIMIT :limit OFFSET :offset
-    `, {
-      replacements: { 
-        userId: userId, 
-        limit: parseInt(limit), 
-        offset: parseInt(offset) 
-      },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    `,
+      {
+        replacements: {
+          userId: userId,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+        },
+        type: QueryTypes.SELECT,
+      }
+    );
 
     // Formatear las conversaciones
     const formattedConversations = conversations.map((conv) => {
-      const otherUser = conv.user_id_1 === userId ? 
-        {
-          user_id: conv.user_id_2,
-          first_name: conv.user2_first_name,
-          last_name: conv.user2_last_name,
-        } : 
-        {
-          user_id: conv.user_id_1,
-          first_name: conv.user1_first_name,
-          last_name: conv.user1_last_name,
-        };
+      const otherUser =
+        conv.user_id_1 === userId
+          ? {
+              user_id: conv.user_id_2,
+              first_name: conv.user2_first_name,
+              last_name: conv.user2_last_name,
+            }
+          : {
+              user_id: conv.user_id_1,
+              first_name: conv.user1_first_name,
+              last_name: conv.user1_last_name,
+            };
 
       return {
         match_id: conv.match_id,
@@ -249,7 +252,7 @@ export async function deleteMessageService(messageId, userId) {
     }
 
     // Verificar que el usuario es el propietario del mensaje
-    if (message.sender_id !== userId) {
+    if (message.get("sender_id") !== userId) {
       throw new Error("No tienes permisos para eliminar este mensaje");
     }
 
@@ -335,7 +338,7 @@ export async function searchMessagesService(userId, searchTerm, options = {}) {
       attributes: ["match_id"],
     });
 
-    const matchIds = userMatches.map(match => match.match_id);
+    const matchIds = userMatches.map((match) => match.get("match_id"));
 
     if (matchIds.length === 0) {
       return { messages: [], total: 0 };
@@ -386,4 +389,4 @@ export async function searchMessagesService(userId, searchTerm, options = {}) {
     console.error("Error al buscar mensajes:", error);
     throw error;
   }
-} 
+}

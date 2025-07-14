@@ -11,7 +11,10 @@ export const validateMatchCreation = (req, res, next) => {
   }
 
   // Validar que los IDs sean números válidos
-  if (!Number.isInteger(user_library_id) || !Number.isInteger(matched_user_library_id)) {
+  if (
+    !Number.isInteger(user_library_id) ||
+    !Number.isInteger(matched_user_library_id)
+  ) {
     return res.status(400).json({
       error: "IDs inválidos",
       message: "Los IDs deben ser números enteros válidos",
@@ -67,7 +70,10 @@ export const validateMatchOwnership = async (req, res, next) => {
     }
 
     // Verificar que el usuario sea parte del match
-    if (match.user_id !== userId && match.matched_user_id !== userId) {
+    if (
+      match.get("user_id_1") !== userId &&
+      match.get("user_id_2") !== userId
+    ) {
       return res.status(403).json({
         error: "Acceso denegado",
         message: "Solo puedes acceder a tus propios matches",
@@ -83,4 +89,4 @@ export const validateMatchOwnership = async (req, res, next) => {
       message: "No se pudo verificar el acceso al match",
     });
   }
-}; 
+};

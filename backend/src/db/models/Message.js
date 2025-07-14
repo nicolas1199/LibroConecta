@@ -10,11 +10,11 @@ const Message = sequelize.define(
       autoIncrement: true,
     },
     sender_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
     },
     receiver_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
     },
     match_id: {
@@ -44,4 +44,4 @@ const Message = sequelize.define(
   }
 );
 
-export default Message; 
+export default Message;

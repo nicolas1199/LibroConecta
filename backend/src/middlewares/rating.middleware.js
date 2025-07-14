@@ -165,10 +165,13 @@ export const validateUserParams = (req, res, next) => {
     });
   }
 
-  if (!Number.isInteger(parseInt(user_id))) {
+  // Validar UUID v4 format
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(user_id)) {
     return res.status(400).json({
       error: "ID inválido",
-      message: "El ID del usuario debe ser un número entero válido",
+      message: "El ID del usuario debe ser un UUID válido",
     });
   }
 
@@ -231,7 +234,12 @@ export const validateRatingQueryParams = (req, res, next) => {
   }
 
   // Validar limit si está presente
-  if (limit && (!Number.isInteger(parseInt(limit)) || parseInt(limit) < 1 || parseInt(limit) > 100)) {
+  if (
+    limit &&
+    (!Number.isInteger(parseInt(limit)) ||
+      parseInt(limit) < 1 ||
+      parseInt(limit) > 100)
+  ) {
     return res.status(400).json({
       error: "Límite inválido",
       message: "El límite debe ser un número entero entre 1 y 100",
@@ -239,4 +247,4 @@ export const validateRatingQueryParams = (req, res, next) => {
   }
 
   next();
-}; 
+};

@@ -4,6 +4,7 @@ import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT } from "../config/configEnv.js";
+import { generateTokens, verifyRefreshToken } from "../utils/jwt.util.js";
 
 export const register = async (req, res) => {
   const { fullname, location, email, username, password } = req.body;
@@ -16,7 +17,8 @@ export const register = async (req, res) => {
   // Desestructurar fullname en first_name y last_name de manera más robusta
   const nameParts = fullname.trim().split(" ");
   const first_name = nameParts[0];
-  const last_name = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Usuario";
+  const last_name =
+    nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Usuario";
 
   if (!first_name || !last_name) {
     return res
@@ -28,18 +30,20 @@ export const register = async (req, res) => {
     let regularUserType = await UserType.findOne({
       where: { user_type_id: 2 },
     });
-    
+
     if (!regularUserType) {
       // Intentar crear el tipo de usuario regular si no existe
       try {
         regularUserType = await UserType.create({
           user_type_id: 2,
-          type_name: 'regular',
-          description: 'Usuario regular del sistema'
+          type_name: "regular",
+          description: "Usuario regular del sistema",
         });
       } catch (error) {
         // Si falla, usar user_type_id = 1 o null
-        console.warn("No se pudo crear el tipo de usuario regular, usando valor por defecto");
+        console.warn(
+          "No se pudo crear el tipo de usuario regular, usando valor por defecto"
+        );
       }
     }
 
@@ -81,18 +85,22 @@ export const register = async (req, res) => {
       password: hashedPassword,
     });
 
-    // Generar JWT para el usuario recién registrado
+    // Generar tokens para el usuario recién registrado
     const payload = {
       user_id: newUser.dataValues.user_id,
       username: newUser.dataValues.username,
       user_type_id: newUser.dataValues.user_type_id,
     };
-    const token = jwt.sign(payload, JWT.ACCESS_TOKEN_SECRET, {
-      expiresIn: Number(JWT.ACCESS_TOKEN_EXPIRES_IN) || 15 * 60,
-    });
+
+    const { accessToken, refreshToken } = generateTokens(payload);
+
+    // Guardar el refresh token en la base de datos
+    await newUser.update({ refresh_token: refreshToken });
 
     return res.status(201).json({
-      token,
+      message: "Usuario registrado exitosamente",
+      accessToken,
+      refreshToken,
       user: {
         user_id: newUser.dataValues.user_id,
         username: newUser.dataValues.username,
@@ -132,17 +140,22 @@ export const login = async (req, res) => {
     if (!validPassword) {
       return res.status(401).json({ message: "Contraseña incorrecta" });
     }
-    // Generar JWT
+    // Generar tokens
     const payload = {
       user_id: user.get("user_id"),
       username: user.get("username"),
       user_type_id: user.get("user_type_id"),
     };
-    const token = jwt.sign(payload, JWT.ACCESS_TOKEN_SECRET, {
-      expiresIn: Number(JWT.ACCESS_TOKEN_EXPIRES_IN) || 15 * 60,
-    });
+
+    const { accessToken, refreshToken } = generateTokens(payload);
+
+    // Guardar el refresh token en la base de datos
+    await user.update({ refresh_token: refreshToken });
+
     return res.json({
-      token,
+      message: "Login exitoso",
+      accessToken,
+      refreshToken,
       user: {
         user_id: user.get("user_id"),
         username: user.get("username"),
@@ -166,7 +179,15 @@ export const getUserProfile = async (req, res) => {
     const { user_id } = req.user;
 
     const user = await User.findByPk(user_id, {
-      attributes: ['user_id', 'first_name', 'last_name', 'email', 'username', 'location', 'user_type_id']
+      attributes: [
+        "user_id",
+        "first_name",
+        "last_name",
+        "email",
+        "username",
+        "location",
+        "user_type_id",
+      ],
     });
 
     if (!user) {
@@ -176,18 +197,20 @@ export const getUserProfile = async (req, res) => {
     return res.status(200).json({
       message: "Perfil obtenido exitosamente",
       data: {
-        user_id: user.user_id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        username: user.username,
-        location: user.location,
-        user_type_id: user.user_type_id
-      }
+        user_id: user.get("user_id"),
+        first_name: user.get("first_name"),
+        last_name: user.get("last_name"),
+        email: user.get("email"),
+        username: user.get("username"),
+        location: user.get("location"),
+        user_type_id: user.get("user_type_id"),
+      },
     });
   } catch (error) {
     console.error("Error al obtener perfil:", error);
-    return res.status(500).json({ message: "Error interno del servidor", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error interno del servidor", error: error.message });
   }
 };
 
@@ -209,30 +232,34 @@ export const updateUserProfile = async (req, res) => {
     }
 
     // Verificar si el email ya está en uso por otro usuario
-    if (email !== user.email) {
+    if (email !== user.get("email")) {
       const existingUser = await User.findOne({
         where: {
           email: email,
-          user_id: { [Op.ne]: user_id }
+          user_id: { [Op.ne]: user_id },
         },
       });
 
       if (existingUser) {
-        return res.status(400).json({ message: "El email ya está en uso por otro usuario" });
+        return res
+          .status(400)
+          .json({ message: "El email ya está en uso por otro usuario" });
       }
     }
 
     // Verificar si el username ya está en uso por otro usuario
-    if (username !== user.username) {
+    if (username !== user.get("username")) {
       const existingUsername = await User.findOne({
         where: {
           username: username,
-          user_id: { [Op.ne]: user_id }
+          user_id: { [Op.ne]: user_id },
         },
       });
 
       if (existingUsername) {
-        return res.status(400).json({ message: "El nombre de usuario ya está en uso por otro usuario" });
+        return res.status(400).json({
+          message: "El nombre de usuario ya está en uso por otro usuario",
+        });
       }
     }
 
@@ -242,26 +269,104 @@ export const updateUserProfile = async (req, res) => {
       last_name,
       email,
       username,
-      location: location || null
+      location: location || null,
     });
 
     // Respuesta sin contraseña
     const userResponse = {
-      user_id: user.user_id,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      email: user.email,
-      username: user.username,
-      location: user.location,
-      user_type_id: user.user_type_id
+      user_id: user.get("user_id"),
+      first_name: user.get("first_name"),
+      last_name: user.get("last_name"),
+      email: user.get("email"),
+      username: user.get("username"),
+      location: user.get("location"),
+      user_type_id: user.get("user_type_id"),
     };
 
     return res.status(200).json({
       message: "Perfil actualizado exitosamente",
-      data: userResponse
+      data: userResponse,
     });
   } catch (error) {
     console.error("Error al actualizar perfil:", error);
-    return res.status(500).json({ message: "Error interno del servidor", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error interno del servidor", error: error.message });
+  }
+};
+
+// Refresh del access token usando refresh token
+export const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token requerido" });
+    }
+
+    // Verificar el refresh token
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch (error) {
+      return res
+        .status(403)
+        .json({ message: "Refresh token inválido o expirado" });
+    }
+
+    // Verificar que el payload tenga la estructura esperada
+    if (typeof payload === "string" || !payload.user_id) {
+      return res.status(403).json({ message: "Refresh token malformado" });
+    }
+
+    // Buscar el usuario y verificar que el refresh token coincida
+    const user = await User.findByPk(payload.user_id);
+    if (!user || user.get("refresh_token") !== refreshToken) {
+      return res.status(403).json({ message: "Refresh token inválido" });
+    }
+
+    // Generar nuevos tokens
+    const newPayload = {
+      user_id: user.get("user_id"),
+      username: user.get("username"),
+      user_type_id: user.get("user_type_id"),
+    };
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      generateTokens(newPayload);
+
+    // Actualizar el refresh token en la base de datos
+    await user.update({ refresh_token: newRefreshToken });
+
+    return res.json({
+      message: "Tokens renovados exitosamente",
+      accessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    console.error("Error al renovar tokens:", error);
+    return res
+      .status(500)
+      .json({ message: "Error interno del servidor", error: error.message });
+  }
+};
+
+// Logout - Invalidar refresh token
+export const logout = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+
+    // Encontrar el usuario y limpiar el refresh token
+    const user = await User.findByPk(user_id);
+    if (user) {
+      await user.update({ refresh_token: null });
+    }
+
+    return res.json({ message: "Logout exitoso" });
+  } catch (error) {
+    console.error("Error en logout:", error);
+    return res
+      .status(500)
+      .json({ message: "Error interno del servidor", error: error.message });
   }
 };

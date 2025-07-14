@@ -1,4 +1,4 @@
-import { Router } from "express"
+import { Router } from "express";
 import {
   getAllPublishedBooks,
   getPublishedBookById,
@@ -6,23 +6,34 @@ import {
   createPublishedBook,
   updatePublishedBook,
   deletePublishedBook,
-} from "../controllers/PublishedBooks.controller.js"
-import { authenticateToken } from "../middlewares/auth.middleware.js"
+} from "../controllers/PublishedBooks.controller.js";
+import { authenticateToken } from "../middlewares/auth.middleware.js";
 import {
   validatePublishedBookData,
   validatePublishedBookOwnership,
   validatePublishedBookReferences,
-} from "../middlewares/publishedBooks.middleware.js"
+} from "../middlewares/publishedBooks.middleware.js";
+import { validateUUIDParam } from "../utils/uuid.util.js";
 
-const router = Router()
+const router = Router();
 
 // Rutas públicas
-router.get("/", getAllPublishedBooks)
-router.get("/:id", getPublishedBookById)
-router.get("/user/:userId", getPublishedBooksByUser)
+router.get("/", getAllPublishedBooks);
+router.get("/:id", getPublishedBookById);
+router.get(
+  "/user/:userId",
+  validateUUIDParam("userId"),
+  getPublishedBooksByUser
+);
 
 // Rutas protegidas (requieren autenticación)
-router.post("/", authenticateToken, validatePublishedBookData, validatePublishedBookReferences, createPublishedBook)
+router.post(
+  "/",
+  authenticateToken,
+  validatePublishedBookData,
+  validatePublishedBookReferences,
+  createPublishedBook
+);
 
 router.put(
   "/:id",
@@ -30,9 +41,14 @@ router.put(
   validatePublishedBookOwnership,
   validatePublishedBookData,
   validatePublishedBookReferences,
-  updatePublishedBook,
-)
+  updatePublishedBook
+);
 
-router.delete("/:id", authenticateToken, validatePublishedBookOwnership, deletePublishedBook)
+router.delete(
+  "/:id",
+  authenticateToken,
+  validatePublishedBookOwnership,
+  deletePublishedBook
+);
 
-export default router
+export default router;

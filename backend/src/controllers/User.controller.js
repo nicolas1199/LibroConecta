@@ -7,7 +7,13 @@ export const getUserPublicProfile = async (req, res) => {
     const { userId } = req.params;
 
     const user = await User.findByPk(userId, {
-      attributes: ['user_id', 'first_name', 'last_name', 'username', 'location']
+      attributes: [
+        "user_id",
+        "first_name",
+        "last_name",
+        "username",
+        "location",
+      ],
     });
 
     if (!user) {
@@ -17,15 +23,17 @@ export const getUserPublicProfile = async (req, res) => {
     return res.status(200).json({
       message: "Perfil público obtenido exitosamente",
       data: {
-        user_id: user.user_id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        username: user.username,
-        location: user.location
-      }
+        user_id: user.get("user_id"),
+        first_name: user.get("first_name"),
+        last_name: user.get("last_name"),
+        username: user.get("username"),
+        location: user.get("location"),
+      },
     });
   } catch (error) {
     console.error("Error al obtener perfil público:", error);
-    return res.status(500).json({ message: "Error interno del servidor", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Error interno del servidor", error: error.message });
   }
-}; 
+};

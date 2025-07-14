@@ -10,11 +10,11 @@ const Rating = sequelize.define(
       autoIncrement: true,
     },
     rater_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
     },
     rated_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
     },
     exchange_id: {
@@ -52,4 +52,4 @@ const Rating = sequelize.define(
   }
 );
 
-export default Rating; 
+export default Rating;

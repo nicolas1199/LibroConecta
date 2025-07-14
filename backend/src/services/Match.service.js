@@ -58,25 +58,29 @@ export async function calculateCompatibilityService(userId, targetUserId) {
     // Extraer categorías de cada usuario
     const userCategories = new Set();
     const userLocations = new Set();
-    
+
     userBooks.forEach((publishedBook) => {
       publishedBook.Book.Categories.forEach((category) => {
         userCategories.add(category.category_id);
       });
       if (publishedBook.LocationBook) {
-        userLocations.add(`${publishedBook.LocationBook.region}-${publishedBook.LocationBook.comuna}`);
+        userLocations.add(
+          `${publishedBook.LocationBook.region}-${publishedBook.LocationBook.comuna}`
+        );
       }
     });
 
     const targetCategories = new Set();
     const targetLocations = new Set();
-    
+
     targetUserBooks.forEach((publishedBook) => {
       publishedBook.Book.Categories.forEach((category) => {
         targetCategories.add(category.category_id);
       });
       if (publishedBook.LocationBook) {
-        targetLocations.add(`${publishedBook.LocationBook.region}-${publishedBook.LocationBook.comuna}`);
+        targetLocations.add(
+          `${publishedBook.LocationBook.region}-${publishedBook.LocationBook.comuna}`
+        );
       }
     });
 
@@ -132,8 +136,8 @@ export async function getSuggestedMatchesService(userId, options = {}) {
 
     const matchedUserIds = new Set();
     existingMatches.forEach((match) => {
-      matchedUserIds.add(match.user_id_1);
-      matchedUserIds.add(match.user_id_2);
+      matchedUserIds.add(match.get("user_id_1"));
+      matchedUserIds.add(match.get("user_id_2"));
     });
     matchedUserIds.add(userId); // Excluir al usuario actual
 
@@ -170,10 +174,13 @@ export async function getSuggestedMatchesService(userId, options = {}) {
 
     // Calcular compatibilidad con cada usuario
     const suggestedMatches = [];
-    
+
     for (const user of potentialUsers) {
-      const compatibility = await calculateCompatibilityService(userId, user.user_id);
-      
+      const compatibility = await calculateCompatibilityService(
+        userId,
+        user.user_id
+      );
+
       if (compatibility.score >= minScore) {
         suggestedMatches.push({
           user: {
@@ -332,4 +339,4 @@ export async function getMatchStatsService(userId) {
     console.error("Error al obtener estadísticas de matches:", error);
     throw error;
   }
-} 
+}
