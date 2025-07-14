@@ -7,6 +7,7 @@ import {
   findUserLibraryByIdService,
   getAdvancedLibraryInsights,
 } from "../services/UserLibrary.service.js";
+import { RESPONSE_MESSAGES } from "../utils/constants.util.js";
 
 // Agregar libro a la biblioteca personal
 export async function addToLibrary(req, res) {
@@ -17,7 +18,7 @@ export async function addToLibrary(req, res) {
     const result = await addToLibraryService(userId, bookData);
 
     res.status(201).json({
-      message: "Libro agregado/actualizado en biblioteca personal",
+      message: RESPONSE_MESSAGES.BOOK_ADDED_TO_LIBRARY,
       userLibrary: result,
     });
   } catch (error) {
@@ -60,7 +61,7 @@ export async function updateReadingStatus(req, res) {
     );
 
     res.json({
-      message: "Estado de lectura actualizado correctamente",
+      message: RESPONSE_MESSAGES.READING_STATUS_UPDATED,
       userLibrary: updatedUserLibrary,
     });
   } catch (error) {

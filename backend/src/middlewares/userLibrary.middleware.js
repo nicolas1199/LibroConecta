@@ -3,6 +3,7 @@ import {
   validateRatingService,
   validateReadingStatusService,
 } from "../services/UserLibrary.service.js";
+import { RESPONSE_MESSAGES } from "../utils/constants.util.js";
 
 // Validar que el usuario autenticado pueda acceder al UserLibrary
 export async function validateUserLibraryOwnership(req, res, next) {
@@ -19,7 +20,7 @@ export async function validateUserLibraryOwnership(req, res, next) {
 
     if (!userLibrary) {
       return res.status(404).json({
-        error: "Libro no encontrado en tu biblioteca",
+        error: RESPONSE_MESSAGES.BOOK_NOT_FOUND_IN_LIBRARY,
       });
     }
 

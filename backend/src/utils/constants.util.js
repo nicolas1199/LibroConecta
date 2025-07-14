@@ -17,6 +17,7 @@ export const READING_STATUSES = {
   TO_READ: "por_leer",
   READING: "leyendo",
   READ: "leido",
+  ABANDONED: "abandonado",
 };
 
 export const VALID_READING_STATUSES = Object.values(READING_STATUSES);

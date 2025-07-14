@@ -1,5 +1,12 @@
 import { UserLibrary } from "../db/modelIndex.js";
 import { Op, Sequelize } from "sequelize";
+import {
+  READING_STATUSES,
+  VALID_READING_STATUSES,
+  PAGINATION_DEFAULTS,
+  RESPONSE_MESSAGES,
+  RATING_LIMITS,
+} from "../utils/constants.util.js";
 
 // Agregar o actualizar un libro en la biblioteca personal
 export async function addToLibraryService(userId, bookData) {
@@ -43,11 +50,12 @@ export async function addToLibraryService(userId, bookData) {
     } else {
       // Lógica automática para fecha de inicio
       if (
-        reading_status === "leyendo" &&
-        existingUserLibrary.dataValues.reading_status !== "leyendo"
+        reading_status === READING_STATUSES.READING &&
+        existingUserLibrary.dataValues.reading_status !==
+          READING_STATUSES.READING
       ) {
         updateData.date_started = new Date();
-      } else if (reading_status === "por_leer") {
+      } else if (reading_status === READING_STATUSES.TO_READ) {
         updateData.date_started = null;
       }
     }
@@ -57,8 +65,8 @@ export async function addToLibraryService(userId, bookData) {
     } else {
       // Lógica automática para fecha de finalización
       if (
-        reading_status === "leido" &&
-        existingUserLibrary.dataValues.reading_status !== "leido"
+        reading_status === READING_STATUSES.READ &&
+        existingUserLibrary.dataValues.reading_status !== READING_STATUSES.READ
       ) {
         updateData.date_finished = new Date();
         if (
@@ -95,9 +103,9 @@ export async function addToLibraryService(userId, bookData) {
       createData.date_started = date_started ? new Date(date_started) : null;
     } else {
       // Establecer fechas según el estado inicial
-      if (reading_status === "leyendo") {
+      if (reading_status === READING_STATUSES.READING) {
         createData.date_started = new Date();
-      } else if (reading_status === "leido") {
+      } else if (reading_status === READING_STATUSES.READ) {
         createData.date_started = new Date();
       } else {
         createData.date_started = null;
@@ -122,7 +130,11 @@ export async function addToLibraryService(userId, bookData) {
 
 // Obtener biblioteca personal del usuario con filtros y paginación
 export async function getUserLibraryService(userId, options = {}) {
-  const { status, page = 1, limit = 10 } = options;
+  const {
+    status,
+    page = PAGINATION_DEFAULTS.PAGE,
+    limit = PAGINATION_DEFAULTS.LIMIT,
+  } = options;
 
   // Construir condiciones de búsqueda
   const whereConditions = { user_id: userId };
@@ -177,20 +189,20 @@ export async function updateReadingStatusService(userLibrary, updateData) {
   // Solo aplicar lógica automática si no se proporcionaron fechas desde el frontend
   if (date_started === undefined && date_finished === undefined) {
     if (
-      reading_status === "leyendo" &&
-      userLibrary.dataValues.reading_status !== "leyendo"
+      reading_status === READING_STATUSES.READING &&
+      userLibrary.dataValues.reading_status !== READING_STATUSES.READING
     ) {
       finalUpdateData.date_started = new Date();
       finalUpdateData.date_finished = null; // Limpiar fecha de finalización si vuelve a leer
     } else if (
-      reading_status === "leido" &&
-      userLibrary.dataValues.reading_status !== "leido"
+      reading_status === READING_STATUSES.READ &&
+      userLibrary.dataValues.reading_status !== READING_STATUSES.READ
     ) {
       finalUpdateData.date_finished = new Date();
       if (!userLibrary.dataValues.date_started) {
         finalUpdateData.date_started = new Date();
       }
-    } else if (reading_status === "por_leer") {
+    } else if (reading_status === READING_STATUSES.TO_READ) {
       finalUpdateData.date_started = null;
       finalUpdateData.date_finished = null;
     }
@@ -242,7 +254,7 @@ export async function getReadingStatsService(userId) {
   const monthlyReading = await UserLibrary.findAll({
     where: {
       user_id: userId,
-      reading_status: "leido",
+      reading_status: READING_STATUSES.READ,
       date_finished: {
         [Op.gte]: new Date(new Date().setMonth(new Date().getMonth() - 12)),
       },
@@ -282,8 +294,12 @@ export async function getReadingStatsService(userId) {
 // Validar que un rating esté en el rango correcto
 export function validateRatingService(rating) {
   if (rating !== null && rating !== undefined) {
-    if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
-      throw new Error("La calificación debe ser un número entero entre 1 y 5");
+    if (
+      rating < RATING_LIMITS.MIN ||
+      rating > RATING_LIMITS.MAX ||
+      !Number.isInteger(rating)
+    ) {
+      throw new Error(RESPONSE_MESSAGES.INVALID_RATING);
     }
   }
   return true;
@@ -291,11 +307,8 @@ export function validateRatingService(rating) {
 
 // Validar que el estado de lectura sea válido
 export function validateReadingStatusService(status) {
-  const validStatuses = ["por_leer", "leyendo", "leido", "abandonado"];
-  if (status && !validStatuses.includes(status)) {
-    throw new Error(
-      `Estado de lectura inválido. Debe ser uno de: ${validStatuses.join(", ")}`
-    );
+  if (status && !VALID_READING_STATUSES.includes(status)) {
+    throw new Error(RESPONSE_MESSAGES.INVALID_READING_STATUS);
   }
   return true;
 }
@@ -346,7 +359,7 @@ export async function getAdvancedLibraryInsights(userId) {
     // Tiempo promedio de lectura (para libros que tienen ambas fechas)
     const readingTimes = allBooks.filter(
       (book) =>
-        book.dataValues.reading_status === "leido" &&
+        book.dataValues.reading_status === READING_STATUSES.READ &&
         book.dataValues.date_started &&
         book.dataValues.date_finished
     );
@@ -369,7 +382,7 @@ export async function getAdvancedLibraryInsights(userId) {
     allBooks
       .filter(
         (book) =>
-          book.dataValues.reading_status === "leido" &&
+          book.dataValues.reading_status === READING_STATUSES.READ &&
           book.dataValues.date_finished
       )
       .forEach((book) => {

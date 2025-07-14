@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../../config/configDb.js";
+import { READING_STATUSES, RATING_LIMITS } from "../../utils/constants.util.js";
 
 const UserLibrary = sequelize.define(
   "UserLibrary",
@@ -38,7 +39,12 @@ const UserLibrary = sequelize.define(
       comment: "Fecha de publicación del libro",
     },
     reading_status: {
-      type: DataTypes.ENUM("por_leer", "leyendo", "leido", "abandonado"),
+      type: DataTypes.ENUM(
+        READING_STATUSES.TO_READ,
+        READING_STATUSES.READING,
+        READING_STATUSES.READ,
+        READING_STATUSES.ABANDONED
+      ),
       allowNull: true,
       comment: "Estado de lectura del libro",
     },
@@ -46,8 +52,8 @@ const UserLibrary = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
       validate: {
-        min: 1,
-        max: 5,
+        min: RATING_LIMITS.MIN,
+        max: RATING_LIMITS.MAX,
       },
       comment: "Calificación del libro del 1 al 5",
     },
