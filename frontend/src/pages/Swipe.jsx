@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import SwipeCard from "../components/SwipeCard";
-import { getRecommendations, recordSwipeInteraction, getUserSwipeStats } from "../api/publishedBooks";
+import BookOpen from "../components/icons/BookOpen";
+import Clock from "../components/icons/Clock";
+import { getRecommendations, recordSwipeInteraction, getUserSwipeHistory } from "../api/publishedBooks";
 
 export default function Swipe() {
   const [books, setBooks] = useState([]);
@@ -9,14 +12,28 @@ export default function Swipe() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [allBooksViewed, setAllBooksViewed] = useState(false);
-  const [swipeStats, setSwipeStats] = useState({
+  const [totalStats, setTotalStats] = useState({
     likes: 0,
     dislikes: 0,
+    total: 0,
   });
+
+  // Cargar estadísticas totales del usuario
+  const loadTotalStats = async () => {
+    try {
+      const response = await getUserSwipeHistory({ limit: 1 });
+      if (response.success) {
+        setTotalStats(response.data.stats);
+      }
+    } catch (err) {
+      console.error("Error loading total stats:", err);
+    }
+  };
 
   // Cargar libros recomendados
   useEffect(() => {
     loadBooks();
+    loadTotalStats();
   }, []);
 
   const loadBooks = async () => {
@@ -53,7 +70,12 @@ export default function Swipe() {
   // Manejar swipe
   const handleSwipe = async (bookId, action) => {
     if (action === 'like') {
-      setSwipeStats(prev => ({ ...prev, likes: prev.likes + 1 }));
+      // Actualizar estadísticas totales
+      setTotalStats(prev => ({
+        ...prev,
+        likes: prev.likes + 1,
+        total: prev.total + 1
+      }));
       
       // Registrar interacción
       try {
@@ -67,7 +89,12 @@ export default function Swipe() {
         // No mostramos error al usuario para no interrumpir la experiencia
       }
     } else {
-      setSwipeStats(prev => ({ ...prev, dislikes: prev.dislikes + 1 }));
+      // Actualizar estadísticas totales
+      setTotalStats(prev => ({
+        ...prev,
+        dislikes: prev.dislikes + 1,
+        total: prev.total + 1
+      }));
       
       // Registrar interacción de dislike
       try {
@@ -118,10 +145,10 @@ export default function Swipe() {
 
   const resetSwipe = () => {
     setCurrentIndex(0);
-    setSwipeStats({ likes: 0, dislikes: 0 });
     setAllBooksViewed(false);
     setBooks([]);
     loadBooks();
+    loadTotalStats(); // Recargar estadísticas totales
   };
 
   if (loading && books.length === 0) {
@@ -137,17 +164,61 @@ export default function Swipe() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-md">
-          <div className="text-6xl mb-4">📚</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">¡Oops!</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={resetSwipe}
-            className="btn btn-primary"
-          >
-            Intentar de nuevo
-          </button>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header con historial siempre visible */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="h-8 w-8 text-blue-600" />
+                  <h1 className="text-2xl font-semibold text-gray-900">
+                    LibroConecta
+                  </h1>
+                </div>
+                <Link
+                  to="/dashboard/swipe/history"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Historial</span>
+                </Link>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div className="flex justify-center space-x-8">
+              <div className="text-center">
+                <div className="text-green-600 font-semibold text-lg">{totalStats.likes}</div>
+                <div className="text-gray-500 text-sm">Me gusta</div>
+              </div>
+              <div className="text-center">
+                <div className="text-red-500 font-semibold text-lg">{totalStats.dislikes}</div>
+                <div className="text-gray-500 text-sm">No me gusta</div>
+              </div>
+              <div className="text-center">
+                <div className="text-blue-600 font-semibold text-lg">0</div>
+                <div className="text-gray-500 text-sm">Restantes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido principal */}
+        <div className="flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+          <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-md">
+            <div className="text-red-500 mb-4">
+              <BookOpen className="w-16 h-16 mx-auto" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">¡Oops!</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={resetSwipe}
+              className="btn btn-primary"
+            >
+              Intentar de nuevo
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -159,21 +230,65 @@ export default function Swipe() {
   // Mostrar pantalla especial cuando ya revisó todos los libros disponibles
   if (allBooksViewed && books.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-md">
-          <div className="text-6xl mb-4">🎯</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            ¡Has revisado todos los libros!
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Has evaluado todos los libros disponibles. Vuelve más tarde para ver nuevas publicaciones.
-          </p>
-          <button
-            onClick={resetSwipe}
-            className="btn btn-primary"
-          >
-            Verificar nuevos libros
-          </button>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header con historial siempre visible */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="h-8 w-8 text-blue-600" />
+                  <h1 className="text-2xl font-semibold text-gray-900">
+                    LibroConecta
+                  </h1>
+                </div>
+                <Link
+                  to="/dashboard/swipe/history"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Historial</span>
+                </Link>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div className="flex justify-center space-x-8">
+              <div className="text-center">
+                <div className="text-green-600 font-semibold text-lg">{totalStats.likes}</div>
+                <div className="text-gray-500 text-sm">Me gusta</div>
+              </div>
+              <div className="text-center">
+                <div className="text-red-500 font-semibold text-lg">{totalStats.dislikes}</div>
+                <div className="text-gray-500 text-sm">No me gusta</div>
+              </div>
+              <div className="text-center">
+                <div className="text-blue-600 font-semibold text-lg">0</div>
+                <div className="text-gray-500 text-sm">Restantes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido principal */}
+        <div className="flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+          <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-md">
+            <div className="text-blue-500 mb-4">
+              <BookOpen className="w-16 h-16 mx-auto" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              ¡Has revisado todos los libros!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Has evaluado todos los libros disponibles. Vuelve más tarde para ver nuevas publicaciones.
+            </p>
+            <button
+              onClick={resetSwipe}
+              className="btn btn-primary"
+            >
+              Verificar nuevos libros
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -181,21 +296,65 @@ export default function Swipe() {
 
   if (!hasMoreBooks && !allBooksViewed) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-md">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            ¡Has visto todos los libros!
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Te gustaron {swipeStats.likes} libros de {swipeStats.likes + swipeStats.dislikes} recomendaciones
-          </p>
-          <button
-            onClick={resetSwipe}
-            className="btn btn-primary"
-          >
-            Empezar de nuevo
-          </button>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header con historial siempre visible */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="h-8 w-8 text-blue-600" />
+                  <h1 className="text-2xl font-semibold text-gray-900">
+                    LibroConecta
+                  </h1>
+                </div>
+                <Link
+                  to="/dashboard/swipe/history"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Historial</span>
+                </Link>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div className="flex justify-center space-x-8">
+              <div className="text-center">
+                <div className="text-green-600 font-semibold text-lg">{totalStats.likes}</div>
+                <div className="text-gray-500 text-sm">Me gusta</div>
+              </div>
+              <div className="text-center">
+                <div className="text-red-500 font-semibold text-lg">{totalStats.dislikes}</div>
+                <div className="text-gray-500 text-sm">No me gusta</div>
+              </div>
+              <div className="text-center">
+                <div className="text-blue-600 font-semibold text-lg">0</div>
+                <div className="text-gray-500 text-sm">Restantes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido principal */}
+        <div className="flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+          <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-md">
+            <div className="text-green-500 mb-4">
+              <BookOpen className="w-16 h-16 mx-auto" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              ¡Has visto todos los libros!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Te gustaron {totalStats.likes} libros de {totalStats.total} recomendaciones
+            </p>
+            <button
+              onClick={resetSwipe}
+              className="btn btn-primary"
+            >
+              Empezar de nuevo
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -205,24 +364,40 @@ export default function Swipe() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              📚 LibroSwipe
-            </h1>
-            <p className="text-gray-600">
-              Desliza para descubrir tu próximo libro favorito
-            </p>
-          </div>
+        <div className="max-w-4xl mx-auto px-4 py-6">            <div className="text-center mb-6">
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="h-8 w-8 text-blue-600" />
+                  <h1 className="text-2xl font-semibold text-gray-900">
+                    LibroConecta
+                  </h1>
+                </div>
+                <Link
+                  to="/dashboard/swipe/history"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Historial</span>
+                </Link>
+              </div>
+              <p className="text-gray-600 mb-3">
+                Desliza para descubrir tu próximo libro favorito
+              </p>
+              <div className="text-sm text-gray-500">
+                <span className="inline-block mr-4">← Arrastrar izquierda: No me gusta</span>
+                <span className="inline-block mr-4">→ Arrastrar derecha: Me gusta</span>
+                <span className="inline-block">⌨️ Teclas: ← → o H L</span>
+              </div>
+            </div>
           
           {/* Stats */}
           <div className="flex justify-center space-x-8">
             <div className="text-center">
-              <div className="text-green-600 font-semibold text-lg">{swipeStats.likes}</div>
+              <div className="text-green-600 font-semibold text-lg">{totalStats.likes}</div>
               <div className="text-gray-500 text-sm">Me gusta</div>
             </div>
             <div className="text-center">
-              <div className="text-red-500 font-semibold text-lg">{swipeStats.dislikes}</div>
+              <div className="text-red-500 font-semibold text-lg">{totalStats.dislikes}</div>
               <div className="text-gray-500 text-sm">No me gusta</div>
             </div>
             <div className="text-center">

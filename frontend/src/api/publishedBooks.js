@@ -92,3 +92,21 @@ export const getUserSwipeStats = async () => {
   const res = await api.get("/published-books/interactions/stats")
   return res.data
 }
+
+// Obtener historial de interacciones del usuario
+export const getUserSwipeHistory = async (params = {}) => {
+  const res = await api.get("/published-books/interactions/history", { params });
+  return res.data;
+};
+
+// Actualizar una interacción existente
+export const updateSwipeInteraction = async (interactionId, interactionData) => {
+  const res = await api.put(`/published-books/interactions/${interactionId}`, interactionData);
+  return res.data;
+};
+
+// Eliminar una interacción
+export const deleteSwipeInteraction = async (interactionId) => {
+  const res = await api.delete(`/published-books/interactions/${interactionId}`);
+  return res.data;
+};

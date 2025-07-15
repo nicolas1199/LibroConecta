@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import Heart from "./icons/Heart";
 import X from "./icons/X";
 import PropTypes from "prop-types";
 
-const SWIPE_THRESHOLD = 100;
+const SWIPE_THRESHOLD = 75; // Reducido de 100 a 75 para ser más sensible
 
 export default function SwipeCard({ book, onSwipe, isTop = false }) {
   const [imageError, setImageError] = useState(false);
@@ -12,8 +12,39 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
   
   // Motion values para el arrastre
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-30, 30]);
-  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+  const rotate = useTransform(x, [-300, 300], [-15, 15]); // Rotación más sutil
+  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
+  
+  // Transformaciones para los indicadores (más sensibles)
+  const likeOpacity = useTransform(x, [0, 50, 150], [0, 0.5, 1]);
+  const dislikeOpacity = useTransform(x, [-150, -50, 0], [1, 0.5, 0]);
+
+  // Funciones para botones
+  const handleLike = useCallback(() => {
+    onSwipe(book.published_book_id, 'like');
+  }, [onSwipe, book.published_book_id]);
+
+  const handleDislike = useCallback(() => {
+    onSwipe(book.published_book_id, 'dislike');
+  }, [onSwipe, book.published_book_id]);
+
+  // Manejar teclado para accesibilidad
+  useEffect(() => {
+    if (!isTop) return;
+    
+    const handleKeyDown = (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'l') {
+        event.preventDefault();
+        handleLike();
+      } else if (event.key === 'ArrowLeft' || event.key === 'h') {
+        event.preventDefault();
+        handleDislike();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isTop, handleLike, handleDislike]);
 
   // Extraer datos del libro
   const {
@@ -30,32 +61,25 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
   const primaryImage = images.find((img) => img.is_primary) || images[0];
   const imageUrl = primaryImage?.image_url || "/api/placeholder/300/400";
 
-  // Manejar el final del arrastre
+  // Manejar el final del arrastre (más permisivo)
   const handleDragEnd = (event, info) => {
     const swipeThreshold = SWIPE_THRESHOLD;
+    const velocity = info.velocity.x;
     
-    if (info.offset.x > swipeThreshold) {
+    // Considerar tanto el offset como la velocidad para una experiencia más natural
+    if (info.offset.x > swipeThreshold || velocity > 500) {
       // Swipe derecha - Like
       onSwipe(book.published_book_id, 'like');
-    } else if (info.offset.x < -swipeThreshold) {
+    } else if (info.offset.x < -swipeThreshold || velocity < -500) {
       // Swipe izquierda - Dislike
       onSwipe(book.published_book_id, 'dislike');
     }
   };
 
-  // Funciones para botones
-  const handleLike = () => {
-    onSwipe(book.published_book_id, 'like');
-  };
-
-  const handleDislike = () => {
-    onSwipe(book.published_book_id, 'dislike');
-  };
-
   return (
     <motion.div
       ref={cardRef}
-      className={`absolute w-80 h-96 bg-white rounded-xl shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing ${
+      className={`absolute w-80 h-96 bg-white rounded-xl shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing select-none ${
         isTop ? 'z-10' : 'z-0'
       }`}
       style={{
@@ -64,9 +88,10 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
         opacity: isTop ? opacity : 1,
       }}
       drag={isTop ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
+      dragConstraints={{ left: -400, right: 400 }} // Más espacio para arrastrar
+      dragElastic={0.2} // Añadir elasticidad
       onDragEnd={isTop ? handleDragEnd : undefined}
-      whileDrag={{ scale: 1.05 }}
+      whileDrag={{ scale: 1.05, zIndex: 50 }}
       initial={{ scale: 0.95, y: 10 }}
       animate={{ scale: isTop ? 1 : 0.95, y: isTop ? 0 : 10 }}
       exit={{ x: 0, y: -100, opacity: 0 }}
@@ -80,23 +105,25 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
           onError={() => setImageError(true)}
         />
         
-        {/* Indicadores de swipe */}
+        {/* Indicadores de swipe mejorados */}
         <motion.div
-          className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full font-bold text-lg transform rotate-12"
+          className="absolute top-4 left-4 bg-green-500 text-white px-4 py-2 rounded-full font-bold text-sm transform rotate-12 shadow-lg"
           style={{
-            opacity: useTransform(x, [0, 100], [0, 1]),
+            opacity: likeOpacity,
+            scale: useTransform(x, [0, 50, 150], [0.8, 1, 1.2]),
           }}
         >
-          LIKE
+          ❤️ ME GUSTA
         </motion.div>
         
         <motion.div
-          className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-lg transform -rotate-12"
+          className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-full font-bold text-sm transform -rotate-12 shadow-lg"
           style={{
-            opacity: useTransform(x, [-100, 0], [1, 0]),
+            opacity: dislikeOpacity,
+            scale: useTransform(x, [-150, -50, 0], [1.2, 1, 0.8]),
           }}
         >
-          NOPE
+          👎 NO ME GUSTA
         </motion.div>
 
         {/* Badge de condición */}
@@ -134,24 +161,26 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
 
           {/* Usuario */}
           <p className="text-xs text-gray-500 mt-1">
-            Por: {user?.name || 'Usuario'} {user?.last_name || ''}
+            Por: {user?.first_name || 'Usuario'} {user?.last_name || ''}
           </p>
         </div>
 
-        {/* Botones de acción (solo visibles en la carta superior) */}
+        {/* Botones de acción mejorados */}
         {isTop && (
-          <div className="flex justify-center space-x-4 mt-3">
+          <div className="flex justify-center space-x-6 mt-4">
             <button
               onClick={handleDislike}
-              className="w-12 h-12 bg-red-50 hover:bg-red-100 border border-red-200 rounded-full flex items-center justify-center transition-colors"
+              className="w-14 h-14 bg-red-50 hover:bg-red-100 border-2 border-red-200 hover:border-red-300 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-md"
+              aria-label="No me gusta"
             >
-              <X className="w-6 h-6 text-red-500" />
+              <X className="w-7 h-7 text-red-500" />
             </button>
             <button
               onClick={handleLike}
-              className="w-12 h-12 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full flex items-center justify-center transition-colors"
+              className="w-14 h-14 bg-green-50 hover:bg-green-100 border-2 border-green-200 hover:border-green-300 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-md"
+              aria-label="Me gusta"
             >
-              <Heart className="w-6 h-6 text-green-500" />
+              <Heart className="w-7 h-7 text-green-500" />
             </button>
           </div>
         )}
@@ -169,7 +198,7 @@ SwipeCard.propTypes = {
       author: PropTypes.string,
     }),
     User: PropTypes.shape({
-      name: PropTypes.string,
+      first_name: PropTypes.string,
       last_name: PropTypes.string,
     }),
     TransactionType: PropTypes.shape({
