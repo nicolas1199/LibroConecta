@@ -69,7 +69,17 @@ export const handleAuthError = (error) => {
 
       // Solo redirigir si no estamos ya en login
       if (!window.location.pathname.includes("login")) {
-        window.location.href = "/login?message=session_expired";
+        // Verificar si el usuario acaba de registrarse
+        const isFromRegistration =
+          window.location.pathname === "/dashboard" &&
+          sessionStorage.getItem("justRegistered");
+
+        if (isFromRegistration) {
+          sessionStorage.removeItem("justRegistered");
+          window.location.href = "/login?message=registration_auth_error";
+        } else {
+          window.location.href = "/login?message=session_expired";
+        }
       }
     }
   }

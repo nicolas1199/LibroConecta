@@ -89,10 +89,15 @@ export default function Register() {
       localStorage.setItem("refreshToken", res.refreshToken);
       localStorage.setItem("user", JSON.stringify(res.user));
 
+      // Marcar que el usuario acaba de registrarse
+      sessionStorage.setItem("justRegistered", "true");
+
       setMessage("¡Cuenta creada exitosamente! Redirigiendo...");
 
-      // Redirección inmediata
-      navigate("/dashboard");
+      // Agregar un pequeño delay para asegurar que se guarden los datos
+      setTimeout(() => {
+        navigate("/dashboard", { replace: true });
+      }, 500);
     } catch (error) {
       setMessage(
         error?.response?.data?.message ||

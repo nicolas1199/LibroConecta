@@ -34,6 +34,11 @@ export default function Login() {
         case "unauthorized":
           setMessage("No autorizado. Por favor, inicia sesión para continuar.");
           break;
+        case "registration_auth_error":
+          setMessage(
+            "Hubo un problema con la autenticación después del registro. Por favor, inicia sesión con tus credenciales.",
+          );
+          break;
         default:
           if (urlMessage) {
             setMessage(urlMessage);

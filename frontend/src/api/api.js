@@ -46,7 +46,19 @@ const refreshAuthToken = async () => {
   } catch (error) {
     console.error("❌ Error renovando token:", error);
     clearAuthData();
-    window.location.href = "/login?message=session_expired";
+
+    // Solo mostrar mensaje de sesión expirada si el usuario estaba previamente autenticado
+    // (no en el caso de registro reciente)
+    const isFromRegistration =
+      window.location.pathname === "/dashboard" &&
+      sessionStorage.getItem("justRegistered");
+
+    if (isFromRegistration) {
+      sessionStorage.removeItem("justRegistered");
+      window.location.href = "/login?message=registration_auth_error";
+    } else {
+      window.location.href = "/login?message=session_expired";
+    }
     throw error;
   }
 };
