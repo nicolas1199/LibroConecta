@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import { Link } from "react-router-dom";
 import {
   getUserLibrary,
@@ -19,6 +19,137 @@ import Star from "../components/icons/Star";
 import CustomSelect from "../components/CustomSelect";
 import SearchableSelect from "../components/SearchableSelect";
 import { BOOK_GENRES } from "../utils/constants";
+
+// Componente memoizado para las tarjetas de libros
+const BookCard = memo(({ userBook, onEdit, onDelete, getStatusBadge }) => {
+  const imageRef = useRef(null);
+
+  useEffect(() => {
+    const img = imageRef.current;
+    if (img && img.dataset.src) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const target = entry.target;
+              if (target.dataset.src) {
+                target.src = target.dataset.src;
+                target.removeAttribute("data-src");
+                observer.unobserve(target);
+              }
+            }
+          });
+        },
+        { rootMargin: "50px" },
+      );
+      observer.observe(img);
+      return () => observer.disconnect();
+    }
+  }, [userBook.image_url]);
+
+  return (
+    <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-3 md:p-4 min-w-0">
+      <div className="flex justify-between items-start mb-3 md:mb-4 gap-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm md:text-base leading-tight">
+            {userBook.title}
+          </h3>
+          <p className="text-xs md:text-sm text-gray-600 truncate">
+            {userBook.author}
+          </p>
+        </div>
+        <div className="flex space-x-1 flex-shrink-0">
+          <Link
+            to={`/dashboard/library/edit/${userBook.user_library_id}`}
+            className="p-1.5 md:p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+          >
+            <Edit className="w-3 h-3 md:w-4 md:h-4" />
+          </Link>
+          <button
+            onClick={() => onDelete(userBook)}
+            className="p-1.5 md:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+          >
+            <Trash className="w-3 h-3 md:w-4 md:h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Detalles del libro */}
+      <div className="flex gap-2 md:gap-3 mb-3 md:mb-4">
+        {userBook.image_url ? (
+          <img
+            ref={imageRef}
+            data-src={userBook.image_url}
+            alt={`Portada de ${userBook.title}`}
+            className="w-12 h-16 md:w-16 md:h-20 object-cover rounded-md flex-shrink-0 bg-gray-100"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <div className="w-12 h-16 md:w-16 md:h-20 bg-gray-100 rounded-md flex-shrink-0 flex items-center justify-center">
+            <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0 space-y-1 md:space-y-1.5">
+          {userBook.isbn && (
+            <p className="text-xs text-gray-500 truncate">
+              ISBN: {userBook.isbn}
+            </p>
+          )}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs md:text-sm text-gray-600 flex-shrink-0">
+              Estado:
+            </span>
+            <div className="flex-shrink-0">
+              {getStatusBadge(userBook.reading_status)}
+            </div>
+          </div>
+          {userBook.rating && (
+            <div className="flex flex-col gap-1">
+              <span className="text-xs md:text-sm text-gray-600 flex-shrink-0">
+                Valoración:
+              </span>
+              <div className="flex items-center gap-0.5 flex-shrink-0">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 ${i < userBook.rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {userBook.review && (
+        <div className="mb-3 md:mb-4">
+          <p className="text-xs md:text-sm text-gray-600 mb-1">Notas:</p>
+          <p className="text-xs md:text-sm text-gray-800 bg-gray-50 p-2 rounded leading-relaxed">
+            {userBook.review.length > 80
+              ? `${userBook.review.substring(0, 80)}...`
+              : userBook.review}
+          </p>
+        </div>
+      )}
+
+      <div className="flex justify-between text-xs text-gray-500 pt-2 border-t">
+        <span className="truncate">
+          Agregado: {new Date(userBook.createdAt).toLocaleDateString()}
+        </span>
+        {userBook.finishedAt && (
+          <span className="truncate ml-2">
+            Terminado: {new Date(userBook.finishedAt).toLocaleDateString()}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+});
+
+BookCard.displayName = "BookCard";
 
 export default function MyLibrary() {
   const [library, setLibrary] = useState([]);
@@ -44,11 +175,37 @@ export default function MyLibrary() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
-  const [booksPerPage] = useState(15); // 15 libros por página
+  const [booksPerPage] = useState(4);
 
   // Referencias para optimización
   const loadingRef = useRef(false);
   const searchTimeoutRef = useRef(null);
+  const searchCacheRef = useRef(new Map()); // Cache para resultados de búsqueda
+  const imageObserverRef = useRef(null);
+
+  // Configurar Intersection Observer para lazy loading de imágenes
+  useEffect(() => {
+    imageObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            const realSrc = img.dataset.src;
+            if (realSrc) {
+              img.src = realSrc;
+              img.removeAttribute("data-src");
+              imageObserverRef.current?.unobserve(img);
+            }
+          }
+        });
+      },
+      { rootMargin: "50px" },
+    );
+
+    return () => {
+      imageObserverRef.current?.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     loadLibraryData();
@@ -60,49 +217,10 @@ export default function MyLibrary() {
         clearTimeout(searchTimeoutRef.current);
       }
       loadingRef.current = false;
+      // Limpiar cache al desmontar componente
+      searchCacheRef.current.clear();
     };
   }, []);
-
-  // Efecto optimizado para búsqueda en tiempo real y filtros
-  useEffect(() => {
-    // Limpiar timeout anterior
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // Evitar búsquedas innecesarias
-    if (loadingRef.current) return;
-
-    searchTimeoutRef.current = setTimeout(() => {
-      if (searchTerm.length >= 2 || searchTerm.length === 0) {
-        const statusMap = {
-          todos: null,
-          por_leer: "por_leer",
-          leyendo: "leyendo",
-          leido: "leido",
-          abandonado: "abandonado",
-        };
-
-        // Solo recargar si hay filtros avanzados activos
-        const hasAdvancedFilters =
-          advancedFilters.author ||
-          advancedFilters.rating ||
-          advancedFilters.year ||
-          advancedFilters.genre ||
-          advancedFilters.sortBy !== "updatedAt" ||
-          advancedFilters.sortOrder !== "DESC";
-
-        loadLibraryData(statusMap[activeTab], hasAdvancedFilters);
-      }
-    }, 500); // Aumentar debounce a 500ms para menos llamadas
-
-    // Cleanup
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchTerm, activeTab, quickGenreFilter, currentPage]);
 
   const loadLibraryData = useCallback(
     async (status = null, useAdvancedFilters = false) => {
@@ -112,6 +230,7 @@ export default function MyLibrary() {
       try {
         loadingRef.current = true;
         setLoading(true);
+
         const params = status ? { status } : {};
 
         // Agregar filtros avanzados si están activos
@@ -134,6 +253,25 @@ export default function MyLibrary() {
         params.page = currentPage;
         params.limit = booksPerPage;
 
+        // Crear clave de cache
+        const cacheKey = JSON.stringify(params);
+
+        // Verificar cache primero (solo para consultas no críticas)
+        if (searchCacheRef.current.has(cacheKey) && !useAdvancedFilters) {
+          const cachedResult = searchCacheRef.current.get(cacheKey);
+          const cacheAge = Date.now() - cachedResult.timestamp;
+
+          // Usar cache si tiene menos de 2 minutos
+          if (cacheAge < 120000) {
+            setLibrary(cachedResult.data.books || []);
+            if (cachedResult.data.pagination) {
+              setTotalPages(cachedResult.data.pagination.totalPages || 1);
+              setTotalBooks(cachedResult.data.pagination.totalBooks || 0);
+            }
+            return;
+          }
+        }
+
         const response = await getUserLibrary(params);
         setLibrary(response.books || []);
 
@@ -142,6 +280,16 @@ export default function MyLibrary() {
           setTotalPages(response.pagination.totalPages || 1);
           setTotalBooks(response.pagination.totalBooks || 0);
         }
+
+        // Guardar en cache (límite de 50 entradas para evitar memory leaks)
+        if (searchCacheRef.current.size >= 50) {
+          const firstKey = searchCacheRef.current.keys().next().value;
+          searchCacheRef.current.delete(firstKey);
+        }
+        searchCacheRef.current.set(cacheKey, {
+          data: response,
+          timestamp: Date.now(),
+        });
       } catch (error) {
         console.error("Error loading library:", error);
         setError("Error al cargar la biblioteca");
@@ -160,10 +308,53 @@ export default function MyLibrary() {
     ],
   );
 
-  // Efecto para resetear la página cuando cambian los filtros (excluye filtros avanzados)
+  // Efecto optimizado para búsqueda en tiempo real y filtros
+  useEffect(() => {
+    // Limpiar timeout anterior
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Evitar búsquedas innecesarias
+    if (loadingRef.current) return;
+
+    // Si están activos los filtros avanzados, no aplicar filtros automáticos
+    if (showAdvancedSearch) {
+      return; // No hacer nada, esperar a que se presione "Aplicar filtros"
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (searchTerm.length >= 2 || searchTerm.length === 0) {
+        const statusMap = {
+          todos: null,
+          por_leer: "por_leer",
+          leyendo: "leyendo",
+          leido: "leido",
+          abandonado: "abandonado",
+        };
+
+        loadLibraryData(statusMap[activeTab], false);
+      }
+    }, 500); // Aumentar debounce a 500ms para menos llamadas
+
+    // Cleanup
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [
+    searchTerm,
+    quickGenreFilter,
+    activeTab,
+    showAdvancedSearch,
+    loadLibraryData,
+  ]);
+
+  // Efecto para resetear la página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, quickGenreFilter, activeTab]);
+  }, [searchTerm, quickGenreFilter, activeTab, advancedFilters]);
 
   const loadStats = async () => {
     try {
@@ -203,6 +394,10 @@ export default function MyLibrary() {
   const handleDeleteBook = async (bookId) => {
     try {
       await removeFromLibrary(bookId);
+
+      // Limpiar cache después de eliminar un libro
+      searchCacheRef.current.clear();
+
       const statusMap = {
         todos: null,
         por_leer: "por_leer",
@@ -325,78 +520,84 @@ export default function MyLibrary() {
 
           {/* Controles de filtros - stack en móvil, fila en desktop */}
           <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-4">
-            {/* Filtro rápido de género */}
-            <div className="w-full lg:w-48 flex-shrink-0">
-              <SearchableSelect
-                label=""
-                value={quickGenreFilter}
-                onChange={(value) => {
-                  // Cancelar búsqueda anterior si existe
-                  if (searchTimeoutRef.current) {
-                    clearTimeout(searchTimeoutRef.current);
-                  }
-
-                  setQuickGenreFilter(value);
-                  setCurrentPage(1); // Resetear página al cambiar filtro
-
-                  // Aplicar filtro con debounce optimizado
-                  searchTimeoutRef.current = setTimeout(() => {
-                    const statusMap = {
-                      todos: null,
-                      por_leer: "por_leer",
-                      leyendo: "leyendo",
-                      leido: "leido",
-                      abandonado: "abandonado",
-                    };
-
-                    const params = statusMap[activeTab]
-                      ? { status: statusMap[activeTab] }
-                      : {};
-                    if (searchTerm) params.search = searchTerm;
-                    if (value) params.genre = value;
-                    params.page = 1;
-                    params.limit = booksPerPage;
-                    params.sortBy = "updatedAt";
-                    params.sortOrder = "DESC";
-
-                    // Evitar llamada si ya está cargando
-                    if (!loadingRef.current) {
-                      loadingRef.current = true;
-                      setLoading(true);
-                      getUserLibrary(params)
-                        .then((response) => {
-                          setLibrary(response.books || []);
-                          if (response.pagination) {
-                            setTotalPages(response.pagination.totalPages || 1);
-                            setTotalBooks(response.pagination.totalBooks || 0);
-                          }
-                        })
-                        .catch((error) => {
-                          console.error(
-                            "Error loading library with quick filter:",
-                            error,
-                          );
-                          setError("Error al cargar la biblioteca");
-                        })
-                        .finally(() => {
-                          loadingRef.current = false;
-                          setLoading(false);
-                        });
+            {/* Filtro rápido de género - solo si NO están activos los filtros avanzados */}
+            {!showAdvancedSearch && (
+              <div className="w-full lg:w-48 flex-shrink-0">
+                <SearchableSelect
+                  label=""
+                  value={quickGenreFilter}
+                  onChange={(value) => {
+                    // Cancelar búsqueda anterior si existe
+                    if (searchTimeoutRef.current) {
+                      clearTimeout(searchTimeoutRef.current);
                     }
-                  }, 200); // Debounce más corto para filtros directos
-                }}
-                options={[
-                  { value: "", label: "Todos los géneros" },
-                  ...BOOK_GENRES.sort().map((genre) => ({
-                    value: genre,
-                    label: genre,
-                  })),
-                ]}
-                placeholder="Filtrar por género"
-                searchPlaceholder="Buscar género..."
-                className="w-full"
-              />
-            </div>
+
+                    setQuickGenreFilter(value);
+                    // La página se resetea automáticamente por el useEffect
+
+                    // Aplicar filtro con debounce optimizado
+                    searchTimeoutRef.current = setTimeout(() => {
+                      const statusMap = {
+                        todos: null,
+                        por_leer: "por_leer",
+                        leyendo: "leyendo",
+                        leido: "leido",
+                        abandonado: "abandonado",
+                      };
+
+                      const params = statusMap[activeTab]
+                        ? { status: statusMap[activeTab] }
+                        : {};
+                      if (searchTerm) params.search = searchTerm;
+                      if (value) params.genre = value;
+                      params.page = 1; // Siempre empezar en página 1
+                      params.limit = booksPerPage;
+                      params.sortBy = "updatedAt";
+                      params.sortOrder = "DESC";
+
+                      // Evitar llamada si ya está cargando
+                      if (!loadingRef.current) {
+                        loadingRef.current = true;
+                        setLoading(true);
+                        getUserLibrary(params)
+                          .then((response) => {
+                            setLibrary(response.books || []);
+                            if (response.pagination) {
+                              setTotalPages(
+                                response.pagination.totalPages || 1,
+                              );
+                              setTotalBooks(
+                                response.pagination.totalBooks || 0,
+                              );
+                            }
+                          })
+                          .catch((error) => {
+                            console.error(
+                              "Error loading library with quick filter:",
+                              error,
+                            );
+                            setError("Error al cargar la biblioteca");
+                          })
+                          .finally(() => {
+                            loadingRef.current = false;
+                            setLoading(false);
+                          });
+                      }
+                    }, 200); // Debounce más corto para filtros directos
+                  }}
+                  options={[
+                    { value: "", label: "Todos los géneros" },
+                    ...BOOK_GENRES.sort().map((genre) => ({
+                      value: genre,
+                      label: genre,
+                    })),
+                  ]}
+                  placeholder="Filtrar por género"
+                  searchPlaceholder="Buscar género..."
+                  className="w-full"
+                />
+              </div>
+            )}
 
             {/* Contenedor de búsqueda y filtros avanzados */}
             <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 lg:flex-1">
@@ -422,7 +623,7 @@ export default function MyLibrary() {
                 }`}
               >
                 <span className="hidden sm:inline">Filtros avanzados</span>
-                <span className="sm:hidden">Filtros +</span>
+                <span className="sm:hidden">Filtros avanzados</span>
               </button>
             </div>
           </div>
@@ -560,7 +761,7 @@ export default function MyLibrary() {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4">
               <button
                 onClick={() => {
-                  setCurrentPage(1); // Resetear página al aplicar filtros
+                  // La página se resetea automáticamente por el useEffect
                   const statusMap = {
                     todos: null,
                     por_leer: "por_leer",
@@ -576,6 +777,9 @@ export default function MyLibrary() {
               </button>
               <button
                 onClick={() => {
+                  // Limpiar cache al resetear filtros
+                  searchCacheRef.current.clear();
+
                   setAdvancedFilters({
                     author: "",
                     rating: "",
@@ -586,7 +790,8 @@ export default function MyLibrary() {
                   });
                   setQuickGenreFilter(""); // Limpiar también el filtro rápido
                   setShowAdvancedSearch(false);
-                  setCurrentPage(1); // Resetear página al limpiar filtros
+                  // La página se resetea automáticamente por el useEffect
+
                   const statusMap = {
                     todos: null,
                     por_leer: "por_leer",
@@ -640,108 +845,13 @@ export default function MyLibrary() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
           {library.map((userBook) => (
-            <div
+            <BookCard
               key={userBook.user_library_id}
-              className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-3 md:p-4 min-w-0"
-            >
-              <div className="flex justify-between items-start mb-3 md:mb-4 gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm md:text-base leading-tight">
-                    {userBook.title}
-                  </h3>
-                  <p className="text-xs md:text-sm text-gray-600 truncate">
-                    {userBook.author}
-                  </p>
-                </div>
-                <div className="flex space-x-1 flex-shrink-0">
-                  <Link
-                    to={`/dashboard/library/edit/${userBook.user_library_id}`}
-                    className="p-1.5 md:p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                  >
-                    <Edit className="w-3 h-3 md:w-4 md:h-4" />
-                  </Link>
-                  <button
-                    onClick={() => openDeleteModal(userBook)}
-                    className="p-1.5 md:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                  >
-                    <Trash className="w-3 h-3 md:w-4 md:h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Detalles del libro */}
-              <div className="flex gap-2 md:gap-3 mb-3 md:mb-4">
-                {userBook.image_url ? (
-                  <img
-                    src={userBook.image_url}
-                    alt={`Portada de ${userBook.title}`}
-                    className="w-12 h-16 md:w-16 md:h-20 object-cover rounded-md flex-shrink-0"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-12 h-16 md:w-16 md:h-20 bg-gray-100 rounded-md flex-shrink-0 flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0 space-y-1 md:space-y-1.5">
-                  {userBook.isbn && (
-                    <p className="text-xs text-gray-500 truncate">
-                      ISBN: {userBook.isbn}
-                    </p>
-                  )}
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs md:text-sm text-gray-600 flex-shrink-0">
-                      Estado:
-                    </span>
-                    <div className="flex-shrink-0">
-                      {getStatusBadge(userBook.reading_status)}
-                    </div>
-                  </div>
-                  {userBook.rating && (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs md:text-sm text-gray-600 flex-shrink-0">
-                        Valoración:
-                      </span>
-                      <div className="flex items-center gap-0.5 flex-shrink-0">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 ${i < userBook.rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {userBook.review && (
-                <div className="mb-3 md:mb-4">
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">
-                    Notas:
-                  </p>
-                  <p className="text-xs md:text-sm text-gray-800 bg-gray-50 p-2 rounded leading-relaxed">
-                    {userBook.review.length > 80
-                      ? `${userBook.review.substring(0, 80)}...`
-                      : userBook.review}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex justify-between text-xs text-gray-500 pt-2 border-t">
-                <span className="truncate">
-                  Agregado: {new Date(userBook.createdAt).toLocaleDateString()}
-                </span>
-                {userBook.finishedAt && (
-                  <span className="truncate ml-2">
-                    Terminado:{" "}
-                    {new Date(userBook.finishedAt).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-            </div>
+              userBook={userBook}
+              onEdit={() => {}} // Manejado por Link interno
+              onDelete={openDeleteModal}
+              getStatusBadge={getStatusBadge}
+            />
           ))}
         </div>
       )}
@@ -841,7 +951,7 @@ export default function MyLibrary() {
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* Modal de confirmación de eliminación */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
