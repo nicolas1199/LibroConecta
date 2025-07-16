@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { addToLibrary } from "../api/userLibrary";
+import { BOOK_GENRES } from "../utils/constants";
+import { searchGoogleBooks } from "../services/googleBooks";
 import BookOpen from "../components/icons/BookOpen";
 import Search from "../components/icons/Search";
 import Plus from "../components/icons/Plus";
@@ -30,6 +32,8 @@ export default function AddToLibrary() {
     review: "",
     date_started: "",
     date_finished: "",
+    genres: [],
+    main_genre: "",
   });
 
   // Opciones para el selector de estado
@@ -59,7 +63,7 @@ export default function AddToLibrary() {
   useEffect(() => {
     if (activeSearchType === "google") {
       const timeoutId = setTimeout(() => {
-        searchGoogleBooks(searchTerm);
+        searchGoogleBooksFunc(searchTerm);
       }, 500);
       return () => clearTimeout(timeoutId);
     }
@@ -71,13 +75,15 @@ export default function AddToLibrary() {
       title: book.title,
       author: book.author || "",
       isbn: book.isbn || "",
-      image_url: book.image_url || "",
+      image_url: book.thumbnail || book.image_url || "",
       date_of_pub: book.date_of_pub || "",
       reading_status: "por_leer",
       rating: 0,
       review: "",
       date_started: "",
       date_finished: "",
+      genres: book.genres || [],
+      main_genre: book.mainGenre || "",
     });
     setShowForm(true);
   };
@@ -94,6 +100,8 @@ export default function AddToLibrary() {
       review: "",
       date_started: "",
       date_finished: "",
+      genres: [],
+      main_genre: "",
     });
     setShowManualForm(true);
   };
@@ -126,6 +134,8 @@ export default function AddToLibrary() {
         review: formData.review,
         date_started: formData.date_started || null,
         date_finished: formData.date_finished || null,
+        genres: formData.genres || [],
+        main_genre: formData.main_genre || null,
       };
 
       await addToLibrary(dataToSend);
@@ -137,7 +147,7 @@ export default function AddToLibrary() {
   };
 
   // Busqueda con Google Books API
-  const searchGoogleBooks = async (query) => {
+  const searchGoogleBooksFunc = async (query) => {
     if (!query.trim()) {
       setGoogleBooks([]);
       return;
@@ -145,59 +155,7 @@ export default function AddToLibrary() {
 
     try {
       setSearchingGoogle(true);
-
-      const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&langRestrict=es&printType=books`,
-      );
-      const data = await response.json();
-
-      if (!data.items) {
-        setGoogleBooks([]);
-        return;
-      }
-
-      const books = data.items.map((item) => {
-        const bookInfo = item.volumeInfo;
-
-        // Mejor manejo de ISBN
-        let isbn = null;
-        if (bookInfo.industryIdentifiers) {
-          const isbn13 = bookInfo.industryIdentifiers.find(
-            (id) => id.type === "ISBN_13",
-          );
-          const isbn10 = bookInfo.industryIdentifiers.find(
-            (id) => id.type === "ISBN_10",
-          );
-          isbn = isbn13?.identifier || isbn10?.identifier || null;
-        }
-
-        // Mejor manejo de imagen
-        let imageUrl = null;
-        if (bookInfo.imageLinks) {
-          imageUrl =
-            bookInfo.imageLinks.thumbnail ||
-            bookInfo.imageLinks.smallThumbnail ||
-            null;
-          if (imageUrl) {
-            imageUrl = imageUrl.replace("http://", "https://");
-          }
-        }
-
-        return {
-          id: item.id,
-          title: bookInfo.title || "Título desconocido",
-          author: bookInfo.authors
-            ? bookInfo.authors.join(", ")
-            : "Autor desconocido",
-          isbn: isbn,
-          image_url: imageUrl,
-          date_of_pub: bookInfo.publishedDate || null,
-          publisher: bookInfo.publisher || null,
-          description: bookInfo.description || null,
-          language: bookInfo.language || "es",
-        };
-      });
-
+      const books = await searchGoogleBooks(query, 10);
       setGoogleBooks(books);
     } catch (error) {
       console.error("Error searching Google Books:", error);
@@ -211,7 +169,7 @@ export default function AddToLibrary() {
   useEffect(() => {
     if (activeSearchType === "google") {
       const timeoutId = setTimeout(() => {
-        searchGoogleBooks(searchTerm);
+        searchGoogleBooksFunc(searchTerm);
       }, 500);
       return () => clearTimeout(timeoutId);
     }
@@ -327,6 +285,59 @@ export default function AddToLibrary() {
                 label="Estado de lectura"
                 placeholder="Selecciona el estado del libro"
               />
+            </div>
+
+            {/* Campos de Género */}
+            <div>
+              <CustomSelect
+                value={formData.main_genre}
+                onChange={(value) =>
+                  setFormData({ ...formData, main_genre: value })
+                }
+                options={BOOK_GENRES.map((genre) => ({
+                  value: genre,
+                  label: genre,
+                }))}
+                label="Género principal"
+                placeholder="Selecciona un género"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Géneros adicionales (opcional)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                {BOOK_GENRES.map((genre) => (
+                  <label
+                    key={genre}
+                    className="flex items-center space-x-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.genres.includes(genre)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            genres: [...formData.genres, genre],
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            genres: formData.genres.filter((g) => g !== genre),
+                          });
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>{genre}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Selecciona todos los géneros que apliquen a este libro
+              </p>
             </div>
 
             {formData.reading_status === "leido" && (
@@ -486,6 +497,62 @@ export default function AddToLibrary() {
                 label="Estado de lectura"
                 placeholder="Selecciona el estado del libro"
               />
+            </div>
+
+            {/* Campos de Género */}
+            <div>
+              <CustomSelect
+                value={formData.main_genre}
+                onChange={(value) =>
+                  setFormData({ ...formData, main_genre: value })
+                }
+                options={[
+                  { value: "", label: "Selecciona un género" },
+                  ...BOOK_GENRES.map((genre) => ({
+                    value: genre,
+                    label: genre,
+                  })),
+                ]}
+                label="Género principal"
+                placeholder="Selecciona un género"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Géneros adicionales (opcional)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                {BOOK_GENRES.map((genre) => (
+                  <label
+                    key={genre}
+                    className="flex items-center space-x-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.genres.includes(genre)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            genres: [...formData.genres, genre],
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            genres: formData.genres.filter((g) => g !== genre),
+                          });
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>{genre}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Selecciona todos los géneros que apliquen a este libro
+              </p>
             </div>
 
             {formData.reading_status === "leido" && (
@@ -705,9 +772,9 @@ export default function AddToLibrary() {
                 className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
               >
                 <div className="flex space-x-4">
-                  {book.image_url && (
+                  {book.thumbnail && (
                     <img
-                      src={book.image_url}
+                      src={book.thumbnail}
                       alt={book.title}
                       className="w-16 h-24 object-cover rounded"
                       onError={(e) => {
@@ -732,6 +799,11 @@ export default function AddToLibrary() {
                         Publicado: {book.date_of_pub}
                       </p>
                     )}
+                    {book.mainGenre && (
+                      <p className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full inline-block mb-2">
+                        {book.mainGenre}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -741,6 +813,27 @@ export default function AddToLibrary() {
                       ? `${book.description.substring(0, 150)}...`
                       : book.description}
                   </p>
+                )}
+
+                {book.genres && book.genres.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-1">Géneros:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {book.genres.slice(0, 3).map((genre, index) => (
+                        <span
+                          key={index}
+                          className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
+                        >
+                          {genre}
+                        </span>
+                      ))}
+                      {book.genres.length > 3 && (
+                        <span className="text-xs text-gray-500">
+                          +{book.genres.length - 3} más
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 <button

@@ -9,6 +9,24 @@ import {
   REVIEW_LIMITS,
 } from "../utils/constants.util.js";
 
+// Función auxiliar para procesar géneros
+function processGenres(genres) {
+  if (!genres) return { genres: [], main_genre: null };
+
+  let processedGenres = [];
+  if (Array.isArray(genres)) {
+    processedGenres = genres.filter((g) => g && g.trim() !== "");
+  } else if (typeof genres === "string") {
+    processedGenres = genres
+      .split(",")
+      .map((g) => g.trim())
+      .filter((g) => g !== "");
+  }
+
+  const main_genre = processedGenres.length > 0 ? processedGenres[0] : null;
+  return { genres: processedGenres, main_genre };
+}
+
 // Agregar o actualizar un libro en la biblioteca personal
 export async function addToLibraryService(userId, bookData) {
   const {
@@ -22,6 +40,7 @@ export async function addToLibraryService(userId, bookData) {
     review,
     date_started,
     date_finished,
+    genres,
   } = bookData;
 
   // Validaciones de negocio
@@ -37,6 +56,9 @@ export async function addToLibraryService(userId, bookData) {
   if (date_started && date_finished) {
     validateDatesService(date_started, date_finished);
   }
+
+  // Procesar géneros
+  const { genres: processedGenres, main_genre } = processGenres(genres);
 
   // Verificar si el libro ya está en la biblioteca del usuario (por título y autor)
   const existingUserLibrary = await UserLibrary.findOne({
@@ -57,6 +79,8 @@ export async function addToLibraryService(userId, bookData) {
       isbn,
       image_url,
       date_of_pub,
+      genres: processedGenres,
+      main_genre,
     };
 
     // Usar fechas manuales si están disponibles, sino usar lógica automática
@@ -113,6 +137,8 @@ export async function addToLibraryService(userId, bookData) {
       reading_status,
       rating,
       review,
+      genres: processedGenres,
+      main_genre,
     };
 
     // Usar fechas manuales si están disponibles, sino usar lógica automática
@@ -155,6 +181,7 @@ export async function getUserLibraryService(userId, options = {}) {
     author,
     rating,
     year,
+    genre,
     sortBy = "updatedAt",
     sortOrder = "DESC",
   } = options;
@@ -185,6 +212,25 @@ export async function getUserLibraryService(userId, options = {}) {
     whereConditions.date_of_pub = {
       [Op.between]: [new Date(`${year}-01-01`), new Date(`${year}-12-31`)],
     };
+  }
+
+  if (genre) {
+    // Buscar por género principal o en el array de géneros
+    const genreConditions = [
+      { main_genre: { [Op.iLike]: `%${genre}%` } },
+      { genres: { [Op.contains]: [genre] } }, // Para arrays JSON en PostgreSQL
+    ];
+
+    // Si ya existe una condición Op.or (por ejemplo, de search), combinarlas
+    if (whereConditions[Op.or]) {
+      whereConditions[Op.and] = [
+        { [Op.or]: whereConditions[Op.or] },
+        { [Op.or]: genreConditions },
+      ];
+      delete whereConditions[Op.or];
+    } else {
+      whereConditions[Op.or] = genreConditions;
+    }
   }
 
   // Validar campos de ordenamiento
@@ -458,7 +504,7 @@ export async function getRecommendationsService(userId) {
         [Sequelize.fn("COUNT", Sequelize.col("user_library_id")), "count"],
       ],
       group: ["author"],
-      having: Sequelize.literal("COUNT(*) >= 2"), // Autores con al menos 2 libros bien calificados
+      having: Sequelize.literal("COUNT(*) >= 1"), // Cambiar a 1 libro para más datos
       order: [
         [Sequelize.fn("COUNT", Sequelize.col("user_library_id")), "DESC"],
       ],
@@ -471,21 +517,123 @@ export async function getRecommendationsService(userId) {
       }))
       .filter((author) => author.name && author.name.trim() !== "");
 
-    // Si no hay suficientes datos, retornar recomendaciones generales
-    if (favoriteAuthors.length === 0) {
+    // Obtener géneros favoritos del usuario
+    const favoriteGenres = await UserLibrary.findAll({
+      where: {
+        user_id: userId,
+        rating: { [Op.gte]: 4 },
+        reading_status: READING_STATUSES.READ,
+        main_genre: { [Op.not]: null },
+      },
+      attributes: [
+        "main_genre",
+        [Sequelize.fn("COUNT", Sequelize.col("user_library_id")), "count"],
+        [Sequelize.fn("AVG", Sequelize.col("rating")), "avg_rating"],
+      ],
+      group: ["main_genre"],
+      order: [
+        [Sequelize.fn("COUNT", Sequelize.col("user_library_id")), "DESC"],
+        [Sequelize.fn("AVG", Sequelize.col("rating")), "DESC"],
+      ],
+      limit: 5,
+    });
+
+    const topGenres = favoriteGenres
+      .map((genre) => ({
+        name: genre.dataValues.main_genre,
+        count: parseInt(genre.dataValues.count),
+        avgRating: parseFloat(genre.dataValues.avg_rating).toFixed(1),
+      }))
+      .filter((genre) => genre.name && genre.name.trim() !== "");
+
+    // Obtener libros altamente calificados para análisis de palabras clave
+    const topBooks = await UserLibrary.findAll({
+      where: {
+        user_id: userId,
+        rating: { [Op.gte]: 3 },
+        reading_status: READING_STATUSES.READ,
+      },
+      attributes: ["title", "author", "main_genre"],
+      order: [["rating", "DESC"]],
+      limit: 10,
+    });
+
+    // Obtener palabras clave de títulos favoritos
+    const keywords = [];
+    topBooks.forEach((book) => {
+      const title = book.dataValues.title.toLowerCase();
+      // Extraer palabras significativas (más de 3 caracteres, no artículos)
+      const words = title
+        .split(/[\s\-.,!?()]+/)
+        .filter(
+          (word) =>
+            word.length > 3 &&
+            !["the", "and", "una", "los", "las", "del", "con", "para"].includes(
+              word
+            )
+        );
+      keywords.push(...words);
+    });
+
+    // Contar frecuencia de palabras clave
+    const keywordFreq = keywords.reduce((acc, word) => {
+      acc[word] = (acc[word] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topKeywords = Object.entries(keywordFreq)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([word]) => word);
+
+    // Si no hay suficientes datos, retornar análisis básico
+    if (favoriteAuthors.length === 0 && topGenres.length === 0) {
       return {
         message:
           "Necesitas leer y calificar más libros para recibir recomendaciones personalizadas",
-        recommendedAuthors: [],
+        useGoogleBooks: false,
+        favoriteAuthors: [],
+        favoriteGenres: [],
+        keywords: [],
+        fallbackQuery: "bestsellers fiction",
         readingGoals:
-          "Intenta leer al menos 2 libros del mismo autor y calificalos para recibir mejores recomendaciones",
+          "Intenta leer y calificar más libros para recibir mejores recomendaciones",
       };
     }
 
+    // Generar consultas de búsqueda inteligentes
+    const searchQueries = [];
+
+    // Consultas por autores favoritos
+    favoriteAuthors.slice(0, 3).forEach((author) => {
+      searchQueries.push(`inauthor:"${author.name}"`);
+    });
+
+    // Consultas por géneros favoritos
+    topGenres.slice(0, 3).forEach((genre) => {
+      searchQueries.push(`subject:${genre.name.toLowerCase()}`);
+    });
+
+    // Consultas por palabras clave
+    topKeywords.slice(0, 2).forEach((keyword) => {
+      searchQueries.push(`intitle:${keyword}`);
+    });
+
+    // Consultas combinadas para mayor diversidad
+    if (topGenres.length > 0 && favoriteAuthors.length > 0) {
+      searchQueries.push(
+        `subject:${topGenres[0].name.toLowerCase()} bestsellers`
+      );
+    }
+
     return {
-      recommendedAuthors: favoriteAuthors.slice(0, 5),
       message:
-        "Basado en tus lecturas previas, podrías disfrutar más libros de estos autores",
+        "Analizando tus preferencias para recomendaciones personalizadas",
+      useGoogleBooks: true,
+      favoriteAuthors: favoriteAuthors.slice(0, 5),
+      favoriteGenres: topGenres,
+      keywords: topKeywords,
+      searchQueries: searchQueries.slice(0, 8), // Máximo 8 consultas
     };
   } catch (error) {
     console.error("Error en getRecommendationsService:", error);

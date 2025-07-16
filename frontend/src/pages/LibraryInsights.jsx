@@ -6,7 +6,9 @@ import {
   getLibraryInsights,
   getReadingStats,
   getRecommendations,
+  getUserLibrary,
 } from "../api/userLibrary";
+import { getGoogleBooksRecommendations } from "../services/googleBooks";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import BookOpen from "../components/icons/BookOpen";
 import TrendingUp from "../components/icons/TrendingUp";
@@ -21,7 +23,10 @@ export default function LibraryInsights() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [recommendations, setRecommendations] = useState(null);
+  const [googleRecommendations, setGoogleRecommendations] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [library, setLibrary] = useState([]);
+  const [showAllRecommendations, setShowAllRecommendations] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -48,15 +53,37 @@ export default function LibraryInsights() {
   const loadRecommendationsData = async () => {
     try {
       setLoadingRecommendations(true);
+      setShowAllRecommendations(false);
+
+      // 1. Obtener análisis de preferencias del backend
       const response = await getRecommendations();
-      console.log("Recommendations response:", response);
       setRecommendations(response);
+
+      // 2. Si tenemos datos para usar Google Books, obtener recomendaciones
+      if (response.useGoogleBooks && response.searchQueries?.length > 0) {
+        // Obtener la biblioteca del usuario para filtrar
+        const libraryResponse = await getUserLibrary();
+        setLibrary(libraryResponse.books || libraryResponse);
+
+        // Obtener títulos de libros del usuario para filtrar
+        const booksArray = libraryResponse.books || libraryResponse;
+        const userBookTitles = Array.isArray(booksArray)
+          ? booksArray.map((book) => book.title)
+          : [];
+
+        const googleBooks = await getGoogleBooksRecommendations(
+          response.searchQueries,
+          userBookTitles,
+        );
+        setGoogleRecommendations(googleBooks);
+      }
     } catch (error) {
       console.error("Error loading recommendations:", error);
       // En caso de error, mostrar un mensaje amigable
       setRecommendations({
         message: "Error al cargar recomendaciones. Intenta más tarde.",
-        recommendedAuthors: [],
+        useGoogleBooks: false,
+        favoriteAuthors: [],
         readingGoals:
           "Agrega más libros a tu biblioteca y califícalos para recibir mejores recomendaciones.",
       });
@@ -394,9 +421,7 @@ export default function LibraryInsights() {
       {/* Sección de Recomendaciones */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
-            🎯 Recomendaciones Inteligentes
-          </h2>
+          <h2 className="text-xl font-bold text-gray-900">Recomendaciones</h2>
           <button
             onClick={loadRecommendationsData}
             disabled={loadingRecommendations}
@@ -406,47 +431,150 @@ export default function LibraryInsights() {
           </button>
         </div>
 
-        {recommendations && (
-          <div className="space-y-4">
+        {loadingRecommendations && (
+          <div className="flex items-center justify-center py-8">
+            <div className="spinner border-gray-300 border-t-blue-600 mr-3"></div>
+            <span className="text-gray-600">
+              Analizando tus preferencias y buscando recomendaciones...
+            </span>
+          </div>
+        )}
+
+        {recommendations && !loadingRecommendations && (
+          <div className="space-y-6">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-blue-800 font-medium">
                 💡 {recommendations.message}
               </p>
             </div>
 
-            {recommendations.recommendedAuthors &&
-              recommendations.recommendedAuthors.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    📚 Autores recomendados para ti
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {recommendations.recommendedAuthors.map((author, index) => (
-                      <div
-                        key={index}
-                        className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                            <span className="text-purple-600 font-bold text-sm">
-                              {author.name.charAt(0).toUpperCase()}
-                            </span>
+            {/* Recomendaciones de Google Books */}
+            {googleRecommendations && googleRecommendations.length > 0 ? (
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-800 mb-4">
+                  📚 Libros recomendados para ti
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {(showAllRecommendations
+                    ? googleRecommendations
+                    : googleRecommendations.slice(0, 8)
+                  ).map((book, index) => (
+                    <div
+                      key={`${book.googleId}-${index}`}
+                      className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg hover:shadow-md transition-all duration-200 hover:scale-105"
+                    >
+                      <div className="flex gap-3">
+                        {book.thumbnail ? (
+                          <img
+                            src={book.thumbnail}
+                            alt={`Portada de ${book.title}`}
+                            className="w-16 h-20 object-cover rounded-md flex-shrink-0 shadow-sm"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="w-16 h-20 bg-blue-100 rounded-md flex-shrink-0 flex items-center justify-center">
+                            <BookOpen className="w-6 h-6 text-blue-400" />
                           </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {author.name}
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-blue-900 line-clamp-2 leading-tight text-sm mb-1">
+                            {book.title}
+                          </h4>
+                          <p className="text-sm text-blue-700 mb-2 truncate">
+                            {book.author}
+                          </p>
+                          {book.averageRating && (
+                            <div className="flex items-center gap-1 mb-2">
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${
+                                      i < Math.floor(book.averageRating)
+                                        ? "text-yellow-400 fill-current"
+                                        : "text-gray-300"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs text-gray-600">
+                                {book.averageRating.toFixed(1)}
+                                {book.ratingsCount && ` (${book.ratingsCount})`}
+                              </span>
+                            </div>
+                          )}
+                          {book.mainGenre && (
+                            <p className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full mb-1 inline-block">
+                              {book.mainGenre}
                             </p>
-                            <p className="text-sm text-gray-600">
-                              {author.count} libro{author.count > 1 ? "s" : ""}{" "}
-                              con buena valoración
+                          )}
+                          {book.reason && (
+                            <p className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full line-clamp-1">
+                              {book.reason}
                             </p>
-                          </div>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+
+                {googleRecommendations.length > 8 && (
+                  <div className="text-center mt-4">
+                    <button
+                      onClick={() =>
+                        setShowAllRecommendations(!showAllRecommendations)
+                      }
+                      className="btn btn-secondary text-sm"
+                    >
+                      {showAllRecommendations
+                        ? "Ver menos recomendaciones"
+                        : "Ver más recomendaciones"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Fallback: Autores favoritos si no hay recomendaciones de Google Books */}
+            {(!googleRecommendations || googleRecommendations.length === 0) &&
+            recommendations.favoriteAuthors &&
+            recommendations.favoriteAuthors.length > 0 ? (
+              <div>
+                <h3 className="text-md font-medium text-gray-800 mb-3">
+                  ✍️ Tus autores favoritos
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {recommendations.favoriteAuthors.map((author, index) => (
+                    <div
+                      key={index}
+                      className="p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                    >
+                      <p className="font-medium text-blue-900">{author.name}</p>
+                      <p className="text-sm text-blue-700">
+                        {author.count} libro{author.count > 1 ? "s" : ""} leído
+                        {author.count > 1 ? "s" : ""} con ⭐ 4+
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Mensaje cuando no hay datos suficientes */}
+            {(!googleRecommendations || googleRecommendations.length === 0) &&
+            (!recommendations.favoriteAuthors ||
+              recommendations.favoriteAuthors.length === 0) ? (
+              <div className="text-center py-6">
+                <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600">
+                  {recommendations.readingGoals ||
+                    "Lee más libros y califícalos para recibir recomendaciones personalizadas."}
+                </p>
+              </div>
+            ) : null}
           </div>
         )}
 

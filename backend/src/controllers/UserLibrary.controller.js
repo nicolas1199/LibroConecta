@@ -42,6 +42,7 @@ export async function getUserLibrary(req, res) {
       author: req.query.author,
       rating: req.query.rating,
       year: req.query.year,
+      genre: req.query.genre,
       sortBy: req.query.sortBy,
       sortOrder: req.query.sortOrder,
     };

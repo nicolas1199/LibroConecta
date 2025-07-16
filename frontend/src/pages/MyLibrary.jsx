@@ -6,19 +6,19 @@ import {
   getUserLibrary,
   getReadingStats,
   removeFromLibrary,
-  getRecommendations,
 } from "../api/userLibrary";
+
 import BookOpen from "../components/icons/BookOpen";
 import TrendingUp from "../components/icons/TrendingUp";
-import Calendar from "../components/icons/Calendar";
-import Target from "../components/icons/Target";
+
 import Plus from "../components/icons/Plus";
 import Search from "../components/icons/Search";
 import Edit from "../components/icons/Edit";
 import Trash from "../components/icons/Trash";
 import Star from "../components/icons/Star";
 import CustomSelect from "../components/CustomSelect";
-import CustomDatePicker from "../components/CustomDatePicker";
+import SearchableSelect from "../components/SearchableSelect";
+import { BOOK_GENRES } from "../utils/constants";
 
 export default function MyLibrary() {
   const [library, setLibrary] = useState([]);
@@ -30,22 +30,28 @@ export default function MyLibrary() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bookToDelete, setBookToDelete] = useState(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [quickGenreFilter, setQuickGenreFilter] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({
     author: "",
     rating: "",
     year: "",
+    genre: "",
     sortBy: "updatedAt",
     sortOrder: "DESC",
   });
-  const [recommendations, setRecommendations] = useState(null);
-  const [showRecommendations, setShowRecommendations] = useState(false);
+
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalBooks, setTotalBooks] = useState(0);
+  const [booksPerPage] = useState(15); // 15 libros por página
 
   useEffect(() => {
     loadLibraryData();
     loadStats();
   }, []);
 
-  // Efecto para búsqueda en tiempo real
+  // Efecto para búsqueda en tiempo real y filtros
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchTerm.length >= 2 || searchTerm.length === 0) {
@@ -56,12 +62,22 @@ export default function MyLibrary() {
           leido: "leido",
           abandonado: "abandonado",
         };
-        loadLibraryData(statusMap[activeTab], showAdvancedSearch);
+
+        // Solo recargar si hay filtros avanzados activos, NO solo por abrir el panel
+        const hasAdvancedFilters =
+          advancedFilters.author ||
+          advancedFilters.rating ||
+          advancedFilters.year ||
+          advancedFilters.genre ||
+          advancedFilters.sortBy !== "updatedAt" ||
+          advancedFilters.sortOrder !== "DESC";
+
+        loadLibraryData(statusMap[activeTab], hasAdvancedFilters);
       }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, activeTab, showAdvancedSearch]);
+  }, [searchTerm, activeTab, quickGenreFilter, currentPage]);
 
   const loadLibraryData = useCallback(
     async (status = null, useAdvancedFilters = false) => {
@@ -75,15 +91,28 @@ export default function MyLibrary() {
           if (advancedFilters.author) params.author = advancedFilters.author;
           if (advancedFilters.rating) params.rating = advancedFilters.rating;
           if (advancedFilters.year) params.year = advancedFilters.year;
+          if (advancedFilters.genre) params.genre = advancedFilters.genre;
           if (advancedFilters.sortBy) params.sortBy = advancedFilters.sortBy;
           if (advancedFilters.sortOrder)
             params.sortOrder = advancedFilters.sortOrder;
-        } else if (searchTerm) {
-          params.search = searchTerm;
+        } else {
+          // Para búsqueda normal, incluir término de búsqueda y filtro rápido de género
+          if (searchTerm) params.search = searchTerm;
+          if (quickGenreFilter) params.genre = quickGenreFilter;
         }
+
+        // Agregar parámetros de paginación
+        params.page = currentPage;
+        params.limit = booksPerPage;
 
         const response = await getUserLibrary(params);
         setLibrary(response.books || []);
+
+        // Actualizar información de paginación
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages || 1);
+          setTotalBooks(response.pagination.totalBooks || 0);
+        }
       } catch (error) {
         console.error("Error loading library:", error);
         setError("Error al cargar la biblioteca");
@@ -91,8 +120,20 @@ export default function MyLibrary() {
         setLoading(false);
       }
     },
-    [searchTerm, showAdvancedSearch, advancedFilters],
+    [
+      searchTerm,
+      showAdvancedSearch,
+      advancedFilters,
+      quickGenreFilter,
+      currentPage,
+      booksPerPage,
+    ],
   );
+
+  // Efecto para resetear la página cuando cambian los filtros (excluye filtros avanzados)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, quickGenreFilter, activeTab]);
 
   const loadStats = async () => {
     try {
@@ -100,23 +141,6 @@ export default function MyLibrary() {
       setStats(response);
     } catch (error) {
       console.error("Error loading stats:", error);
-    }
-  };
-
-  const loadRecommendations = async () => {
-    try {
-      const response = await getRecommendations();
-      console.log("Recommendations response:", response);
-      setRecommendations(response);
-    } catch (error) {
-      console.error("Error loading recommendations:", error);
-      // En caso de error, mostrar un mensaje amigable
-      setRecommendations({
-        message: "Error al cargar recomendaciones. Intenta más tarde.",
-        recommendedAuthors: [],
-        readingGoals:
-          "Agrega más libros a tu biblioteca y califícalos para recibir mejores recomendaciones.",
-      });
     }
   };
 
@@ -228,169 +252,18 @@ export default function MyLibrary() {
         </div>
       </div>
 
-      {/* Tarjetas de estadisticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-        <div className="bg-white rounded-lg shadow p-4 md:p-6">
-          <div className="flex items-center">
-            <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
-            <div className="ml-3 md:ml-4">
-              <p className="text-xs md:text-sm font-medium text-gray-600">
-                Total
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">
-                {(stats?.por_leer || 0) +
-                  (stats?.leyendo || 0) +
-                  (stats?.leido || 0) +
-                  (stats?.abandonado || 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 md:p-6">
-          <div className="flex items-center">
-            <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
-            <div className="ml-3 md:ml-4">
-              <p className="text-xs md:text-sm font-medium text-gray-600">
-                Leídos
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">
-                {stats?.leido || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 md:p-6">
-          <div className="flex items-center">
-            <Calendar className="w-6 h-6 md:w-8 md:h-8 text-purple-600" />
-            <div className="ml-3 md:ml-4">
-              <p className="text-xs md:text-sm font-medium text-gray-600">
-                Leyendo
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">
-                {stats?.leyendo || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 md:p-6">
-          <div className="flex items-center">
-            <Target className="w-6 h-6 md:w-8 md:h-8 text-orange-600" />
-            <div className="ml-3 md:ml-4">
-              <p className="text-xs md:text-sm font-medium text-gray-600">
-                Por leer
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">
-                {stats?.por_leer || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 md:p-6 col-span-2 md:col-span-1">
-          <div className="flex items-center">
-            <div className="w-6 h-6 md:w-8 md:h-8 bg-red-100 rounded-full flex items-center justify-center">
-              <span className="text-red-600 text-xs md:text-sm font-bold">
-                ✕
-              </span>
-            </div>
-            <div className="ml-3 md:ml-4">
-              <p className="text-xs md:text-sm font-medium text-gray-600">
-                Abandonados
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">
-                {stats?.abandonado || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Sección de Recomendaciones */}
-      <div className="bg-white rounded-lg shadow p-4 md:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Recomendaciones Personalizadas
-          </h2>
-          <button
-            onClick={() => {
-              if (!showRecommendations) {
-                loadRecommendations();
-              }
-              setShowRecommendations(!showRecommendations);
-            }}
-            className="btn btn-secondary text-sm"
-          >
-            {showRecommendations ? "Ocultar" : "Ver recomendaciones"}
-          </button>
-        </div>
-
-        {showRecommendations && (
-          <div className="space-y-4">
-            {recommendations ? (
-              <div>
-                <p className="text-gray-600 mb-4">{recommendations.message}</p>
-
-                {recommendations.recommendedAuthors &&
-                recommendations.recommendedAuthors.length > 0 ? (
-                  <div>
-                    <h3 className="text-md font-medium text-gray-800 mb-3">
-                      Autores recomendados para ti:
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      {recommendations.recommendedAuthors.map(
-                        (author, index) => (
-                          <div
-                            key={index}
-                            className="p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                          >
-                            <p className="font-medium text-blue-900">
-                              {author.name}
-                            </p>
-                            <p className="text-sm text-blue-700">
-                              {author.count} libro{author.count > 1 ? "s" : ""}{" "}
-                              leído{author.count > 1 ? "s" : ""}
-                            </p>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">
-                      {recommendations.readingGoals ||
-                        "Lee más libros y califícalos para recibir recomendaciones personalizadas."}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center py-6">
-                <div className="spinner border-gray-300 border-t-blue-600 mr-3"></div>
-                <span className="text-gray-600">
-                  Cargando recomendaciones...
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow p-4 md:p-6">
-        <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
-          {/* Tabs */}
+        {/* Layout responsivo mejorado */}
+        <div className="space-y-4">
+          {/* Tabs con scroll horizontal en móvil - ancho automático */}
           <div className="overflow-x-auto">
-            <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 min-w-max">
+            <div className="inline-flex space-x-1 bg-gray-100 rounded-lg p-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`px-2 md:px-3 py-2 text-xs md:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                  className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? "bg-white text-blue-600 shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
@@ -402,35 +275,106 @@ export default function MyLibrary() {
             </div>
           </div>
 
-          {/* Búsqueda y filtros avanzados */}
-          <div className="flex flex-col space-y-2 md:space-y-0 md:flex-row md:space-x-3 md:items-center">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar libros..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          {/* Controles de filtros - stack en móvil, fila en desktop */}
+          <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-4">
+            {/* Filtro rápido de género */}
+            <div className="w-full lg:w-48 flex-shrink-0">
+              <SearchableSelect
+                label=""
+                value={quickGenreFilter}
+                onChange={(value) => {
+                  setQuickGenreFilter(value);
+
+                  // Aplicar el filtro inmediatamente
+                  const statusMap = {
+                    todos: null,
+                    por_leer: "por_leer",
+                    leyendo: "leyendo",
+                    leido: "leido",
+                    abandonado: "abandonado",
+                  };
+
+                  // Preparar parámetros de filtro
+                  const params = statusMap[activeTab]
+                    ? { status: statusMap[activeTab] }
+                    : {};
+                  if (searchTerm) params.search = searchTerm;
+                  if (value) params.genre = value; // Usar el valor directamente
+                  params.sortBy = "updatedAt";
+                  params.sortOrder = "DESC";
+
+                  console.log(
+                    "Applying quick genre filter:",
+                    value,
+                    "Params:",
+                    params,
+                  );
+
+                  // Ejecutar búsqueda
+                  setLoading(true);
+                  getUserLibrary(params)
+                    .then((response) => {
+                      console.log("Quick genre filter response:", response);
+                      setLibrary(response.books || []);
+                    })
+                    .catch((error) => {
+                      console.error(
+                        "Error loading library with quick genre filter:",
+                        error,
+                      );
+                      setError("Error al cargar la biblioteca");
+                    })
+                    .finally(() => {
+                      setLoading(false);
+                    });
+                }}
+                options={[
+                  { value: "", label: "Todos los géneros" },
+                  ...BOOK_GENRES.sort().map((genre) => ({
+                    value: genre,
+                    label: genre,
+                  })),
+                ]}
+                placeholder="Filtrar por género"
+                searchPlaceholder="Buscar género..."
+                className="w-full"
               />
             </div>
-            <button
-              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                showAdvancedSearch
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Filtros avanzados
-            </button>
+
+            {/* Contenedor de búsqueda y filtros avanzados */}
+            <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 lg:flex-1">
+              {/* Búsqueda */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar libros..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Botón filtros avanzados */}
+              <button
+                onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0 ${
+                  showAdvancedSearch
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <span className="hidden sm:inline">Filtros avanzados</span>
+                <span className="sm:hidden">Filtros +</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Panel de filtros avanzados */}
         {showAdvancedSearch && (
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Autor específico
@@ -446,6 +390,28 @@ export default function MyLibrary() {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <SearchableSelect
+                  label="Género"
+                  value={advancedFilters.genre}
+                  onChange={(value) =>
+                    setAdvancedFilters((prev) => ({
+                      ...prev,
+                      genre: value,
+                    }))
+                  }
+                  options={[
+                    { value: "", label: "Todos los géneros" },
+                    ...BOOK_GENRES.sort().map((genre) => ({
+                      value: genre,
+                      label: genre,
+                    })),
+                  ]}
+                  placeholder="Seleccionar género"
+                  searchPlaceholder="Buscar género..."
                 />
               </div>
 
@@ -537,6 +503,7 @@ export default function MyLibrary() {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4">
               <button
                 onClick={() => {
+                  setCurrentPage(1); // Resetear página al aplicar filtros
                   const statusMap = {
                     todos: null,
                     por_leer: "por_leer",
@@ -556,10 +523,13 @@ export default function MyLibrary() {
                     author: "",
                     rating: "",
                     year: "",
+                    genre: "",
                     sortBy: "updatedAt",
                     sortOrder: "DESC",
                   });
+                  setQuickGenreFilter(""); // Limpiar también el filtro rápido
                   setShowAdvancedSearch(false);
+                  setCurrentPage(1); // Resetear página al limpiar filtros
                   const statusMap = {
                     todos: null,
                     por_leer: "por_leer",
@@ -716,6 +686,101 @@ export default function MyLibrary() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {library.length > 0 && totalPages > 1 && (
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mt-6 p-4 bg-white rounded-lg shadow">
+          <div className="text-sm text-gray-600 text-center sm:text-left">
+            Mostrando {(currentPage - 1) * booksPerPage + 1} -{" "}
+            {Math.min(currentPage * booksPerPage, totalBooks)} de {totalBooks}{" "}
+            libros
+          </div>
+
+          <div className="flex items-center justify-center space-x-1 sm:space-x-2">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="hidden sm:inline">Anterior</span>
+              <span className="sm:hidden">‹</span>
+            </button>
+
+            <div className="flex items-center space-x-1">
+              {/* Primera página */}
+              {currentPage > 3 && (
+                <>
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    1
+                  </button>
+                  {currentPage > 4 && (
+                    <span className="px-1 sm:px-2 text-gray-500">...</span>
+                  )}
+                </>
+              )}
+
+              {/* Páginas alrededor de la actual */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                if (pageNum < 1 || pageNum > totalPages) return null;
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-2 sm:px-3 py-2 text-sm font-medium rounded-md ${
+                      currentPage === pageNum
+                        ? "bg-blue-600 text-white border border-blue-600"
+                        : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              {/* Última página */}
+              {currentPage < totalPages - 2 && (
+                <>
+                  {currentPage < totalPages - 3 && (
+                    <span className="px-1 sm:px-2 text-gray-500">...</span>
+                  )}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="hidden sm:inline">Siguiente</span>
+              <span className="sm:hidden">›</span>
+            </button>
+          </div>
         </div>
       )}
 

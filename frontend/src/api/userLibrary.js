@@ -11,6 +11,7 @@ export async function getUserLibrary(params = {}) {
   if (params.author) queryParams.append("author", params.author);
   if (params.rating) queryParams.append("rating", params.rating);
   if (params.year) queryParams.append("year", params.year);
+  if (params.genre) queryParams.append("genre", params.genre);
   if (params.sortBy) queryParams.append("sortBy", params.sortBy);
   if (params.sortOrder) queryParams.append("sortOrder", params.sortOrder);
 
