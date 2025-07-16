@@ -78,13 +78,13 @@ export default function SearchableSelect({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`relative w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+          className={`relative w-full bg-white border border-gray-300 rounded-lg pl-3 pr-10 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-base ${
             isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""
           }`}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className="block truncate text-sm">
+          <span className="block truncate">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">

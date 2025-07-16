@@ -96,7 +96,7 @@ export default function CustomSelect({
           type="button"
           onClick={toggleOpen}
           onKeyDown={handleKeyDown}
-          className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors ${
+          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors text-base ${
             isOpen ? "ring-2 ring-blue-500 border-transparent" : ""
           }`}
           aria-haspopup="listbox"
