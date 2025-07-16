@@ -218,7 +218,11 @@ export async function getUserLibraryService(userId, options = {}) {
     // Buscar por género principal o en el array de géneros
     const genreConditions = [
       { main_genre: { [Op.iLike]: `%${genre}%` } },
-      { genres: { [Op.contains]: [genre] } }, // Para arrays JSON en PostgreSQL
+      Sequelize.where(
+        Sequelize.cast(Sequelize.col('genres'), 'jsonb'),
+        Op.contains,
+        JSON.stringify([genre])
+      )
     ];
 
     // Si ya existe una condición Op.or (por ejemplo, de search), combinarlas

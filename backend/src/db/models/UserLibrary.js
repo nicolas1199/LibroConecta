@@ -73,7 +73,7 @@ const UserLibrary = sequelize.define(
       comment: "Fecha en que terminó de leer el libro",
     },
     genres: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       allowNull: true,
       comment: "Géneros del libro (array de strings)",
       defaultValue: [],
