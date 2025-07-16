@@ -11,6 +11,7 @@
     "serve": "node server.js"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "axios": "^1.10.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.5",

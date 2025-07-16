@@ -590,3 +590,172 @@ export async function getUserInteractionStats(req, res) {
     return error(res, "Error al obtener estadísticas", 500);
   }
 }
+
+// Obtener historial de interacciones del usuario
+export async function getUserSwipeHistory(req, res) {
+  try {
+    const { user_id } = req.user;
+    const { page = 1, limit = 20, interaction_type } = req.query;
+
+    const offset = (page - 1) * limit;
+    const whereConditions = { user_id };
+
+    // Filtrar por tipo de interacción si se especifica
+    if (interaction_type && ['like', 'dislike', 'super_like'].includes(interaction_type)) {
+      whereConditions.interaction_type = interaction_type;
+    }
+
+    const { count, rows: interactions } = await UserPublishedBookInteraction.findAndCountAll({
+      where: whereConditions,
+      include: [
+        {
+          model: PublishedBooks,
+          as: "PublishedBook",
+          include: [
+            {
+              model: Book,
+              include: [
+                {
+                  model: Category,
+                  as: "Categories",
+                  through: { attributes: [] },
+                },
+              ],
+            },
+            {
+              model: User,
+              attributes: ['user_id', 'first_name', 'last_name', 'email'],
+            },
+            {
+              model: TransactionType,
+            },
+            {
+              model: BookCondition,
+            },
+            {
+              model: LocationBook,
+            },
+            {
+              model: PublishedBookImage,
+            },
+          ],
+        },
+      ],
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
+
+    // Obtener estadísticas totales
+    const stats = await UserPublishedBookInteraction.findAll({
+      where: { user_id },
+      attributes: [
+        'interaction_type',
+        [fn('COUNT', col('interaction_type')), 'count']
+      ],
+      group: ['interaction_type'],
+      raw: true
+    });
+
+    const statsFormatted = {
+      likes: 0,
+      dislikes: 0,
+      super_likes: 0,
+      total: 0
+    };
+
+    stats.forEach(stat => {
+      statsFormatted[stat.interaction_type + 's'] = parseInt(stat.count);
+      statsFormatted.total += parseInt(stat.count);
+    });
+
+    return success(res, {
+      interactions,
+      stats: statsFormatted,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        totalPages: Math.ceil(count / limit),
+        hasMore: offset + limit < count
+      }
+    }, `${count} interacciones encontradas`);
+
+  } catch (err) {
+    console.error("Error en getUserSwipeHistory:", err);
+    return error(res, "Error al obtener historial de interacciones", 500);
+  }
+}
+
+// Actualizar una interacción existente
+export async function updateSwipeInteraction(req, res) {
+  try {
+    const { user_id } = req.user;
+    const { id } = req.params;
+    const { interaction_type } = req.body;
+
+    console.log(`🔄 Actualizando interacción ${id} para usuario ${user_id}`);
+
+    // Validar tipo de interacción
+    if (!['like', 'dislike', 'super_like'].includes(interaction_type)) {
+      return error(res, "interaction_type debe ser: like, dislike o super_like", 400);
+    }
+
+    // Buscar la interacción
+    const interaction = await UserPublishedBookInteraction.findOne({
+      where: {
+        interaction_id: id,
+        user_id
+      }
+    });
+
+    if (!interaction) {
+      return error(res, "Interacción no encontrada", 404);
+    }
+
+    // Actualizar la interacción
+    interaction.interaction_type = interaction_type;
+    await interaction.save();
+
+    console.log(`✅ Interacción actualizada: ${interaction.interaction_id}`);
+
+    return success(res, interaction, "Interacción actualizada correctamente");
+
+  } catch (err) {
+    console.error("Error en updateSwipeInteraction:", err);
+    return error(res, "Error al actualizar interacción", 500);
+  }
+}
+
+// Eliminar una interacción
+export async function deleteSwipeInteraction(req, res) {
+  try {
+    const { user_id } = req.user;
+    const { id } = req.params;
+
+    console.log(`🗑️ Eliminando interacción ${id} para usuario ${user_id}`);
+
+    // Buscar la interacción
+    const interaction = await UserPublishedBookInteraction.findOne({
+      where: {
+        interaction_id: id,
+        user_id
+      }
+    });
+
+    if (!interaction) {
+      return error(res, "Interacción no encontrada", 404);
+    }
+
+    // Eliminar la interacción
+    await interaction.destroy();
+
+    console.log(`✅ Interacción eliminada: ${id}`);
+
+    return success(res, null, "Interacción eliminada correctamente");
+
+  } catch (err) {
+    console.error("Error en deleteSwipeInteraction:", err);
+    return error(res, "Error al eliminar interacción", 500);
+  }
+}

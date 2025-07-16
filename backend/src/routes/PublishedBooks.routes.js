@@ -9,6 +9,9 @@ import {
   getRecommendations,
   recordInteraction,
   getUserInteractionStats,
+  getUserSwipeHistory,
+  updateSwipeInteraction,
+  deleteSwipeInteraction,
 } from "../controllers/PublishedBooks.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import {
@@ -71,6 +74,25 @@ router.get(
   "/interactions/stats",
   authenticateToken,
   getUserInteractionStats
+);
+
+// Rutas para historial de interacciones
+router.get(
+  "/interactions/history",
+  authenticateToken,
+  getUserSwipeHistory
+);
+
+router.put(
+  "/interactions/:id",
+  authenticateToken,
+  updateSwipeInteraction
+);
+
+router.delete(
+  "/interactions/:id",
+  authenticateToken,
+  deleteSwipeInteraction
 );
 
 export default router;
