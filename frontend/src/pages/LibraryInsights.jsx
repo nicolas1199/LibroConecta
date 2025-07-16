@@ -148,7 +148,7 @@ export default function LibraryInsights() {
         </div>
       </div>
 
-      {/* Stats Overview */}
+      {/* Estadisticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
@@ -213,9 +213,9 @@ export default function LibraryInsights() {
         </div>
       </div>
 
-      {/* Charts Row */}
+      {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Status Distribution */}
+        {/* Distribución de estados */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             <BarChart className="w-5 h-5 inline mr-2" />
@@ -265,7 +265,7 @@ export default function LibraryInsights() {
           </div>
         </div>
 
-        {/* Monthly Reading Stats */}
+        {/* Estadísticas de lectura mensual */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             <Calendar className="w-5 h-5 inline mr-2" />
@@ -340,7 +340,7 @@ export default function LibraryInsights() {
         </div>
       </div>
 
-      {/* Top Authors */}
+      {/* Autores principales */}
       {insights["topAuthors"] &&
         Array.isArray(insights["topAuthors"]) &&
         insights["topAuthors"].length > 0 && (
@@ -372,51 +372,6 @@ export default function LibraryInsights() {
             </div>
           </div>
         )}
-
-      {/* Insights Summary */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Resumen de insights
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3">
-            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">Total de libros:</span> {totalBooks}{" "}
-              libros en tu biblioteca
-            </p>
-          </div>
-          {(stats["ratedBooks"] || 0) > 0 && (
-            <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-              <p className="text-sm text-gray-700">
-                <span className="font-medium">Valoraciones:</span> Has valorado{" "}
-                {stats["ratedBooks"]} libros con un promedio de{" "}
-                {stats["averageRating"]}/5
-              </p>
-            </div>
-          )}
-          {(insights["averageReadingDays"] || 0) > 0 && (
-            <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <p className="text-sm text-gray-700">
-                <span className="font-medium">Velocidad de lectura:</span>{" "}
-                Tardas en promedio {insights["averageReadingDays"]} días en
-                terminar un libro
-              </p>
-            </div>
-          )}
-          {readThisYear > 0 && (
-            <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-              <p className="text-sm text-gray-700">
-                <span className="font-medium">Progreso anual:</span> Has leído{" "}
-                {readThisYear} libros este año
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Sección de Recomendaciones */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -538,7 +493,7 @@ export default function LibraryInsights() {
               </div>
             ) : null}
 
-            {/* Fallback: Autores favoritos si no hay recomendaciones de Google Books */}
+            {/* Alternativa: Autores favoritos si no hay recomendaciones de Google Books */}
             {(!googleRecommendations || googleRecommendations.length === 0) &&
             recommendations.favoriteAuthors &&
             recommendations.favoriteAuthors.length > 0 ? (
@@ -589,6 +544,51 @@ export default function LibraryInsights() {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Resumen de insights */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Resumen de insights
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-start space-x-3">
+            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Total de libros:</span> {totalBooks}{" "}
+              libros en tu biblioteca
+            </p>
+          </div>
+          {(stats["ratedBooks"] || 0) > 0 && (
+            <div className="flex items-start space-x-3">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Valoraciones:</span> Has valorado{" "}
+                {stats["ratedBooks"]} libros con un promedio de{" "}
+                {stats["averageRating"]}/5
+              </p>
+            </div>
+          )}
+          {(insights["averageReadingDays"] || 0) > 0 && (
+            <div className="flex items-start space-x-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Velocidad de lectura:</span>{" "}
+                Tardas en promedio {insights["averageReadingDays"]} días en
+                terminar un libro
+              </p>
+            </div>
+          )}
+          {readThisYear > 0 && (
+            <div className="flex items-start space-x-3">
+              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Progreso anual:</span> Has leído{" "}
+                {readThisYear} libros este año
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   getUserLibrary,
@@ -46,14 +46,34 @@ export default function MyLibrary() {
   const [totalBooks, setTotalBooks] = useState(0);
   const [booksPerPage] = useState(15); // 15 libros por página
 
+  // Referencias para optimización
+  const loadingRef = useRef(false);
+  const searchTimeoutRef = useRef(null);
+
   useEffect(() => {
     loadLibraryData();
     loadStats();
+
+    // Cleanup function
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      loadingRef.current = false;
+    };
   }, []);
 
-  // Efecto para búsqueda en tiempo real y filtros
+  // Efecto optimizado para búsqueda en tiempo real y filtros
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
+    // Limpiar timeout anterior
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Evitar búsquedas innecesarias
+    if (loadingRef.current) return;
+
+    searchTimeoutRef.current = setTimeout(() => {
       if (searchTerm.length >= 2 || searchTerm.length === 0) {
         const statusMap = {
           todos: null,
@@ -63,7 +83,7 @@ export default function MyLibrary() {
           abandonado: "abandonado",
         };
 
-        // Solo recargar si hay filtros avanzados activos, NO solo por abrir el panel
+        // Solo recargar si hay filtros avanzados activos
         const hasAdvancedFilters =
           advancedFilters.author ||
           advancedFilters.rating ||
@@ -74,14 +94,23 @@ export default function MyLibrary() {
 
         loadLibraryData(statusMap[activeTab], hasAdvancedFilters);
       }
-    }, 300);
+    }, 500); // Aumentar debounce a 500ms para menos llamadas
 
-    return () => clearTimeout(timeoutId);
+    // Cleanup
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, [searchTerm, activeTab, quickGenreFilter, currentPage]);
 
   const loadLibraryData = useCallback(
     async (status = null, useAdvancedFilters = false) => {
+      // Evitar múltiples llamadas simultáneas
+      if (loadingRef.current) return;
+
       try {
+        loadingRef.current = true;
         setLoading(true);
         const params = status ? { status } : {};
 
@@ -117,6 +146,7 @@ export default function MyLibrary() {
         console.error("Error loading library:", error);
         setError("Error al cargar la biblioteca");
       } finally {
+        loadingRef.current = false;
         setLoading(false);
       }
     },
@@ -144,17 +174,31 @@ export default function MyLibrary() {
     }
   };
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    const statusMap = {
-      todos: null,
-      por_leer: "por_leer",
-      leyendo: "leyendo",
-      leido: "leido",
-      abandonado: "abandonado",
-    };
-    loadLibraryData(statusMap[tab]);
-  };
+  const handleTabChange = useCallback(
+    (tab) => {
+      // Cancelar búsquedas pendientes
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      setActiveTab(tab);
+      setCurrentPage(1); // Resetear página al cambiar tab
+
+      const statusMap = {
+        todos: null,
+        por_leer: "por_leer",
+        leyendo: "leyendo",
+        leido: "leido",
+        abandonado: "abandonado",
+      };
+
+      // Llamar con debounce mínimo para cambios de tab
+      searchTimeoutRef.current = setTimeout(() => {
+        loadLibraryData(statusMap[tab]);
+      }, 100);
+    },
+    [loadLibraryData],
+  );
 
   const handleDeleteBook = async (bookId) => {
     try {
@@ -202,25 +246,29 @@ export default function MyLibrary() {
     );
   };
 
-  const tabs = [
-    {
-      id: "todos",
-      label: "Todos",
-      count:
-        (stats?.por_leer || 0) +
-        (stats?.leyendo || 0) +
-        (stats?.leido || 0) +
-        (stats?.abandonado || 0),
-    },
-    {
-      id: "por_leer",
-      label: "Quiero leer",
-      count: stats?.por_leer || 0,
-    },
-    { id: "leyendo", label: "Leyendo", count: stats?.leyendo || 0 },
-    { id: "leido", label: "Leídos", count: stats?.leido || 0 },
-    { id: "abandonado", label: "Abandonados", count: stats?.abandonado || 0 },
-  ];
+  // Memoizar tabs para evitar recálculos
+  const tabs = useMemo(
+    () => [
+      {
+        id: "todos",
+        label: "Todos",
+        count:
+          (stats?.por_leer || 0) +
+          (stats?.leyendo || 0) +
+          (stats?.leido || 0) +
+          (stats?.abandonado || 0),
+      },
+      {
+        id: "por_leer",
+        label: "Quiero leer",
+        count: stats?.por_leer || 0,
+      },
+      { id: "leyendo", label: "Leyendo", count: stats?.leyendo || 0 },
+      { id: "leido", label: "Leídos", count: stats?.leido || 0 },
+      { id: "abandonado", label: "Abandonados", count: stats?.abandonado || 0 },
+    ],
+    [stats],
+  );
 
   return (
     <div className="space-y-6">
@@ -283,50 +331,59 @@ export default function MyLibrary() {
                 label=""
                 value={quickGenreFilter}
                 onChange={(value) => {
+                  // Cancelar búsqueda anterior si existe
+                  if (searchTimeoutRef.current) {
+                    clearTimeout(searchTimeoutRef.current);
+                  }
+
                   setQuickGenreFilter(value);
+                  setCurrentPage(1); // Resetear página al cambiar filtro
 
-                  // Aplicar el filtro inmediatamente
-                  const statusMap = {
-                    todos: null,
-                    por_leer: "por_leer",
-                    leyendo: "leyendo",
-                    leido: "leido",
-                    abandonado: "abandonado",
-                  };
+                  // Aplicar filtro con debounce optimizado
+                  searchTimeoutRef.current = setTimeout(() => {
+                    const statusMap = {
+                      todos: null,
+                      por_leer: "por_leer",
+                      leyendo: "leyendo",
+                      leido: "leido",
+                      abandonado: "abandonado",
+                    };
 
-                  // Preparar parámetros de filtro
-                  const params = statusMap[activeTab]
-                    ? { status: statusMap[activeTab] }
-                    : {};
-                  if (searchTerm) params.search = searchTerm;
-                  if (value) params.genre = value; // Usar el valor directamente
-                  params.sortBy = "updatedAt";
-                  params.sortOrder = "DESC";
+                    const params = statusMap[activeTab]
+                      ? { status: statusMap[activeTab] }
+                      : {};
+                    if (searchTerm) params.search = searchTerm;
+                    if (value) params.genre = value;
+                    params.page = 1;
+                    params.limit = booksPerPage;
+                    params.sortBy = "updatedAt";
+                    params.sortOrder = "DESC";
 
-                  console.log(
-                    "Applying quick genre filter:",
-                    value,
-                    "Params:",
-                    params,
-                  );
-
-                  // Ejecutar búsqueda
-                  setLoading(true);
-                  getUserLibrary(params)
-                    .then((response) => {
-                      console.log("Quick genre filter response:", response);
-                      setLibrary(response.books || []);
-                    })
-                    .catch((error) => {
-                      console.error(
-                        "Error loading library with quick genre filter:",
-                        error,
-                      );
-                      setError("Error al cargar la biblioteca");
-                    })
-                    .finally(() => {
-                      setLoading(false);
-                    });
+                    // Evitar llamada si ya está cargando
+                    if (!loadingRef.current) {
+                      loadingRef.current = true;
+                      setLoading(true);
+                      getUserLibrary(params)
+                        .then((response) => {
+                          setLibrary(response.books || []);
+                          if (response.pagination) {
+                            setTotalPages(response.pagination.totalPages || 1);
+                            setTotalBooks(response.pagination.totalBooks || 0);
+                          }
+                        })
+                        .catch((error) => {
+                          console.error(
+                            "Error loading library with quick filter:",
+                            error,
+                          );
+                          setError("Error al cargar la biblioteca");
+                        })
+                        .finally(() => {
+                          loadingRef.current = false;
+                          setLoading(false);
+                        });
+                    }
+                  }, 200); // Debounce más corto para filtros directos
                 }}
                 options={[
                   { value: "", label: "Todos los géneros" },
