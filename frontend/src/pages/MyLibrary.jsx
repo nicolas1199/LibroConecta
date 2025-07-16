@@ -175,7 +175,7 @@ export default function MyLibrary() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
-  const [booksPerPage] = useState(4);
+  const [booksPerPage] = useState(15); // Número de libros por página
 
   // Referencias para optimización
   const loadingRef = useRef(false);
