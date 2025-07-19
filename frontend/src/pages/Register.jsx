@@ -123,7 +123,7 @@ export default function Register() {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="name" className="form-label">
-              Nombre completo
+              Nombre y apellido
             </label>
             <input
               type="text"
