@@ -7,9 +7,11 @@ import {
   deletePublishedBookImage,
   setPrimaryImage,
   uploadImagesForPublishedBook,
+  uploadImagesBase64ForPublishedBook,
 } from "../controllers/PublishedBookImage.controller.js"
 import { authenticateToken } from "../middlewares/auth.middleware.js"
 import { uploadBookImagesCloudinary } from "../middlewares/cloudinary.middleware.js"
+import { uploadBookImagesBase64 } from "../middlewares/base64.middleware.js"
 
 const router = Router()
 
@@ -41,6 +43,9 @@ router.get("/:id", getPublishedBookImageById)
 // Rutas protegidas (requieren autenticación)
 // Nueva ruta para subir archivos a Cloudinary
 router.post("/upload/:publishedBookId", authenticateToken, uploadBookImagesCloudinary, uploadImagesForPublishedBook)
+
+// Nueva ruta para subir archivos como base64 (almacenamiento en BD)
+router.post("/upload-base64/:publishedBookId", authenticateToken, uploadBookImagesBase64, uploadImagesBase64ForPublishedBook)
 // Ruta legacy para URLs directas
 router.post("/published-book/:publishedBookId", authenticateToken, addImageToPublishedBook)
 router.put("/:id", authenticateToken, updatePublishedBookImage)

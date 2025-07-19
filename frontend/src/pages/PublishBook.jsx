@@ -17,6 +17,7 @@ import {
   createBook,
   publishBook,
   uploadBookImages,
+  uploadBookImagesBase64,
 } from "../api/publishedBooks"
 
 const STEPS = [
@@ -31,6 +32,7 @@ export default function PublishBook() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
+  const [imageStorageType, setImageStorageType] = useState('base64') // 'cloudinary' o 'base64'
   
   // Google Books search
   const [searchTerm, setSearchTerm] = useState("")
@@ -352,7 +354,12 @@ export default function PublishBook() {
           imageFormData.append('images', image.file)
         })
         
-        await uploadBookImages(publishedBook.published_book_id, imageFormData)
+        // Usar el método de almacenamiento seleccionado
+        if (imageStorageType === 'base64') {
+          await uploadBookImagesBase64(publishedBook.published_book_id, imageFormData)
+        } else {
+          await uploadBookImages(publishedBook.published_book_id, imageFormData)
+        }
       }
 
       // Redirigir al dashboard con mensaje de éxito
@@ -405,6 +412,8 @@ export default function PublishBook() {
             removeImage={removeImage}
             setPrimaryImage={setPrimaryImage}
             errors={errors}
+            imageStorageType={imageStorageType}
+            setImageStorageType={setImageStorageType}
           />
         )
       default:
@@ -928,9 +937,47 @@ function Step3({ formData, handleInputChange, errors, locations }) {
   )
 }
 
-function Step4({ formData, handleImageUpload, removeImage, setPrimaryImage, errors }) {
+function Step4({ formData, handleImageUpload, removeImage, setPrimaryImage, errors, imageStorageType, setImageStorageType }) {
   return (
     <div className="space-y-6">
+      {/* Selector de tipo de almacenamiento */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-medium text-blue-900 mb-3">💾 Método de almacenamiento de imágenes</h4>
+        <div className="space-y-2">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="storageType"
+              value="base64"
+              checked={imageStorageType === 'base64'}
+              onChange={(e) => setImageStorageType(e.target.value)}
+              className="mr-2"
+            />
+            <span className="text-sm">
+              <strong>Base64 (Recomendado)</strong> - Las imágenes se convierten a texto y se almacenan en la base de datos
+            </span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="storageType"
+              value="cloudinary"
+              checked={imageStorageType === 'cloudinary'}
+              onChange={(e) => setImageStorageType(e.target.value)}
+              className="mr-2"
+            />
+            <span className="text-sm">
+              <strong>Cloudinary</strong> - Las imágenes se almacenan en la nube (requiere configuración)
+            </span>
+          </label>
+        </div>
+        {imageStorageType === 'base64' && (
+          <p className="text-xs text-blue-700 mt-2">
+            ℹ️ Las imágenes se almacenarán directamente en tu base de datos como texto base64
+          </p>
+        )}
+      </div>
+
       {/* Upload area */}
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
         <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />

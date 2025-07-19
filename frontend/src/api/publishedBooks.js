@@ -41,9 +41,19 @@ export const publishBook = async (publishData) => {
   return res.data
 }
 
-// Subir múltiples imágenes reales de libro publicado
+// Subir múltiples imágenes reales de libro publicado (Cloudinary)
 export const uploadBookImages = async (publishedBookId, formData) => {
   const res = await api.post(`/published-book-images/upload/${publishedBookId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return res.data
+}
+
+// Subir múltiples imágenes como base64 (almacenamiento en BD)
+export const uploadBookImagesBase64 = async (publishedBookId, formData) => {
+  const res = await api.post(`/published-book-images/upload-base64/${publishedBookId}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
