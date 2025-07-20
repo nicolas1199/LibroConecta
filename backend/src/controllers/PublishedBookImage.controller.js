@@ -259,6 +259,89 @@ export async function uploadImagesForPublishedBook(req, res) {
   }
 }
 
+// Subir múltiples imágenes en formato base64 desde JSON
+export async function uploadImagesBase64JSONForPublishedBook(req, res) {
+  try {
+    const { publishedBookId } = req.params;
+    const { images } = req.body;
+
+    console.log(`💾 Controlador: Iniciando subida de imágenes base64 JSON para libro ${publishedBookId}`);
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ error: "No se proporcionaron imágenes en el formato correcto" });
+    }
+
+    // Verificar que el libro publicado existe y pertenece al usuario
+    const publishedBook = await PublishedBooks.findByPk(publishedBookId);
+    if (!publishedBook) {
+      return res.status(404).json({ error: "Libro publicado no encontrado" });
+    }
+
+    if (publishedBook.user_id !== req.user.user_id) {
+      return res
+        .status(403)
+        .json({
+          error: "No tienes permisos para agregar imágenes a este libro",
+        });
+    }
+
+    // Validar formato de las imágenes base64
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      if (!img.base64 || typeof img.base64 !== 'string') {
+        return res.status(400).json({ 
+          error: `La imagen ${i + 1} no tiene datos base64 válidos` 
+        });
+      }
+      
+      // Verificar que sea un data URI válido
+      if (!img.base64.startsWith('data:image/')) {
+        return res.status(400).json({ 
+          error: `La imagen ${i + 1} no es una imagen válida en formato base64` 
+        });
+      }
+    }
+
+    // Crear registros de imagen para cada imagen base64
+    const imagePromises = images.map((img, index) => {
+      console.log(`💾 Guardando imagen base64 JSON ${index + 1}/${images.length}`);
+      
+      // Extraer información del data URI
+      const mimeTypeMatch = img.base64.match(/data:([^;]+);base64,/);
+      const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/png';
+      const extension = mimeType.split('/')[1] || 'png';
+      const filename = `image_${Date.now()}_${index}.${extension}`;
+
+      return PublishedBookImage.create({
+        published_book_id: publishedBookId,
+        image_data: img.base64, // Datos base64 de la imagen
+        image_url: null, // No hay URL externa
+        image_filename: filename,
+        image_mimetype: mimeType,
+        image_size: img.base64.length, // Tamaño aproximado
+        is_primary: img.is_primary || (index === 0), // Primera imagen es primaria por defecto
+      });
+    });
+
+    const savedImages = await Promise.all(imagePromises);
+    console.log(
+      `✅ ${savedImages.length} imágenes base64 JSON guardadas en BD exitosamente`
+    );
+
+    res.status(201).json({
+      message: `${savedImages.length} imágenes subidas exitosamente en formato base64`,
+      images: savedImages.map(img => ({
+        ...img.toJSON(),
+        // No devolver el base64 completo en la respuesta (es muy largo)
+        image_data: img.image_data ? `[BASE64 DATA - ${img.image_data.length} characters]` : null
+      })),
+    });
+  } catch (error) {
+    console.error("Error en uploadImagesBase64JSONForPublishedBook:", error);
+    res.status(500).json({ error: "Error al subir imágenes en base64" });
+  }
+}
+
 // Subir múltiples imágenes en formato base64
 export async function uploadImagesBase64ForPublishedBook(req, res) {
   try {

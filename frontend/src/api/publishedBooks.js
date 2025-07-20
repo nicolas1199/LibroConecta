@@ -52,14 +52,19 @@ export const uploadBookImages = async (publishedBookId, formData) => {
 }
 
 // Subir múltiples imágenes como base64 (almacenamiento en BD)
-export const uploadBookImagesBase64 = async (publishedBookId, formData) => {
-  const res = await api.post(`/published-book-images/upload-base64/${publishedBookId}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
-  return res.data
-}
+export const uploadBookImagesBase64 = async (publishedBookId, base64Images) => {
+  // base64Images: Array<{ base64, is_primary }>
+  const res = await api.post(
+    `/published-book-images/upload-base64-json/${publishedBookId}`,
+    { images: base64Images },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  return res.data;
+};
 
 // Subir imagen de libro publicado (legacy)
 export const uploadBookImage = async (publishedBookId, imageData) => {
