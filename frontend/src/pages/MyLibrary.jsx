@@ -15,7 +15,6 @@ export default function MyLibrary() {
   // Custom hooks
   const {
     library,
-    stats,
     globalStats,
     loading,
     error,
