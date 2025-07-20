@@ -52,9 +52,7 @@ export default function CustomDatePicker(props) {
 
   const handleChange = (date) => {
     if (date) {
-      // Convertir a formato YYYY-MM-DD para compatibilidad
-      const formattedDate = date.toISOString().split("T")[0];
-      onChange(formattedDate);
+      onChange(date);
     } else {
       onChange("");
     }
