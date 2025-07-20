@@ -12,6 +12,7 @@ import Users from "../components/icons/Users"
 export default function EditProfile() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(true)
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState("")
   const [locations, setLocations] = useState([])
@@ -31,6 +32,7 @@ export default function EditProfile() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        setIsLoadingData(true)
         const [profileData, locationsData] = await Promise.all([
           getUserProfile(),
           getLocations()
@@ -51,6 +53,8 @@ export default function EditProfile() {
       } catch (error) {
         console.error("Error loading data:", error)
         setMessage("Error al cargar los datos del perfil")
+      } finally {
+        setIsLoadingData(false)
       }
     }
 
@@ -207,7 +211,7 @@ export default function EditProfile() {
     return acc
   }, {})
 
-  if (isLoading) {
+  if (isLoadingData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

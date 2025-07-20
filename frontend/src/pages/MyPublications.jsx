@@ -111,7 +111,7 @@ export default function MyPublications() {
             </div>
             
             <button
-              onClick={() => navigate("/publish-book")}
+              onClick={() => navigate("/dashboard/publish")}
               className="btn btn-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -137,7 +137,7 @@ export default function MyPublications() {
               Comienza publicando tu primer libro para compartir con la comunidad
             </p>
             <button
-              onClick={() => navigate("/publish-book")}
+              onClick={() => navigate("/dashboard/publish")}
               className="btn btn-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
