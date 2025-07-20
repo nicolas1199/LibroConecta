@@ -13,7 +13,21 @@ export async function getImagesByPublishedBook(req, res) {
       ],
     });
 
-    res.json(images);
+    // Procesar imágenes para incluir datos base64 o URL según corresponda
+    const processedImages = images.map(img => {
+      const imageData = img.toJSON();
+      
+      // Si tiene datos base64, usarlos como fuente de imagen
+      if (imageData.image_data) {
+        imageData.src = imageData.image_data; // Base64 data URI
+      } else if (imageData.image_url) {
+        imageData.src = imageData.image_url; // URL externa (Cloudinary)
+      }
+      
+      return imageData;
+    });
+
+    res.json(processedImages);
   } catch (error) {
     console.error("Error en getImagesByPublishedBook:", error);
     res.status(500).json({ error: "Error al obtener imágenes" });
@@ -242,5 +256,62 @@ export async function uploadImagesForPublishedBook(req, res) {
   } catch (error) {
     console.error("Error en uploadImagesForPublishedBook:", error);
     res.status(500).json({ error: "Error al subir imágenes" });
+  }
+}
+
+// Subir múltiples imágenes en formato base64
+export async function uploadImagesBase64ForPublishedBook(req, res) {
+  try {
+    const { publishedBookId } = req.params;
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "No se proporcionaron archivos" });
+    }
+
+    // Verificar que el libro publicado existe y pertenece al usuario
+    const publishedBook = await PublishedBooks.findByPk(publishedBookId);
+    if (!publishedBook) {
+      return res.status(404).json({ error: "Libro publicado no encontrado" });
+    }
+
+    if (publishedBook.user_id !== req.user.user_id) {
+      return res
+        .status(403)
+        .json({
+          error: "No tienes permisos para agregar imágenes a este libro",
+        });
+    }
+
+    // Crear registros de imagen para cada archivo convertido a base64
+    const imagePromises = files.map((file, index) => {
+      console.log(`💾 Guardando imagen base64 en BD: ${file.originalname}`);
+      return PublishedBookImage.create({
+        published_book_id: publishedBookId,
+        image_data: file.base64, // Datos base64 de la imagen
+        image_url: null, // No hay URL externa
+        image_filename: file.originalname,
+        image_mimetype: file.mimetype,
+        image_size: file.size,
+        is_primary: index === 0, // Primera imagen es primaria por defecto
+      });
+    });
+
+    const savedImages = await Promise.all(imagePromises);
+    console.log(
+      `✅ ${savedImages.length} imágenes base64 guardadas en BD exitosamente`
+    );
+
+    res.status(201).json({
+      message: `${savedImages.length} imágenes subidas exitosamente en formato base64`,
+      images: savedImages.map(img => ({
+        ...img.toJSON(),
+        // No devolver el base64 completo en la respuesta (es muy largo)
+        image_data: img.image_data ? `[BASE64 DATA - ${img.image_data.length} characters]` : null
+      })),
+    });
+  } catch (error) {
+    console.error("Error en uploadImagesBase64ForPublishedBook:", error);
+    res.status(500).json({ error: "Error al subir imágenes en base64" });
   }
 }

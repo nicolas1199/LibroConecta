@@ -27,7 +27,9 @@ export default function BookCard({ book }) {
   // Obtener la imagen principal o usar placeholder
   const primaryImage = images.find((img) => img.is_primary) || images[0];
   const imageUrl =
-    primaryImage?.image_url ||
+    primaryImage?.src ||          // Usar el campo 'src' que puede ser URL o base64
+    primaryImage?.image_url ||    // Fallback a image_url por compatibilidad
+    primaryImage?.image_data ||   // Fallback a image_data por compatibilidad  
     "/placeholder.svg?height=200&width=300&text=Libro";
 
   // Función para obtener el color del badge según el tipo de transacción

@@ -59,7 +59,10 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
 
   // Obtener la imagen principal
   const primaryImage = images.find((img) => img.is_primary) || images[0];
-  const imageUrl = primaryImage?.image_url || "/api/placeholder/300/400";
+  const imageUrl = primaryImage?.src ||          // Usar el campo 'src' que puede ser URL o base64
+                   primaryImage?.image_url ||    // Fallback a image_url por compatibilidad
+                   primaryImage?.image_data ||   // Fallback a image_data por compatibilidad
+                   "/api/placeholder/300/400";
 
   // Manejar el final del arrastre (más permisivo)
   const handleDragEnd = (event, info) => {
