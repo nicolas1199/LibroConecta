@@ -294,7 +294,7 @@ export default function AddToLibrary() {
                 onChange={(value) =>
                   setFormData({ ...formData, main_genre: value })
                 }
-                options={BOOK_GENRES.map((genre) => ({
+                options={[...BOOK_GENRES].sort().map((genre) => ({
                   value: genre,
                   label: genre,
                 }))}
@@ -308,7 +308,7 @@ export default function AddToLibrary() {
                 Géneros adicionales (opcional)
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                {BOOK_GENRES.map((genre) => (
+                {[...BOOK_GENRES].sort().map((genre) => (
                   <label
                     key={genre}
                     className="flex items-center space-x-2 text-sm"
@@ -508,7 +508,7 @@ export default function AddToLibrary() {
                 }
                 options={[
                   { value: "", label: "Selecciona un género" },
-                  ...BOOK_GENRES.map((genre) => ({
+                  ...[...BOOK_GENRES].sort().map((genre) => ({
                     value: genre,
                     label: genre,
                   })),
@@ -523,7 +523,7 @@ export default function AddToLibrary() {
                 Géneros adicionales (opcional)
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                {BOOK_GENRES.map((genre) => (
+                {[...BOOK_GENRES].sort().map((genre) => (
                   <label
                     key={genre}
                     className="flex items-center space-x-2 text-sm"

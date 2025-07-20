@@ -99,13 +99,13 @@ export default function AppRouter() {
         />
 
         {/* Publish book route */}
-        <Route 
-          path="/dashboard/publish" 
+        <Route
+          path="/dashboard/publish"
           element={
             <PrivateRoute>
               <PublishBook />
             </PrivateRoute>
-          } 
+          }
         />
 
         {/* Library routes */}
