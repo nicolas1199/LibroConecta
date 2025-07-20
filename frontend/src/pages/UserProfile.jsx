@@ -1,721 +1,544 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../utils/auth.js";
-import { updateUser, uploadProfileImage } from "../api/auth";
-import { getLocations } from "../api/publishedBooks";
-import ArrowLeft from "../components/icons/ArrowLeft";
-import Edit from "../components/icons/Edit";
-import Save from "../components/icons/Save";
-import Upload from "../components/icons/Upload";
-import Camera from "../components/icons/Edit";
-import User from "../components/icons/Users";
-import MapPin from "../components/icons/MapPin";
-import Mail from "../components/icons/MessageCircle";
-import Calendar from "../components/icons/Calendar";
-import Star from "../components/icons/Star";
+import { useState, useEffect } from "react"
+import { useNavigate, useParams } from "react-router-dom"
+import { getUserProfile, updateUserProfile, getUserProfileById } from "../api/auth"
+import { getLocations } from "../api/publishedBooks"
+import ArrowLeft from "../components/icons/ArrowLeft"
+import Edit from "../components/icons/Edit"
+import MapPin from "../components/icons/MapPin"
+import User from "../components/icons/Users"
+import BookOpen from "../components/icons/BookOpen"
+import Settings from "../components/icons/Settings"
+import MessageCircle from "../components/icons/MessageCircle"
 
 export default function UserProfile() {
-  const navigate = useNavigate();
-  const { user, updateUserContext } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [locations, setLocations] = useState([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const navigate = useNavigate()
+  const { userId } = useParams()
+  const [user, setUser] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [locations, setLocations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
+  const [isOwnProfile, setIsOwnProfile] = useState(true)
 
-  // Form data
-
-
-
+  // Estados para el formulario
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
     email: "",
-    phone: "",
-    bio: "",
-    location_id: "",
-    birth_date: "",
-    preferences: {
-      notifications: true,
-      email_notifications: true,
-      public_profile: true
-    }
-  });
+    username: "",
+    location: "",
+    region: "",
+    comuna: ""
+  })
 
-  // Profile image
-  const [profileImage, setProfileImage] = useState(null);
-  const [newProfileImage, setNewProfileImage] = useState(null);
-
+  // Regiones y comunas disponibles
+  const [regions, setRegions] = useState([])
+  const [comunas, setComunas] = useState([])
+  const [selectedRegion, setSelectedRegion] = useState("")
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        
+        // Obtener usuario actual del localStorage
+        const currentUserData = localStorage.getItem("user")
+        if (currentUserData) {
+          const parsedCurrentUser = JSON.parse(currentUserData)
+          setCurrentUser(parsedCurrentUser)
+          
+          // Determinar si es perfil propio o de otro usuario
+          const isOwn = !userId || userId === parsedCurrentUser.user_id.toString()
+          setIsOwnProfile(isOwn)
+          
+          let profileUser
+          if (isOwn) {
+            // Es el perfil propio
+            profileUser = parsedCurrentUser
+          } else {
+            // Es perfil de otro usuario - cargar por API
+            const response = await getUserProfileById(userId)
+            profileUser = response.data
+          }
+          
+          setUser(profileUser)
+          
+          // Solo cargar ubicaciones y configurar formulario si es perfil propio
+          if (isOwn) {
+            // Cargar ubicaciones
+            const locationsResponse = await getLocations()
+            setLocations(locationsResponse.data || [])
+            
+            // Procesar regiones únicas
+            const uniqueRegions = [...new Set(locationsResponse.data?.map(loc => loc.region) || [])]
+            setRegions(uniqueRegions)
+            
+            // Configurar datos del formulario
+            setFormData({
+              first_name: profileUser.first_name || "",
+              last_name: profileUser.last_name || "",
+              email: profileUser.email || "",
+              username: profileUser.username || "",
+              location: profileUser.location || "",
+              region: "",
+              comuna: ""
+            })
+            
+            // Si el usuario tiene ubicación, parsearlo
+            if (profileUser.location) {
+              const [region, comuna] = profileUser.location.split(" - ")
+              if (region && comuna) {
+                setSelectedRegion(region)
+                setFormData(prev => ({
+                  ...prev,
+                  region: region,
+                  comuna: comuna
+                }))
+                
+                // Cargar comunas de esa región
+                const regionComunas = locationsResponse.data?.filter(loc => loc.region === region) || []
+                setComunas(regionComunas)
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error)
+        setError("Error al cargar el perfil")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [userId])
+
+  const handleRegionChange = (region) => {
+    setSelectedRegion(region)
+    setFormData(prev => ({
+      ...prev,
+      region: region,
+      comuna: ""
+    }))
+    
+    // Filtrar comunas de la región seleccionada
+    const regionComunas = locations.filter(loc => loc.region === region)
+    setComunas(regionComunas)
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    try {
+      setSaving(true)
+      setError(null)
+      setSuccess(null)
+
+      // Construir ubicación completa
+      const location = formData.region && formData.comuna ? 
+        `${formData.region} - ${formData.comuna}` : 
+        formData.location
+
+      const updateData = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        username: formData.username,
+        location: location
+      }
+
+      await updateUserProfile(updateData)
+      
+      // Actualizar usuario en localStorage
+      const updatedUser = { ...user, ...updateData }
+      localStorage.setItem("user", JSON.stringify(updatedUser))
+      setUser(updatedUser)
+      
+      setSuccess("Perfil actualizado exitosamente")
+      setEditing(false)
+      
+      // Limpiar mensaje de éxito después de 3 segundos
+      setTimeout(() => setSuccess(null), 3000)
+      
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      setError("Error al actualizar el perfil")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
     if (user) {
+      const [region, comuna] = user.location ? user.location.split(" - ") : ["", ""]
       setFormData({
         first_name: user.first_name || "",
         last_name: user.last_name || "",
         email: user.email || "",
-        phone: user.phone || "",
-        bio: user.bio || "",
-        location_id: user.location_id || "",
-        birth_date: user.birth_date ? user.birth_date.split('T')[0] : "",
-        preferences: {
-          notifications: user.preferences?.notifications ?? true,
-          email_notifications: user.preferences?.email_notifications ?? true,
-          public_profile: user.preferences?.public_profile ?? true
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        }
-      });
-      setProfileImage(user.profile_image);
-    }
-    loadLocations();
-  }, [user]);
-
-  const loadLocations = async () => {
-    try {
-      const locationsData = await getLocations();
-      setLocations(locationsData);
-    } catch (error) {
-      console.error("Error loading locations:", error);
-    }
-  };
-
-  const handleInputChange = (field, value) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
-  };
-
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      setNewProfileImage(file);
-    } else {
-      alert('Por favor selecciona un archivo de imagen válido');
-    }
-  };
-
-  const handleSave = async () => {
-
-
-    try {
-      setSaving(true);
-      setError(null);
-
-
-      // Upload profile image if changed
-      if (newProfileImage) {
-        setUploadingImage(true);
-        const imageFormData = new FormData();
-        imageFormData.append('profile_image', newProfileImage);
-        
-        const imageResponse = await uploadProfileImage(imageFormData);
-        setProfileImage(imageResponse.profile_image_url);
-        setNewProfileImage(null);
-        setUploadingImage(false);
+        username: user.username || "",
+        location: user.location || "",
+        region: region || "",
+        comuna: comuna || ""
+      })
+      setSelectedRegion(region || "")
+      if (region) {
+        const regionComunas = locations.filter(loc => loc.region === region)
+        setComunas(regionComunas)
       }
-
-      // Update user data
-      const updateData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone: formData.phone,
-        bio: formData.bio,
-        location_id: formData.location_id,
-        birth_date: formData.birth_date,
-        preferences: formData.preferences
-      };
-
-      const response = await updateUser(updateData);
-      
-      // Update context
-      updateUserContext(response.user);
-
-
-
-
-
-
-
-
-      
-      setIsEditing(false);
-      alert('Perfil actualizado correctamente');
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      setError('Error al actualizar el perfil');
-    } finally {
-      setSaving(false);
     }
-  };
+    setEditing(false)
+    setError(null)
+    setSuccess(null)
+  }
 
+  const getInitials = () => {
+    if (!user) return "U"
+    const first = user.first_name?.charAt(0) || ""
+    const last = user.last_name?.charAt(0) || ""
+    return `${first}${last}`.toUpperCase()
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  const getLocationName = (locationId) => {
-    const location = locations.find(loc => loc.location_id === locationId);
-    return location ? `${location.comuna}, ${location.region}` : 'No especificada';
-  };
-
-
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No especificada';
-    return new Date(dateString).toLocaleDateString('es-CL');
-  };
-
-
-
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="spinner border-gray-300 border-t-blue-600"></div>
+      </div>
+    )
+  }
 
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="spinner border-gray-300 border-t-blue-600"></div>
-
-
-
-
-
-
-
-
-
-
-
+        <div className="text-center">
+          <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            No se pudo cargar el perfil
+          </h2>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="btn btn-primary"
+          >
+            Volver al Dashboard
+          </button>
+        </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors"
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
+            <ArrowLeft className="h-5 w-5" />
+            <span>Volver al Dashboard</span>
           </button>
-
+          
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Mi Perfil</h1>
-              <p className="text-gray-600">
-                Gestiona tu información personal y preferencias
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="btn btn-primary flex items-center space-x-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  <span>Editar</span>
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="btn btn-secondary"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="btn btn-primary flex items-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>{saving ? "Guardando..." : "Guardar"}</span>
-                  </button>
-                </>
-              )}
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {isOwnProfile ? "Mi Perfil" : `Perfil de ${user?.first_name} ${user?.last_name}`}
+            </h1>
+            
+            {isOwnProfile && !editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="btn btn-primary flex items-center space-x-2"
+              >
+                <Edit className="h-4 w-4" />
+                <span>Editar Perfil</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Card */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              {/* Profile Image */}
-              <div className="text-center mb-6">
-                <div className="relative inline-block">
-                  <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 mx-auto mb-4">
-                    {newProfileImage ? (
-                      <img
-                        src={URL.createObjectURL(newProfileImage)}
-                        alt="Nueva foto de perfil"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : profileImage ? (
-                      <img
-                        src={profileImage}
-                        alt="Foto de perfil"
-                        className="w-full h-full object-cover"
+          {/* Información del Usuario */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Información Personal
+              </h2>
 
+              {/* Mensajes de éxito/error */}
+              {success && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-800">{success}</p>
+                </div>
+              )}
 
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800">{error}</p>
+                </div>
+              )}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Nombres */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre
+                    </label>
+                    {isOwnProfile ? (
+                      <input
+                        type="text"
+                        name="first_name"
+                        value={formData.first_name}
+                        onChange={handleInputChange}
+                        disabled={!editing}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                        required
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
-                        {user.first_name?.charAt(0) || "U"}
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        {user?.first_name || "No especificado"}
                       </div>
                     )}
                   </div>
                   
-                  {isEditing && (
-                    <label className="absolute bottom-2 right-2 bg-blue-500 text-white p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors">
-                      <Camera className="h-4 w-4" />
-
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-
-
-
-                      />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Apellido
                     </label>
+                    {isOwnProfile ? (
+                      <input
+                        type="text"
+                        name="last_name"
+                        value={formData.last_name}
+                        onChange={handleInputChange}
+                        disabled={!editing}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                        required
+                      />
+                    ) : (
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        {user?.last_name || "No especificado"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Email y Username */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    {isOwnProfile ? (
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        disabled={!editing}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                        required
+                      />
+                    ) : (
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        {user?.email || "No especificado"}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre de Usuario
+                    </label>
+                    {isOwnProfile ? (
+                      <input
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        disabled={!editing}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                        required
+                      />
+                    ) : (
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        @{user?.username || "No especificado"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ubicación */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="inline h-4 w-4 mr-1" />
+                    Ubicación
+                  </label>
+                  
+                  {isOwnProfile ? (
+                    editing ? (
+                      <div className="space-y-4">
+                        {/* Selector de Región */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Región
+                          </label>
+                          <select
+                            value={selectedRegion}
+                            onChange={(e) => handleRegionChange(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">Seleccionar región</option>
+                            {regions.map((region) => (
+                              <option key={region} value={region}>
+                                {region}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Selector de Comuna */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Comuna
+                          </label>
+                          <select
+                            name="comuna"
+                            value={formData.comuna}
+                            onChange={handleInputChange}
+                            disabled={!selectedRegion}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                          >
+                            <option value="">Seleccionar comuna</option>
+                            {comunas.map((location) => (
+                              <option key={location.location_id} value={location.comuna}>
+                                {location.comuna}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        {user?.location || "No especificada"}
+                      </div>
+                    )
+                  ) : (
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                      {user?.location || "No especificada"}
+                    </div>
                   )}
                 </div>
 
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {formData.first_name} {formData.last_name}
-                </h2>
-                <p className="text-gray-600">{formData.email}</p>
-              </div>
-
-              {/* Stats */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm text-gray-600">Miembro desde</span>
+                {/* Botones */}
+                {isOwnProfile && editing && (
+                  <div className="flex space-x-4 pt-4">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="btn btn-primary flex items-center space-x-2"
+                    >
+                      {saving ? (
+                        <>
+                          <div className="spinner border-white border-t-transparent w-4 h-4"></div>
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Settings className="h-4 w-4" />
+                          <span>Guardar Cambios</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={saving}
+                      className="btn btn-secondary"
+                    >
+                      Cancelar
+                    </button>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">
-                    {formatDate(user.created_at)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm text-gray-600">Calificación</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">4.8/5</span>
-                </div>
-              </div>
+                )}
+              </form>
             </div>
           </div>
 
-          {/* Profile Details */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Información Personal</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.first_name}
-                    onChange={(e) => handleInputChange('first_name', e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    required
-                  />
+          {/* Tarjeta de Perfil */}
+          <div className="space-y-6">
+            {/* Avatar y información básica */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="text-center">
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+                  {getInitials()}
                 </div>
-
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Apellido *
-
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.last_name}
-                    onChange={(e) => handleInputChange('last_name', e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    required
-                  />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <input
-                      type="email"
-                      value={formData.email}
-                      disabled
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
-                    />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">El email no se puede cambiar</p>
-                </div>
-
-
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="+56 9 1234 5678"
-                  />
-                </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de Nacimiento
-                  </label>
-
-
-
-
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <input
-                      type="date"
-                      value={formData.birth_date}
-                      onChange={(e) => handleInputChange('birth_date', e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ubicación
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <select
-                      value={formData.location_id}
-                      onChange={(e) => handleInputChange('location_id', e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Seleccionar ubicación</option>
-                      {locations.map((location) => (
-                        <option key={location.location_id} value={location.location_id}>
-                          {location.comuna}, {location.region}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Biografía
-                </label>
-                <textarea
-                  value={formData.bio}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
-                  disabled={!isEditing}
-                  rows={4}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="Cuéntanos un poco sobre ti, tus gustos literarios, etc."
-                />
+                
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                  {user.first_name} {user.last_name}
+                </h3>
+                
+                <p className="text-gray-500 mb-2">@{user.username}</p>
+                
+                                 {user.location && (
+                   <div className="flex items-center justify-center text-gray-500 text-sm mb-4">
+                     <MapPin className="h-4 w-4 mr-1" />
+                     <span>{user.location}</span>
+                   </div>
+                 )}
+                 
+                 {/* Botón de chat para perfiles de otros usuarios */}
+                 {!isOwnProfile && (
+                   <button
+                     onClick={() => navigate(`/dashboard/messages/new?user=${user.user_id}`)}
+                     className="w-full btn btn-primary flex items-center justify-center space-x-2"
+                   >
+                     <MessageCircle className="h-4 w-4" />
+                     <span>Enviar Mensaje</span>
+                   </button>
+                 )}
               </div>
             </div>
 
-            {/* Preferences */}
-            <div className="bg-white rounded-xl shadow-sm border p-6 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Preferencias</h3>
-
-              <div className="space-y-4">
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.preferences.notifications}
-                    onChange={(e) => handleInputChange('preferences.notifications', e.target.checked)}
-                    disabled={!isEditing}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                  <span className="text-sm text-gray-700">Recibir notificaciones push</span>
-                </label>
-
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.preferences.email_notifications}
-                    onChange={(e) => handleInputChange('preferences.email_notifications', e.target.checked)}
-                    disabled={!isEditing}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                  <span className="text-sm text-gray-700">Recibir notificaciones por email</span>
-                </label>
-
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.preferences.public_profile}
-                    onChange={(e) => handleInputChange('preferences.public_profile', e.target.checked)}
-                    disabled={!isEditing}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                  <span className="text-sm text-gray-700">Perfil público</span>
-                </label>
+            {/* Estadísticas del usuario */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Estadísticas
+              </h3>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <BookOpen className="h-4 w-4 text-blue-600" />
+                    <span className="text-gray-600">Libros publicados</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">0</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4 text-purple-600" />
+                    <span className="text-gray-600">Matches</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">0</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 } 

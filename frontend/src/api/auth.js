@@ -51,26 +51,3 @@ export const getUserProfileById = async (userId) => {
     throw error.response?.data || error;
   }
 };
-// Función para actualizar usuario
-export const updateUser = async (userData) => {
-  try {
-    const response = await api.put("/users/profile", userData);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
-
-// Función para subir imagen de perfil
-export const uploadProfileImage = async (formData) => {
-  try {
-    const response = await api.post("/users/profile-image", formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
