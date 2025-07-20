@@ -349,16 +349,31 @@ export default function PublishBook() {
 
       // 3. Subir imágenes reales
       if (formData.images.length > 0) {
-        const imageFormData = new FormData()
-        formData.images.forEach((image) => {
-          imageFormData.append('images', image.file)
-        })
-        
-        // Usar el método de almacenamiento seleccionado
         if (imageStorageType === 'base64') {
-          await uploadBookImagesBase64(publishedBook.published_book_id, imageFormData)
+          // Convertir todas las imágenes a base64
+          const base64Images = await Promise.all(
+            formData.images.map(
+              (img) =>
+                new Promise((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    resolve({
+                      base64: reader.result,
+                      is_primary: img.is_primary || false,
+                    });
+                  };
+                  reader.onerror = reject;
+                  reader.readAsDataURL(img.file);
+                })
+            )
+          );
+          await uploadBookImagesBase64(publishedBook.published_book_id, base64Images);
         } else {
-          await uploadBookImages(publishedBook.published_book_id, imageFormData)
+          const imageFormData = new FormData();
+          formData.images.forEach((image) => {
+            imageFormData.append('images', image.file);
+          });
+          await uploadBookImages(publishedBook.published_book_id, imageFormData);
         }
       }
 
