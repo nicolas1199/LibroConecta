@@ -122,7 +122,14 @@ export default function BookDetails() {
                   "/placeholder.svg?height=400&width=400&text=Libro"
                 }
                 alt={bookInfo?.title || "Libro"}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover image-render-crisp"
+                style={{
+                  imageRendering: 'crisp-edges',
+                  imageRendering: '-moz-crisp-edges',
+                  imageRendering: '-webkit-optimize-contrast',
+                  imageRendering: 'optimize-contrast',
+                  msInterpolationMode: 'nearest-neighbor'
+                }}
               />
             </div>
 
@@ -142,7 +149,14 @@ export default function BookDetails() {
                     <img
                       src={image.image_url}
                       alt={`${bookInfo?.title} - ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover image-render-crisp"
+                      style={{
+                        imageRendering: 'crisp-edges',
+                        imageRendering: '-moz-crisp-edges',
+                        imageRendering: '-webkit-optimize-contrast',
+                        imageRendering: 'optimize-contrast',
+                        msInterpolationMode: 'nearest-neighbor'
+                      }}
                     />
                   </button>
                 ))}

@@ -18,7 +18,28 @@ Hemos implementado la capacidad de almacenar imágenes como base64 en la base de
 ### ⚠️ Consideraciones:
 - **Tamaño**: Base64 ocupa ~33% más espacio que binario
 - **Rendimiento**: Consultas a BD más pesadas
-- **Límite**: Máximo 5MB por imagen para evitar problemas
+- **Límite**: Máximo 8MB por imagen para preservar calidad (aumentado desde 5MB)
+
+## 🎯 Optimización de Calidad de Imagen
+
+Para resolver problemas de pixelado y mejorar la nitidez de las imágenes base64:
+
+### CSS Mejorado
+- Se han agregado propiedades CSS específicas para mejorar el renderizado
+- `image-rendering: crisp-edges` para bordes más nítidos  
+- `backface-visibility: hidden` para mejor renderizado
+- Hardware acceleration con `transform: translateZ(0)`
+
+### Recomendaciones para Mejores Resultados
+1. **Resolución de origen**: Usa imágenes de al menos 800x600 píxeles
+2. **Formatos recomendados**: PNG para imágenes con texto, JPEG para fotografías
+3. **Calidad alta**: Sube imágenes de buena calidad inicial (el sistema no las comprime automáticamente)
+4. **Tamaño óptimo**: Entre 500KB - 3MB para el equilibrio perfecto entre calidad y rendimiento
+
+### Configuración del Middleware
+- **Límite aumentado**: 8MB por imagen (desde 5MB)
+- **Sin compresión automática**: Las imágenes mantienen su calidad original
+- **Validación mejorada**: Mejor detección de tipos MIME
 
 ## 🔧 Cómo Usar
 

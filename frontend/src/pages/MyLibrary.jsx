@@ -81,7 +81,14 @@ const BookCard = memo(({ userBook, onEdit, onDelete, getStatusBadge }) => {
             ref={imageRef}
             data-src={userBook.image_url}
             alt={`Portada de ${userBook.title}`}
-            className="w-12 h-16 md:w-16 md:h-20 object-cover rounded-md flex-shrink-0 bg-gray-100"
+            className="w-12 h-16 md:w-16 md:h-20 object-cover rounded-md flex-shrink-0 bg-gray-100 image-render-crisp"
+            style={{
+              imageRendering: 'crisp-edges',
+              imageRendering: '-moz-crisp-edges',
+              imageRendering: '-webkit-optimize-contrast',
+              imageRendering: 'optimize-contrast',
+              msInterpolationMode: 'nearest-neighbor'
+            }}
             loading="lazy"
             onError={(e) => {
               e.currentTarget.style.display = "none";

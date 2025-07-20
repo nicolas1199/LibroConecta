@@ -95,10 +95,10 @@ function convertImageToBase64(buffer, mimetype) {
 function validateAndOptimizeImage(buffer, filename, mimetype) {
   return new Promise((resolve, reject) => {
     try {
-      // Validar tamaño de archivo (máximo 5MB para evitar problemas en BD)
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      // Validar tamaño de archivo (aumentar límite para preservar calidad)
+      const maxSize = 8 * 1024 * 1024; // 8MB (aumentado desde 5MB)
       if (buffer.length > maxSize) {
-        return reject(new Error(`La imagen ${filename} es demasiado grande. Máximo 5MB permitido.`));
+        return reject(new Error(`La imagen ${filename} es demasiado grande. Máximo 8MB permitido.`));
       }
 
       // Validar que sea una imagen
@@ -106,12 +106,22 @@ function validateAndOptimizeImage(buffer, filename, mimetype) {
         return reject(new Error(`El archivo ${filename} no es una imagen válida.`));
       }
 
-      // Para optimización futura, aquí podrías agregar lógica de redimensionamiento
-      // Por ahora, devolvemos la imagen tal como está
+      console.log(`📷 Validando imagen: ${filename} (${buffer.length} bytes, ${mimetype})`);
+
+      // No optimizar/comprimir por defecto para preservar calidad
+      // Si necesitas redimensionamiento en el futuro, puedes usar sharp aquí:
+      // const sharp = require('sharp');
+      // const optimizedBuffer = await sharp(buffer)
+      //   .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
+      //   .jpeg({ quality: 85 })
+      //   .png({ quality: 85 })
+      //   .toBuffer();
+      
       resolve({
-        buffer,
+        buffer, // Mantener imagen original sin comprimir
         mimetype,
-        optimized: false
+        optimized: false,
+        originalSize: buffer.length
       });
 
     } catch (error) {

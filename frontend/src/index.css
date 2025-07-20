@@ -1174,3 +1174,43 @@ body.dashboard .card:hover {
 .text-cyan-600 {
   color: #0891b2;
 }
+
+/* Mejora la calidad de renderizado para imágenes base64 */
+.image-render-crisp {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
+  /* Mejorar suavizado de imágenes base64 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Forzar aceleración por hardware */
+  will-change: transform;
+}
+
+/* Mejora adicional para imágenes en general */
+img {
+  image-rendering: auto;
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  /* Mejorar carga y renderizado */
+  max-width: 100%;
+  height: auto;
+  /* Smooth scaling en navegadores modernos */
+  image-rendering: high-quality;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Específico para imágenes base64 (detecta data: URLs) */
+img[src^="data:image"] {
+  image-rendering: high-quality;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* Fuerza mejor interpolación para base64 */
+  -ms-interpolation-mode: bicubic;
+}
