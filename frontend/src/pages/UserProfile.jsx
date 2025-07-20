@@ -7,7 +7,7 @@ import { updateUser, uploadProfileImage } from "../api/auth";
 import { getLocations } from "../api/publishedBooks";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import Edit from "../components/icons/Edit";
-import CheckCircle from "../components/icons/CheckCircle";
+import Save from "../components/icons/Save";
 import Upload from "../components/icons/Upload";
 import Camera from "../components/icons/Edit";
 import User from "../components/icons/Users";
@@ -207,7 +207,7 @@ export default function UserProfile() {
                     disabled={saving}
                     className="btn btn-primary flex items-center space-x-2"
                   >
-                    <CheckCircle className="h-4 w-4" />
+                    <Save className="h-4 w-4" />
                     <span>{saving ? "Guardando..." : "Guardar"}</span>
                   </button>
                 </>

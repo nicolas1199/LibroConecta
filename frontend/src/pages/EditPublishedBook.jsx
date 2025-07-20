@@ -8,7 +8,7 @@ import ArrowLeft from "../components/icons/ArrowLeft";
 import Plus from "../components/icons/Plus";
 import Trash from "../components/icons/Trash";
 import Upload from "../components/icons/Upload";
-import CheckCircle from "../components/icons/CheckCircle";
+import Save from "../components/icons/Save";
 import X from "../components/icons/X";
 
 export default function EditPublishedBook() {
@@ -540,7 +540,7 @@ export default function EditPublishedBook() {
               disabled={saving}
               className="btn btn-primary flex items-center space-x-2"
             >
-                                <CheckCircle className="h-4 w-4" />
+              <Save className="h-4 w-4" />
               <span>{saving ? "Guardando..." : "Guardar Cambios"}</span>
             </button>
           </div>
