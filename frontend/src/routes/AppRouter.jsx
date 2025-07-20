@@ -24,8 +24,6 @@ import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
 import SwipeHistory from "../pages/SwipeHistory";
-import MyPublishedBooks from "../pages/MyPublishedBooks";
-import EditPublishedBook from "../pages/EditPublishedBook";
 // Páginas de pago
 import PaymentSuccess from "../pages/PaymentSuccess";
 import PaymentFailure from "../pages/PaymentFailure";
@@ -105,30 +103,6 @@ export default function AppRouter() {
               <PublishBook />
             </PrivateRoute>
           } 
-        />
-
-        {/* My published books route */}
-        <Route
-          path="/dashboard/my-published-books"
-          element={
-            <PrivateRoute>
-              <DashboardLayout>
-                <MyPublishedBooks />
-              </DashboardLayout>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Edit published book route */}
-        <Route
-          path="/dashboard/publish/edit/:bookId"
-          element={
-            <PrivateRoute>
-              <DashboardLayout>
-                <EditPublishedBook />
-              </DashboardLayout>
-            </PrivateRoute>
-          }
         />
 
         {/* Library routes */}
