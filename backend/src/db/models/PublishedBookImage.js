@@ -16,7 +16,7 @@ const PublishedBookImage = sequelize.define(
     // Cambiado de image_url a image_data para almacenar base64
     image_data: {
       type: DataTypes.TEXT('long'), // Usar LONGTEXT para imágenes grandes
-      allowNull: true, // Permitir null porque podría usar image_url en su lugar
+      allowNull: false,
       comment: "Imagen codificada en base64",
     },
     // Mantener compatibilidad con URLs (opcional)

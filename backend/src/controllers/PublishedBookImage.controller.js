@@ -265,24 +265,17 @@ export async function uploadImagesBase64ForPublishedBook(req, res) {
     const { publishedBookId } = req.params;
     const files = req.files;
 
-    console.log(`💾 Controlador: Iniciando subida de imágenes base64 para libro ${publishedBookId}`);
-    console.log(`💾 Archivos recibidos: ${files?.length || 0}`);
-
     if (!files || files.length === 0) {
-      console.error('❌ Controlador: No se proporcionaron archivos');
       return res.status(400).json({ error: "No se proporcionaron archivos" });
     }
 
     // Verificar que el libro publicado existe y pertenece al usuario
-    console.log(`🔍 Verificando libro publicado ${publishedBookId}...`);
     const publishedBook = await PublishedBooks.findByPk(publishedBookId);
     if (!publishedBook) {
-      console.error(`❌ Libro publicado ${publishedBookId} no encontrado`);
       return res.status(404).json({ error: "Libro publicado no encontrado" });
     }
 
     if (publishedBook.user_id !== req.user.user_id) {
-      console.error(`❌ Usuario ${req.user.user_id} no tiene permisos para libro ${publishedBookId}`);
       return res
         .status(403)
         .json({
@@ -290,17 +283,10 @@ export async function uploadImagesBase64ForPublishedBook(req, res) {
         });
     }
 
-    console.log(`✅ Libro verificado, creando ${files.length} registros de imagen...`);
-
     // Crear registros de imagen para cada archivo convertido a base64
     const imagePromises = files.map((file, index) => {
-      console.log(`💾 Guardando imagen base64 ${index + 1}/${files.length}: ${file.originalname}`);
-      console.log(`   - Tamaño: ${file.size} bytes`);
-      console.log(`   - Base64 size: ${file.base64Size} caracteres`);
-      console.log(`   - MIME type: ${file.mimetype}`);
-      console.log(`   - Es primaria: ${index === 0 ? 'Sí' : 'No'}`);
-      
-      const imageRecord = {
+      console.log(`💾 Guardando imagen base64 en BD: ${file.originalname}`);
+      return PublishedBookImage.create({
         published_book_id: publishedBookId,
         image_data: file.base64, // Datos base64 de la imagen
         image_url: null, // No hay URL externa
@@ -308,24 +294,13 @@ export async function uploadImagesBase64ForPublishedBook(req, res) {
         image_mimetype: file.mimetype,
         image_size: file.size,
         is_primary: index === 0, // Primera imagen es primaria por defecto
-      };
-
-      console.log(`   - Registro a crear:`, {
-        ...imageRecord,
-        image_data: `[BASE64 - ${imageRecord.image_data.length} chars]`
       });
-
-      return PublishedBookImage.create(imageRecord);
     });
 
-    console.log(`⏳ Ejecutando ${imagePromises.length} consultas de creación...`);
     const savedImages = await Promise.all(imagePromises);
-    console.log(`✅ ${savedImages.length} imágenes base64 guardadas en BD exitosamente`);
-
-    // Log de IDs creados
-    savedImages.forEach((img, index) => {
-      console.log(`   ${index + 1}. ID: ${img.published_book_image_id} - ${img.image_filename}`);
-    });
+    console.log(
+      `✅ ${savedImages.length} imágenes base64 guardadas en BD exitosamente`
+    );
 
     res.status(201).json({
       message: `${savedImages.length} imágenes subidas exitosamente en formato base64`,
@@ -336,20 +311,7 @@ export async function uploadImagesBase64ForPublishedBook(req, res) {
       })),
     });
   } catch (error) {
-    console.error("❌ Error crítico en uploadImagesBase64ForPublishedBook:", error);
-    console.error("Stack trace:", error.stack);
-    
-    // Información adicional del error
-    if (error.name === 'SequelizeValidationError') {
-      console.error("❌ Error de validación de Sequelize:");
-      error.errors.forEach((err, index) => {
-        console.error(`   ${index + 1}. Campo: ${err.path}, Valor: ${err.value}, Mensaje: ${err.message}`);
-      });
-    }
-    
-    res.status(500).json({ 
-      error: "Error al subir imágenes",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error("Error en uploadImagesBase64ForPublishedBook:", error);
+    res.status(500).json({ error: "Error al subir imágenes en base64" });
   }
 }

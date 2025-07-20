@@ -133,39 +133,28 @@ function validateAndOptimizeImage(buffer, filename, mimetype) {
 // Middleware principal para convertir imágenes a base64
 export const uploadBookImagesBase64 = async (req, res, next) => {
   try {
-    console.log('🔍 Iniciando procesamiento de imágenes base64...');
-    console.log('Headers:', req.headers["content-type"]);
-    
     // Verificar que sea multipart/form-data
     if (!req.headers["content-type"]?.startsWith("multipart/form-data")) {
-      console.error('❌ Content-Type incorrecto:', req.headers["content-type"]);
       return res
         .status(400)
         .json({ error: "Content-Type debe ser multipart/form-data" });
     }
 
     // Parsear los datos
-    console.log('📄 Parseando datos multipart...');
     const { files, fields } = await parseMultipartData(req);
-    console.log(`📊 Archivos encontrados: ${files?.length || 0}`);
-    console.log(`📊 Campos encontrados: ${Object.keys(fields || {}).length}`);
 
     if (!files || files.length === 0) {
-      console.error('❌ No se encontraron archivos en el request');
       return res.status(400).json({ error: "No se proporcionaron archivos" });
     }
 
     console.log(`📄 Procesando ${files.length} imagen(es) para conversión a base64...`);
-    files.forEach((file, index) => {
-      console.log(`  ${index + 1}. ${file.originalname} - ${file.mimetype} - ${file.size} bytes`);
-    });
 
     // Procesar archivos
     const processedFiles = [];
 
     for (const file of files) {
       try {
-        console.log(`🔄 Procesando: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
+        console.log(`🔄 Procesando: ${file.originalname} (${file.size} bytes)`);
 
         // Validar y optimizar imagen
         const { buffer, mimetype } = await validateAndOptimizeImage(
@@ -192,7 +181,6 @@ export const uploadBookImagesBase64 = async (req, res, next) => {
 
       } catch (fileError) {
         console.error(`❌ Error procesando ${file.originalname}:`, fileError);
-        console.error('Stack trace:', fileError.stack);
         return res
           .status(400)
           .json({
@@ -201,17 +189,15 @@ export const uploadBookImagesBase64 = async (req, res, next) => {
       }
     }
 
-    console.log(`🎉 Todas las ${processedFiles.length} imágenes convertidas exitosamente a base64`);
+    console.log(`🎉 Todas las imágenes convertidas exitosamente a base64`);
 
     // Agregar archivos y campos al request
     req.files = processedFiles;
     req.body = { ...req.body, ...fields };
 
-    console.log('✅ Middleware completado, pasando al controlador...');
     next();
   } catch (error) {
-    console.error("❌ Error crítico en uploadBookImagesBase64:", error);
-    console.error('Stack trace:', error.stack);
+    console.error("Error en uploadBookImagesBase64:", error);
     res.status(500).json({ error: "Error al procesar archivos para base64" });
   }
 };
