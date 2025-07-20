@@ -223,7 +223,7 @@ export default function MyPublications() {
                       {publication.PublishedBookImages?.length || 0} imagen(es)
                     </span>
                     <span>
-                      Publicado: {new Date(publication.createdAt).toLocaleDateString()}
+                      Publicado: {new Date(publication.date_published).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
