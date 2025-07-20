@@ -1,3 +1,60 @@
+import { useState, useEffect, createContext, useContext } from 'react';
+
+// Contexto de autenticación
+const AuthContext = createContext();
+
+// Hook personalizado para usar el contexto de autenticación
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  }
+  return context;
+};
+
+// Provider del contexto de autenticación
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Cargar usuario desde localStorage al inicializar
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem('user');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  const updateUserContext = (newUserData) => {
+    setUser(newUserData);
+    localStorage.setItem('user', JSON.stringify(newUserData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    clearAuthData();
+  };
+
+  const value = {
+    user,
+    updateUserContext,
+    logout,
+    loading
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
 // Utilidades para manejo de autenticación y tokens
 export const clearAuthData = () => {
   localStorage.removeItem("token");

@@ -84,9 +84,6 @@ const BookCard = memo(({ userBook, onEdit, onDelete, getStatusBadge }) => {
             className="w-12 h-16 md:w-16 md:h-20 object-cover rounded-md flex-shrink-0 bg-gray-100 image-render-crisp"
             style={{
               imageRendering: 'crisp-edges',
-              imageRendering: '-moz-crisp-edges',
-              imageRendering: '-webkit-optimize-contrast',
-              imageRendering: 'optimize-contrast',
               msInterpolationMode: 'nearest-neighbor'
             }}
             loading="lazy"
