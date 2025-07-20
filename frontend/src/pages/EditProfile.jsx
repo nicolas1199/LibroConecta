@@ -12,6 +12,7 @@ import Users from "../components/icons/Users"
 export default function EditProfile() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(true)
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState("")
   const [locations, setLocations] = useState([])
@@ -21,7 +22,7 @@ export default function EditProfile() {
     last_name: "",
     email: "",
     username: "",
-    location: "",
+    location_id: "", // Cambiar de location a location_id
     bio: "",
     profile_image: null,
     profile_image_preview: null
@@ -31,6 +32,7 @@ export default function EditProfile() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        setIsLoadingData(true)
         const [profileData, locationsData] = await Promise.all([
           getUserProfile(),
           getLocations()
@@ -41,7 +43,7 @@ export default function EditProfile() {
           last_name: profileData.data.last_name || "",
           email: profileData.data.email || "",
           username: profileData.data.username || "",
-          location: profileData.data.location || "",
+          location_id: profileData.data.location_id || "", // Cambiar de location a location_id
           bio: profileData.data.bio || "",
           profile_image: null,
           profile_image_preview: profileData.data.profile_image || null
@@ -51,6 +53,8 @@ export default function EditProfile() {
       } catch (error) {
         console.error("Error loading data:", error)
         setMessage("Error al cargar los datos del perfil")
+      } finally {
+        setIsLoadingData(false)
       }
     }
 
@@ -161,7 +165,8 @@ export default function EditProfile() {
         last_name: formData.last_name,
         email: formData.email,
         username: formData.username,
-        location: formData.location,
+        location_id: formData.location_id,
+        location: formData.location_id ? locations.find(l => l.location_id === Number.parseInt(formData.location_id))?.comuna || "" : "",
         bio: formData.bio
       }
 
@@ -199,13 +204,24 @@ export default function EditProfile() {
   }
 
   // Agrupar ubicaciones por región
-  const groupedLocations = locations.reduce((acc, location) => {
+  const groupedLocations = (locations || []).reduce((acc, location) => {
     if (!acc[location.region]) {
       acc[location.region] = []
     }
     acc[location.region].push(location)
     return acc
   }, {})
+
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando perfil...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -360,15 +376,15 @@ export default function EditProfile() {
             <div>
               <label className="form-label">Ubicación</label>
               <select
-                value={formData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
+                value={formData.location_id}
+                onChange={(e) => handleInputChange("location_id", e.target.value)}
                 className="form-control"
               >
                 <option value="">Selecciona tu ubicación</option>
                 {Object.entries(groupedLocations).map(([region, locations]) => (
                   <optgroup key={region} label={region}>
                     {locations.map((location) => (
-                      <option key={location.location_id} value={location.comuna}>
+                      <option key={location.location_id} value={location.location_id}>
                         {location.comuna}
                       </option>
                     ))}

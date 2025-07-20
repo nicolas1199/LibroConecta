@@ -24,6 +24,7 @@ export default function EditPublication() {
   const [errors, setErrors] = useState({})
   const [imageStorageType, setImageStorageType] = useState('base64')
   const [isLoadingData, setIsLoadingData] = useState(true)
+  const [publication, setPublication] = useState(null)
 
   // Datos de referencia
   const [transactionTypes, setTransactionTypes] = useState([])
@@ -81,6 +82,7 @@ export default function EditPublication() {
 
         // Llenar formulario con datos existentes
         const publication = publicationData
+        setPublication(publication)
         setFormData({
           title: publication.Book?.title || "",
           author: publication.Book?.author || "",
@@ -311,6 +313,11 @@ export default function EditPublication() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Editar Publicación</h1>
             <p className="text-gray-600">Actualiza la información de tu libro</p>
+            {publication?.date_published && (
+              <p className="text-sm text-gray-500 mt-2">
+                Publicado el: {new Date(publication.date_published).toLocaleDateString()}
+              </p>
+            )}
           </div>
         </div>
 
