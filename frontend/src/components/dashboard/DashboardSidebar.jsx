@@ -16,7 +16,6 @@ import BarChart from "../icons/BarChart";
 import Settings from "../icons/Settings";
 import LogOut from "../icons/LogOut";
 import ChevronDown from "../icons/ChevronDown";
-import Users from "../icons/Users";
 import ArrowLeftRight from "../icons/ArrowLeftRight";
 import Edit from "../icons/Edit";
 import { useState } from "react";
