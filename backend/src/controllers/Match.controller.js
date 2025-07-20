@@ -16,18 +16,6 @@ export const getMatches = async (req, res) => {
     const { user_id } = req.user;
     const { limit = 10, offset = 0 } = req.query;
 
-    console.log("🔍 Buscando matches para usuario:", user_id);
-    console.log("🔍 Parámetros:", { limit, offset });
-
-    // Verificar que el usuario existe
-    const userExists = await User.findByPk(user_id);
-    if (!userExists) {
-      console.error("❌ Usuario no encontrado:", user_id);
-      return res
-        .status(404)
-        .json(createResponse(404, "Usuario no encontrado", null, null));
-    }
-
     // Obtener matches existentes del usuario
     const matches = await Match.findAll({
       where: {
@@ -50,8 +38,6 @@ export const getMatches = async (req, res) => {
       order: [["date_match", "DESC"]],
     });
 
-    console.log("✅ Matches encontrados:", matches.length);
-
     // Formatear respuesta para mostrar el otro usuario
     const formattedMatches = matches.map((match) => {
       const otherUser =
@@ -63,8 +49,6 @@ export const getMatches = async (req, res) => {
       };
     });
 
-    console.log("✅ Matches formateados:", formattedMatches.length);
-
     return res.json(
       createResponse(
         200,
@@ -75,8 +59,7 @@ export const getMatches = async (req, res) => {
       )
     );
   } catch (error) {
-    console.error("❌ Error al obtener matches:", error);
-    console.error("❌ Stack trace:", error.stack);
+    console.error("Error al obtener matches:", error);
     return res
       .status(500)
       .json(
