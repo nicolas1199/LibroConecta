@@ -18,6 +18,7 @@ import LogOut from "../icons/LogOut";
 import ChevronDown from "../icons/ChevronDown";
 import User from "../icons/Users";
 import ArrowLeftRight from "../icons/ArrowLeftRight";
+import Edit from "../icons/Edit";
 import { useState } from "react";
 
 export default function DashboardSidebar({
@@ -68,6 +69,7 @@ export default function DashboardSidebar({
       { icon: BookOpen, label: "Mi biblioteca", path: "/dashboard/library" },
       { icon: BookOpen, label: "Mis libros", path: "/dashboard/my-books" },
       { icon: Plus, label: "Publicar libro", path: "/dashboard/publish" },
+      { icon: Edit, label: "Mis publicaciones", path: "/my-publications" },
       {
         icon: FileText,
         label: "Borradores",
@@ -239,6 +241,17 @@ export default function DashboardSidebar({
                 <div className="sidebar-nav-content">
                   <User className="h-4 w-4" />
                   <span>Mi Perfil</span>
+                </div>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/edit-profile"
+                className={`sidebar-nav-item ${currentPath === "/edit-profile" ? "active" : ""}`}
+              >
+                <div className="sidebar-nav-content">
+                  <Edit className="h-4 w-4" />
+                  <span>Editar Perfil</span>
                 </div>
               </Link>
             </li>

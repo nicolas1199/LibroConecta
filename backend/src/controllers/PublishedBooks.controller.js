@@ -124,6 +124,10 @@ export async function getPublishedBookById(req, res) {
         },
         {
           model: PublishedBookImage,
+          order: [
+            ["is_primary", "DESC"],
+            ["published_book_image_id", "ASC"],
+          ],
         },
       ],
     });
@@ -142,7 +146,8 @@ export async function getPublishedBookById(req, res) {
 // Obtener libros publicados por usuario
 export async function getPublishedBooksByUser(req, res) {
   try {
-    const { userId } = req.params;
+    // Si no hay userId en params, usar el usuario autenticado
+    const userId = req.params.userId || req.user.user_id;
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
@@ -312,9 +317,13 @@ export async function updatePublishedBook(req, res) {
       condition_id,
       location_id,
       description,
+      book, // Información del libro a actualizar
     } = req.body;
 
-    const publishedBook = await PublishedBooks.findByPk(id);
+    const publishedBook = await PublishedBooks.findByPk(id, {
+      include: [{ model: Book }]
+    });
+    
     if (!publishedBook) {
       return res.status(404).json({ error: "Libro publicado no encontrado" });
     }
@@ -326,6 +335,21 @@ export async function updatePublishedBook(req, res) {
         .json({ error: "No tienes permisos para actualizar este libro" });
     }
 
+    // Actualizar información del libro si se proporciona
+    if (book && publishedBook.Book) {
+      await publishedBook.Book.update({
+        title: book.title,
+        author: book.author,
+        date_of_pub: book.date_of_pub,
+      });
+
+      // TODO: Actualizar categorías del libro si se proporcionan
+      // if (book.category_ids && book.category_ids.length > 0) {
+      //   await publishedBook.Book.setCategories(book.category_ids);
+      // }
+    }
+
+    // Actualizar información de la publicación
     await publishedBook.update({
       transaction_type_id,
       price,

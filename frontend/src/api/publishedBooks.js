@@ -125,3 +125,27 @@ export const deleteSwipeInteraction = async (interactionId) => {
   const res = await api.delete(`/published-books/interactions/${interactionId}`);
   return res.data;
 };
+
+// Actualizar una publicación de libro
+export const updatePublishedBook = async (publishedBookId, updateData) => {
+  const res = await api.put(`/published-books/${publishedBookId}`, updateData);
+  return res.data;
+};
+
+// Eliminar una publicación de libro
+export const deletePublishedBook = async (publishedBookId) => {
+  const res = await api.delete(`/published-books/${publishedBookId}`);
+  return res.data;
+};
+
+// Eliminar una imagen específica de una publicación
+export const deletePublishedBookImage = async (imageId) => {
+  const res = await api.delete(`/published-book-images/${imageId}`);
+  return res.data;
+};
+
+// Obtener mis publicaciones (libros del usuario autenticado)
+export const getMyPublishedBooks = async (params = {}) => {
+  const res = await api.get("/published-books/my-books", { params });
+  return res.data;
+};

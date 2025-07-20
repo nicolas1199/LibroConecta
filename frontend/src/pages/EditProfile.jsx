@@ -223,6 +223,25 @@ export default function EditProfile() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Editar Perfil</h1>
             <p className="text-gray-600">Actualiza tu información personal</p>
+            
+            {/* Enlaces de navegación rápida */}
+            <div className="flex justify-center space-x-4 mt-4">
+              <button
+                type="button"
+                onClick={() => navigate("/my-publications")}
+                className="text-blue-600 hover:text-blue-700 text-sm"
+              >
+                Ver mis publicaciones
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard/publish")}
+                className="text-blue-600 hover:text-blue-700 text-sm"
+              >
+                Publicar nuevo libro
+              </button>
+            </div>
           </div>
         </div>
 

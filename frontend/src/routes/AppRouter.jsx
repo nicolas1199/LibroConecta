@@ -24,6 +24,9 @@ import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
 import SwipeHistory from "../pages/SwipeHistory";
+import EditProfile from "../pages/EditProfile";
+import MyPublications from "../pages/MyPublications";
+import EditPublication from "../pages/EditPublication";
 // Páginas de pago
 import PaymentSuccess from "../pages/PaymentSuccess";
 import PaymentFailure from "../pages/PaymentFailure";
@@ -277,6 +280,36 @@ export default function AppRouter() {
           element={
             <PrivateRoute>
               <UserProfile />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Edit profile route */}
+        <Route
+          path="/edit-profile"
+          element={
+            <PrivateRoute>
+              <EditProfile />
+            </PrivateRoute>
+          }
+        />
+
+        {/* My publications route */}
+        <Route
+          path="/my-publications"
+          element={
+            <PrivateRoute>
+              <MyPublications />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Edit publication route */}
+        <Route
+          path="/edit-publication/:id"
+          element={
+            <PrivateRoute>
+              <EditPublication />
             </PrivateRoute>
           }
         />

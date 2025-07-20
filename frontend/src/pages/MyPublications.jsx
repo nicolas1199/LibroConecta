@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { getPublishedBooksByUser } from "../api/publishedBooks"
+import { getMyPublishedBooks, deletePublishedBook } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import BookOpen from "../components/icons/BookOpen"
 import Edit from "../components/icons/Edit"
@@ -22,9 +22,8 @@ export default function MyPublications() {
   const loadPublications = async () => {
     try {
       setIsLoading(true)
-      const user = JSON.parse(localStorage.getItem("user") || "{}")
-      const data = await getPublishedBooksByUser(user.user_id)
-      setPublications(data)
+      const data = await getMyPublishedBooks()
+      setPublications(data.publishedBooks || data)
     } catch (error) {
       console.error("Error loading publications:", error)
       setError("Error al cargar las publicaciones")
@@ -39,9 +38,8 @@ export default function MyPublications() {
     }
 
     try {
-      // TODO: Implementar API de eliminación
-      // await deletePublishedBook(publicationId)
-      console.log("Eliminar publicación:", publicationId)
+      await deletePublishedBook(publicationId)
+      console.log("Publicación eliminada:", publicationId)
       // Recargar publicaciones después de eliminar
       loadPublications()
     } catch (error) {

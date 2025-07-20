@@ -33,6 +33,12 @@ router.get(
 );
 
 // Rutas protegidas (requieren autenticación)
+router.get(
+  "/my-books",
+  authenticateToken,
+  getPublishedBooksByUser
+);
+
 router.post(
   "/",
   authenticateToken,
