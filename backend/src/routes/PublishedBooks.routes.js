@@ -12,7 +12,6 @@ import {
   getUserSwipeHistory,
   updateSwipeInteraction,
   deleteSwipeInteraction,
-  getUserMatches,
 } from "../controllers/PublishedBooks.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import {
@@ -94,13 +93,6 @@ router.delete(
   "/interactions/:id",
   authenticateToken,
   deleteSwipeInteraction
-);
-
-// Ruta para obtener matches del usuario
-router.get(
-  "/matches",
-  authenticateToken,
-  getUserMatches
 );
 
 export default router;

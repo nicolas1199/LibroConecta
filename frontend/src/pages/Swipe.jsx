@@ -79,18 +79,11 @@ export default function Swipe() {
       
       // Registrar interacción
       try {
-        const response = await recordSwipeInteraction({
+        await recordSwipeInteraction({
           published_book_id: bookId,
           interaction_type: 'like'
         });
         console.log(`✅ Interacción registrada para el libro ${bookId}`);
-        
-        // Verificar si se creó un match
-        if (response.match) {
-          console.log('🎉 ¡NUEVO MATCH!', response.match);
-          // Mostrar notificación de match
-          showMatchNotification();
-        }
       } catch (error) {
         console.error("Error registrando interacción:", error);
         // No mostramos error al usuario para no interrumpir la experiencia
@@ -117,37 +110,6 @@ export default function Swipe() {
 
     // Avanzar al siguiente libro
     setCurrentIndex(prev => prev + 1);
-  };
-
-  // Función para mostrar notificación de match
-  const showMatchNotification = () => {
-    // Crear notificación temporal
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
-    notification.innerHTML = `
-      <div class="flex items-center space-x-3">
-        <div class="text-2xl">🎉</div>
-        <div>
-          <div class="font-semibold">¡Nuevo Match!</div>
-          <div class="text-sm opacity-90">Te has conectado con otro usuario</div>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animar entrada
-    setTimeout(() => {
-      notification.classList.remove('translate-x-full');
-    }, 100);
-    
-    // Remover después de 5 segundos
-    setTimeout(() => {
-      notification.classList.add('translate-x-full');
-      setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 300);
-    }, 5000);
   };
 
   // Función para cargar más libros

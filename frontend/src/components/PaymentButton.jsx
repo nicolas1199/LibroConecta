@@ -35,10 +35,7 @@ export default function PaymentButton({
       await loadMercadoPago();
 
       // Crear checkout
-      const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY || 'TEST-1234567890';
-      console.log('🔑 Usando public key:', publicKey);
-      
-      const mp = new window.MercadoPago(publicKey, {
+      const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, {
         locale: 'es-CL'
       });
 
@@ -65,31 +62,14 @@ export default function PaymentButton({
       console.error('❌ Error en el proceso de pago:', error);
       
       let errorMessage = 'Error procesando el pago';
-      
-      // Manejar errores específicos
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       }
 
-      // Log detallado del error
-      console.error('📋 Detalles del error:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: errorMessage
-      });
-
       onPaymentError?.(errorMessage);
-      
-      // Mostrar mensaje más amigable
-      if (errorMessage.includes('No puedes comprar tu propio libro')) {
-        alert('No puedes comprar tu propio libro. Este botón solo aparece para libros de otros usuarios.');
-      } else {
-        alert(`Error: ${errorMessage}`);
-      }
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsLoading(false);
       setIsProcessing(false);
