@@ -54,7 +54,14 @@ export async function getAllPublishedBooks(req, res) {
           },
           {
             model: User,
-            attributes: ["user_id", "first_name", "last_name", "location"],
+            attributes: ["user_id", "first_name", "last_name", "location_id"],
+            include: [
+              {
+                model: LocationBook,
+                as: "locationData",
+                attributes: ["location_id", "comuna", "region"],
+              },
+            ],
           },
           {
             model: TransactionType,
@@ -111,7 +118,14 @@ export async function getPublishedBookById(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "location"],
+          attributes: ["user_id", "first_name", "last_name", "location_id"],
+          include: [
+            {
+              model: LocationBook,
+              as: "locationData",
+              attributes: ["location_id", "comuna", "region"],
+            },
+          ],
         },
         {
           model: TransactionType,
@@ -274,7 +288,14 @@ export async function createPublishedBook(req, res) {
           },
           {
             model: User,
-            attributes: ["user_id", "first_name", "last_name", "location"],
+            attributes: ["user_id", "first_name", "last_name", "location_id"],
+            include: [
+              {
+                model: LocationBook,
+                as: "locationData",
+                attributes: ["location_id", "comuna", "region"],
+              },
+            ],
           },
           {
             model: TransactionType,
