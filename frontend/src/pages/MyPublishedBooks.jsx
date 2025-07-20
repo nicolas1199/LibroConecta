@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getPublishedBooksByUser, deletePublishedBook } from "../api/publishedBooks";
-import { useAuth } from "../utils/auth.jsx";
+import { useAuth } from "../utils/auth.js";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import Plus from "../components/icons/Plus";
 import Edit from "../components/icons/Edit";

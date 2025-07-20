@@ -7,7 +7,7 @@ import Eye from "./icons/Eye";
 import MessageCircle from "./icons/MessageCircle";
 import Star from "./icons/Star";
 import PaymentButton from './PaymentButton';
-import { useAuth } from '../utils/auth.jsx';
+import { useAuth } from '../utils/auth.js';
 
 export default function BookCard({ book }) {
   const navigate = useNavigate();

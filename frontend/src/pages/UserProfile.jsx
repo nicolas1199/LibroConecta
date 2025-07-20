@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../utils/auth.jsx";
+import { useAuth } from "../utils/auth.js";
 import { updateUser, uploadProfileImage } from "../api/auth";
 import { getLocations } from "../api/publishedBooks";
 import ArrowLeft from "../components/icons/ArrowLeft";

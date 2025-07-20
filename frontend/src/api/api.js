@@ -4,7 +4,7 @@ import {
   handleAuthError,
   clearAuthData,
   isTokenNearExpiry,
-} from "../utils/auth.jsx";
+} from "../utils/auth.js";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
