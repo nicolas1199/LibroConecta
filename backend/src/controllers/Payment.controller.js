@@ -12,7 +12,7 @@ import {
   User,
   Book 
 } from '../db/modelIndex.js';
-import { successResponse, errorResponse } from '../utils/responses.util.js';
+import { success, error } from '../utils/responses.util.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configurar MercadoPago
@@ -48,17 +48,17 @@ export async function createPaymentPreference(req, res) {
     });
 
     if (!publishedBook) {
-      return errorResponse(res, 'Libro no encontrado', 404);
+      return error(res, 'Libro no encontrado', 404);
     }
 
     // Verificar que no sea el propio dueño del libro
     if (publishedBook.user_id === userId) {
-      return errorResponse(res, 'No puedes comprar tu propio libro', 400);
+      return error(res, 'No puedes comprar tu propio libro', 400);
     }
 
     // Verificar que el libro esté disponible para venta
     if (!publishedBook.price || publishedBook.price <= 0) {
-      return errorResponse(res, 'Este libro no está disponible para venta', 400);
+      return error(res, 'Este libro no está disponible para venta', 400);
     }
 
     // Crear referencia externa única
@@ -125,7 +125,7 @@ export async function createPaymentPreference(req, res) {
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
 
-    return successResponse(res, 'Preferencia de pago creada exitosamente', {
+    return success(res, {
       payment_id: paymentRecord.payment_id,
       preference_id: mpPreference.id,
       init_point: mpPreference.init_point,
@@ -135,11 +135,11 @@ export async function createPaymentPreference(req, res) {
         author: publishedBook.Book.author,
         price: publishedBook.price
       }
-    }, 201);
+    }, 'Preferencia de pago creada exitosamente', 201);
 
   } catch (error) {
     console.error('❌ Error creando preferencia de pago:', error);
-    return errorResponse(res, 'Error interno del servidor', 500);
+    return error(res, 'Error interno del servidor', 500);
   }
 }
 
@@ -239,14 +239,14 @@ export async function getPaymentStatus(req, res) {
     });
 
     if (!paymentRecord) {
-      return errorResponse(res, 'Pago no encontrado', 404);
+      return error(res, 'Pago no encontrado', 404);
     }
 
-    return successResponse(res, 'Estado del pago obtenido', paymentRecord);
+    return success(res, paymentRecord, 'Estado del pago obtenido');
 
   } catch (error) {
     console.error('❌ Error obteniendo estado del pago:', error);
-    return errorResponse(res, 'Error interno del servidor', 500);
+    return error(res, 'Error interno del servidor', 500);
   }
 }
 
@@ -303,15 +303,15 @@ export async function getUserPayments(req, res) {
       offset: parseInt(offset)
     });
 
-    return successResponse(res, 'Pagos obtenidos exitosamente', {
+    return success(res, {
       payments: payments.rows,
       total: payments.count,
       hasMore: payments.count > parseInt(offset) + parseInt(limit)
-    });
+    }, 'Pagos obtenidos exitosamente');
 
   } catch (error) {
     console.error('❌ Error obteniendo pagos del usuario:', error);
-    return errorResponse(res, 'Error interno del servidor', 500);
+    return error(res, 'Error interno del servidor', 500);
   }
 }
 
