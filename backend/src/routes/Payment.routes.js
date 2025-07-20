@@ -5,7 +5,7 @@ import {
   getPaymentStatus,
   getUserPayments
 } from "../controllers/Payment.controller.js";
-import { validateAuthenticatedUser } from "../middlewares/auth.middleware.js";
+import { authenticateToken } from "../middlewares/auth.middleware.js";
 import { validateUUIDParam } from "../utils/uuid.util.js";
 
 const router = Router();
@@ -17,7 +17,7 @@ const router = Router();
  */
 router.post(
   "/preferences/:publishedBookId",
-  validateAuthenticatedUser,
+  authenticateToken,
   createPaymentPreference
 );
 
@@ -36,7 +36,7 @@ router.post("/webhook", handlePaymentWebhook);
  */
 router.get(
   "/:paymentId/status",
-  validateAuthenticatedUser,
+  authenticateToken,
   validateUUIDParam("paymentId"),
   getPaymentStatus
 );
@@ -52,7 +52,7 @@ router.get(
  */
 router.get(
   "/user",
-  validateAuthenticatedUser,
+  authenticateToken,
   getUserPayments
 );
 
