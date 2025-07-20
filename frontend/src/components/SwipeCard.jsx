@@ -107,6 +107,9 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
           className="w-full h-full object-cover rounded-t-xl"
           style={{
             imageRendering: 'crisp-edges',
+            imageRendering: '-moz-crisp-edges', 
+            imageRendering: '-webkit-optimize-contrast',
+            imageRendering: 'optimize-contrast',
             msInterpolationMode: 'nearest-neighbor'
           }}
           onError={() => setImageError(true)}
