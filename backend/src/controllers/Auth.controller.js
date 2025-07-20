@@ -1,5 +1,6 @@
 import User from "../db/models/User.js";
 import UserType from "../db/models/UserType.js";
+import LocationBook from "../db/models/LocationBook.js";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -185,8 +186,15 @@ export const getUserProfile = async (req, res) => {
         "last_name",
         "email",
         "username",
-        "location",
+        "location_id",
         "user_type_id",
+      ],
+      include: [
+        {
+          model: LocationBook,
+          as: "location",
+          attributes: ["location_book_id", "location_name"],
+        },
       ],
     });
 
@@ -202,7 +210,8 @@ export const getUserProfile = async (req, res) => {
         last_name: user.get("last_name"),
         email: user.get("email"),
         username: user.get("username"),
-        location: user.get("location"),
+        location_id: user.get("location_id"),
+        location: user.location,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -218,7 +227,7 @@ export const getUserProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const { user_id } = req.user;
-    const { first_name, last_name, email, username, location } = req.body;
+    const { first_name, last_name, email, username, location, location_id } = req.body;
 
     // Validar datos obligatorios
     if (!first_name || !last_name || !email || !username) {
@@ -270,6 +279,7 @@ export const updateUserProfile = async (req, res) => {
       email,
       username,
       location: location || null,
+      location_id: location_id || null,
     });
 
     // Respuesta sin contraseña
@@ -280,6 +290,7 @@ export const updateUserProfile = async (req, res) => {
       email: user.get("email"),
       username: user.get("username"),
       location: user.get("location"),
+      location_id: user.get("location_id"),
       user_type_id: user.get("user_type_id"),
     };
 

@@ -20,6 +20,14 @@ const User = sequelize.define(
     location: {
       type: DataTypes.STRING(100),
     },
+    location_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'LocationBooks',
+        key: 'location_id'
+      }
+    },
     user_type_id: {
       type: DataTypes.INTEGER,
     },
