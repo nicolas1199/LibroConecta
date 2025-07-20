@@ -8,9 +8,81 @@ import {
   PublishedBookImage,
   Category,
   UserPublishedBookInteraction,
+  Match,
 } from "../db/modelIndex.js";
 import { Op, fn, col } from "sequelize";
 import { createResponse, success, error } from "../utils/responses.util.js";
+
+// Función auxiliar para verificar y crear matches
+async function checkAndCreateMatch(userId, publishedBookId, interactionType) {
+  try {
+    // Solo verificar matches para likes y super_likes
+    if (!['like', 'super_like'].includes(interactionType)) {
+      return null;
+    }
+
+    const publishedBook = await PublishedBooks.findByPk(publishedBookId);
+    if (!publishedBook) {
+      return null;
+    }
+
+    const bookOwnerId = publishedBook.user_id;
+
+    // Verificar si el dueño del libro también le dio like al libro del usuario actual
+    const userBooks = await PublishedBooks.findAll({
+      where: { user_id: userId },
+      attributes: ['published_book_id']
+    });
+
+    if (userBooks.length === 0) {
+      return null;
+    }
+
+    const userBookIds = userBooks.map(book => book.published_book_id);
+
+    // Buscar si el dueño del libro dio like a alguno de los libros del usuario
+    const ownerInteraction = await UserPublishedBookInteraction.findOne({
+      where: {
+        user_id: bookOwnerId,
+        published_book_id: { [Op.in]: userBookIds },
+        interaction_type: { [Op.in]: ['like', 'super_like'] }
+      }
+    });
+
+    if (!ownerInteraction) {
+      return null;
+    }
+
+    // Verificar si ya existe un match entre estos usuarios
+    const existingMatch = await Match.findOne({
+      where: {
+        [Op.or]: [
+          { user_id_1: userId, user_id_2: bookOwnerId },
+          { user_id_1: bookOwnerId, user_id_2: userId }
+        ]
+      }
+    });
+
+    if (existingMatch) {
+      console.log(`✅ Match ya existe entre usuarios ${userId} y ${bookOwnerId}`);
+      return existingMatch;
+    }
+
+    // Crear nuevo match
+    const newMatch = await Match.create({
+      user_id_1: userId,
+      user_id_2: bookOwnerId,
+      date_match: new Date()
+    });
+
+    console.log(`🎉 ¡NUEVO MATCH! Usuarios ${userId} y ${bookOwnerId} se han conectado`);
+    return newMatch;
+
+  } catch (error) {
+    console.error('❌ Error verificando match:', error);
+    return null;
+  }
+}
 
 // Obtener todos los libros publicados con filtros
 export async function getAllPublishedBooks(req, res) {
@@ -23,6 +95,7 @@ export async function getAllPublishedBooks(req, res) {
       location_id,
       min_price,
       max_price,
+      exclude_own = false, // Nuevo parámetro para excluir libros propios
     } = req.query;
 
     const offset = (page - 1) * limit;
@@ -37,6 +110,12 @@ export async function getAllPublishedBooks(req, res) {
       whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price };
     if (max_price)
       whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price };
+
+    // Excluir libros del usuario actual si se solicita
+    if (exclude_own === 'true' && req.user?.user_id) {
+      whereConditions.user_id = { [Op.ne]: req.user.user_id };
+      console.log(`🔍 Excluyendo libros del usuario: ${req.user.user_id}`);
+    }
 
     const { count, rows: publishedBooks } =
       await PublishedBooks.findAndCountAll({
@@ -547,11 +626,94 @@ export async function recordInteraction(req, res) {
 
     console.log(`✅ Interacción ${message.toLowerCase()}: ID ${interaction.interaction_id}`);
 
-    return success(res, interaction, message);
+    // Verificar si se creó un match
+    const match = await checkAndCreateMatch(user_id, published_book_id, interaction_type);
+    
+    const responseData = {
+      interaction,
+      match: match ? {
+        match_id: match.match_id,
+        user_id_1: match.user_id_1,
+        user_id_2: match.user_id_2,
+        date_match: match.date_match,
+        is_new_match: true
+      } : null
+    };
+
+    if (match) {
+      return success(res, responseData, "¡Match creado! Ambos usuarios se han conectado");
+    }
+
+    return success(res, responseData, message);
 
   } catch (err) {
     console.error("Error en recordInteraction:", err);
     return error(res, "Error al registrar interacción", 500);
+  }
+}
+
+// Obtener matches del usuario
+export async function getUserMatches(req, res) {
+  try {
+    const { user_id } = req.user;
+    const { page = 1, limit = 20 } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    // Buscar matches donde el usuario es user_id_1 o user_id_2
+    const { count, rows: matches } = await Match.findAndCountAll({
+      where: {
+        [Op.or]: [
+          { user_id_1: user_id },
+          { user_id_2: user_id }
+        ]
+      },
+      include: [
+        {
+          model: User,
+          as: 'User1',
+          attributes: ['user_id', 'first_name', 'last_name', 'email'],
+          where: { user_id: { [Op.ne]: user_id } },
+          required: false
+        },
+        {
+          model: User,
+          as: 'User2',
+          attributes: ['user_id', 'first_name', 'last_name', 'email'],
+          where: { user_id: { [Op.ne]: user_id } },
+          required: false
+        }
+      ],
+      order: [['date_match', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    // Procesar matches para obtener información del otro usuario
+    const processedMatches = matches.map(match => {
+      const otherUser = match.user_id_1 === user_id ? match.User2 : match.User1;
+      return {
+        match_id: match.match_id,
+        other_user: otherUser,
+        date_match: match.date_match,
+        is_my_match: true
+      };
+    });
+
+    return success(res, {
+      matches: processedMatches,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        totalPages: Math.ceil(count / limit),
+        hasMore: offset + limit < count
+      }
+    }, `${count} matches encontrados`);
+
+  } catch (err) {
+    console.error("Error en getUserMatches:", err);
+    return error(res, "Error al obtener matches", 500);
   }
 }
 

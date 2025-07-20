@@ -69,7 +69,12 @@ export const uploadBookImage = async (publishedBookId, imageData) => {
 
 // Obtener todos los libros publicados
 export const getPublishedBooks = async (params = {}) => {
-  const res = await api.get("/published-books", { params })
+  // Agregar parámetro para excluir libros del usuario actual
+  const paramsWithExclusion = {
+    ...params,
+    exclude_own: true // Nuevo parámetro para excluir libros propios
+  }
+  const res = await api.get("/published-books", { params: paramsWithExclusion })
   return res.data
 }
 
@@ -94,6 +99,13 @@ export const getRecommendations = async (params = {}) => {
 // Registrar interacción de swipe
 export const recordSwipeInteraction = async (interactionData) => {
   const res = await api.post("/published-books/interactions", interactionData)
+  
+  // Verificar si se creó un match
+  if (res.data.match) {
+    console.log('🎉 ¡NUEVO MATCH!', res.data.match);
+    // Aquí podrías mostrar una notificación o redirigir al usuario
+  }
+  
   return res.data
 }
 
@@ -118,5 +130,11 @@ export const updateSwipeInteraction = async (interactionId, interactionData) => 
 // Eliminar una interacción
 export const deleteSwipeInteraction = async (interactionId) => {
   const res = await api.delete(`/published-books/interactions/${interactionId}`);
+  return res.data;
+};
+
+// Obtener matches del usuario
+export const getUserMatches = async (params = {}) => {
+  const res = await api.get("/published-books/matches", { params });
   return res.data;
 };

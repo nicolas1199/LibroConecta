@@ -7,10 +7,12 @@ import Eye from "./icons/Eye";
 import MessageCircle from "./icons/MessageCircle";
 import Star from "./icons/Star";
 import PaymentButton from './PaymentButton';
+import { useAuth } from '../utils/auth.js';
 
 export default function BookCard({ book }) {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
+  const { user: currentUser } = useAuth();
 
   // Extraer datos del libro
   const {
@@ -171,8 +173,8 @@ export default function BookCard({ book }) {
           <div className="flex items-center space-x-1">{renderStars()}</div>
         </div>
 
-        {/* Botón de pago para ventas */}
-        {transactionType?.description === "Venta" && price && (
+        {/* Botón de pago para ventas - solo si no es el dueño del libro */}
+        {transactionType?.description === "Venta" && price && currentUser?.user_id !== user?.user_id && (
           <div className="mt-4">
             <PaymentButton
               publishedBookId={book.published_book_id}
@@ -183,6 +185,15 @@ export default function BookCard({ book }) {
               onPaymentStart={() => console.log('Pago iniciado')}
               onPaymentError={(error) => console.error('Error de pago:', error)}
             />
+          </div>
+        )}
+
+        {/* Mensaje si es el dueño del libro */}
+        {transactionType?.description === "Venta" && price && currentUser?.user_id === user?.user_id && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700 text-center">
+              Este es tu libro. No puedes comprarlo.
+            </p>
           </div>
         )}
 

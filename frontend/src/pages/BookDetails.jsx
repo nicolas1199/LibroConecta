@@ -9,6 +9,7 @@ import MessageCircle from "../components/icons/MessageCircle";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import BookOpen from "../components/icons/BookOpen";
 import PaymentButton from '../components/PaymentButton';
+import { useAuth } from '../utils/auth.js';
 
 export default function BookDetails() {
   const { bookId } = useParams();
@@ -17,6 +18,7 @@ export default function BookDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { user: currentUser } = useAuth();
 
   useEffect(() => {
     const loadBook = async () => {
@@ -219,18 +221,27 @@ export default function BookDetails() {
                   </div>
                 </div>
                 
-                <PaymentButton
-                  publishedBookId={publishedBookId}
-                  bookTitle={bookInfo?.title}
-                  bookAuthor={bookInfo?.author}
-                  price={Number(price)}
-                  className="w-full"
-                  onPaymentStart={() => console.log('Pago iniciado para libro:', publishedBookId)}
-                  onPaymentError={(error) => {
-                    console.error('Error de pago:', error);
-                    alert(`Error en el pago: ${error}`);
-                  }}
-                />
+                {/* Botón de pago solo si no es el dueño del libro */}
+                {currentUser?.user_id !== user?.user_id ? (
+                  <PaymentButton
+                    publishedBookId={publishedBookId}
+                    bookTitle={bookInfo?.title}
+                    bookAuthor={bookInfo?.author}
+                    price={Number(price)}
+                    className="w-full"
+                    onPaymentStart={() => console.log('Pago iniciado para libro:', publishedBookId)}
+                    onPaymentError={(error) => {
+                      console.error('Error de pago:', error);
+                      alert(`Error en el pago: ${error}`);
+                    }}
+                  />
+                ) : (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700 text-center">
+                      Este es tu libro. No puedes comprarlo.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
