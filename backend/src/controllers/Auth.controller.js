@@ -8,7 +8,7 @@ import { JWT } from "../config/configEnv.js";
 import { generateTokens, verifyRefreshToken } from "../utils/jwt.util.js";
 
 export const register = async (req, res) => {
-  const { fullname, location, email, username, password } = req.body;
+  const { fullname, email, username, password } = req.body;
 
   // Validar datos obligatorios
   if (!fullname || !email || !username || !password) {
@@ -79,7 +79,6 @@ export const register = async (req, res) => {
     const newUser = await User.create({
       first_name,
       last_name,
-      location: location || null,
       user_type_id: regularUserType ? 2 : null, // Usar el tipo encontrado o null
       email,
       username,
@@ -134,8 +133,8 @@ export const login = async (req, res) => {
       include: [
         {
           model: LocationBook,
-          as: "location",
-          attributes: ["location_book_id", "location_name"],
+          as: "locationData",
+          attributes: ["location_id", "comuna", "region"],
         },
       ],
     });
@@ -171,7 +170,7 @@ export const login = async (req, res) => {
         first_name: user.get("first_name"),
         last_name: user.get("last_name"),
         location_id: user.get("location_id"),
-        location: user.location,
+        location: user.locationData,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -200,8 +199,8 @@ export const getUserProfile = async (req, res) => {
       include: [
         {
           model: LocationBook,
-          as: "location",
-          attributes: ["location_book_id", "location_name"],
+          as: "locationData",
+          attributes: ["location_id", "comuna", "region"],
         },
       ],
     });
@@ -219,7 +218,7 @@ export const getUserProfile = async (req, res) => {
         email: user.get("email"),
         username: user.get("username"),
         location_id: user.get("location_id"),
-        location: user.location,
+        location: user.locationData,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -235,7 +234,7 @@ export const getUserProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const { user_id } = req.user;
-    const { first_name, last_name, email, username, location, location_id } = req.body;
+    const { first_name, last_name, email, username, location_id } = req.body;
 
     // Validar datos obligatorios
     if (!first_name || !last_name || !email || !username) {
@@ -294,8 +293,8 @@ export const updateUserProfile = async (req, res) => {
       include: [
         {
           model: LocationBook,
-          as: "location",
-          attributes: ["location_book_id", "location_name"],
+          as: "locationData",
+          attributes: ["location_id", "comuna", "region"],
         },
       ],
     });
@@ -308,7 +307,7 @@ export const updateUserProfile = async (req, res) => {
       email: updatedUser.get("email"),
       username: updatedUser.get("username"),
       location_id: updatedUser.get("location_id"),
-      location: updatedUser.location,
+      location: updatedUser.locationData,
       user_type_id: updatedUser.get("user_type_id"),
     };
 

@@ -100,7 +100,7 @@ export default ({
 
   // LocationBook 1:N User (ubicación de usuarios)
   LocationBook.hasMany(User, { foreignKey: "location_id" });
-  User.belongsTo(LocationBook, { foreignKey: "location_id", as: "location" });
+  User.belongsTo(LocationBook, { foreignKey: "location_id", as: "locationData" });
 
   // User 1:N PublishedBooks
   User.hasMany(PublishedBooks, { foreignKey: "user_id" });
