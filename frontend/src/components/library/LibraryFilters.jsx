@@ -154,9 +154,6 @@ const LibraryFilters = memo(
         {/* Filtros avanzados */}
         {showAdvancedSearch && (
           <div className="bg-gray-50 p-4 rounded-lg border">
-            <h3 className="text-sm font-medium text-gray-900 mb-4">
-              Filtros avanzados
-            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -217,9 +214,6 @@ const LibraryFilters = memo(
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">
-                Ordenamiento
-              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <CustomSelect
                   value={advancedFilters.sortBy}
