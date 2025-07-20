@@ -24,6 +24,10 @@ import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
 import SwipeHistory from "../pages/SwipeHistory";
+// Páginas de pago
+import PaymentSuccess from "../pages/PaymentSuccess";
+import PaymentFailure from "../pages/PaymentFailure";
+import PaymentPending from "../pages/PaymentPending";
 
 export default function AppRouter() {
   return (
@@ -286,6 +290,11 @@ export default function AppRouter() {
             </PrivateRoute>
           }
         />
+
+        {/* Rutas de pagos - Públicas pero requieren parámetros */}
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/failure" element={<PaymentFailure />} />
+        <Route path="/payment/pending" element={<PaymentPending />} />
       </Routes>
     </Router>
   );

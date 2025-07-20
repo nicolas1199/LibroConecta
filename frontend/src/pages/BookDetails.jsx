@@ -8,6 +8,7 @@ import Star from "../components/icons/Star";
 import MessageCircle from "../components/icons/MessageCircle";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import BookOpen from "../components/icons/BookOpen";
+import PaymentButton from '../components/PaymentButton';
 
 export default function BookDetails() {
   const { bookId } = useParams();
@@ -95,6 +96,7 @@ export default function BookDetails() {
     description,
     price,
     date_published,
+    published_book_id: publishedBookId,
   } = book;
 
   return (
@@ -198,6 +200,39 @@ export default function BookDetails() {
                 )}
               </div>
             </div>
+
+            {/* Precio y acciones */}
+            {transactionType?.description === "Venta" && price && (
+              <div className="bg-green-50 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm text-green-600 font-medium">Precio</p>
+                    <p className="text-3xl font-bold text-green-900">
+                      ${Number(price).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Estado</p>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Disponible
+                    </span>
+                  </div>
+                </div>
+                
+                <PaymentButton
+                  publishedBookId={publishedBookId}
+                  bookTitle={bookInfo?.title}
+                  bookAuthor={bookInfo?.author}
+                  price={Number(price)}
+                  className="w-full"
+                  onPaymentStart={() => console.log('Pago iniciado para libro:', publishedBookId)}
+                  onPaymentError={(error) => {
+                    console.error('Error de pago:', error);
+                    alert(`Error en el pago: ${error}`);
+                  }}
+                />
+              </div>
+            )}
 
             {/* Información del usuario */}
             <div className="bg-white p-4 rounded-lg border">

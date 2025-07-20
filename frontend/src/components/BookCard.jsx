@@ -6,6 +6,7 @@ import MapPin from "./icons/MapPin";
 import Eye from "./icons/Eye";
 import MessageCircle from "./icons/MessageCircle";
 import Star from "./icons/Star";
+import PaymentButton from './PaymentButton';
 
 export default function BookCard({ book }) {
   const navigate = useNavigate();
@@ -156,7 +157,7 @@ export default function BookCard({ book }) {
         <p className="text-gray-700 text-sm mb-4 line-clamp-2">{description}</p>
 
         {/* Usuario y calificación */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
               {user?.first_name?.charAt(0) || "U"}
@@ -169,6 +170,21 @@ export default function BookCard({ book }) {
           {/* Calificación */}
           <div className="flex items-center space-x-1">{renderStars()}</div>
         </div>
+
+        {/* Botón de pago para ventas */}
+        {transactionType?.description === "Venta" && price && (
+          <div className="mt-4">
+            <PaymentButton
+              publishedBookId={book.published_book_id}
+              bookTitle={bookInfo?.title}
+              bookAuthor={bookInfo?.author}
+              price={Number(price)}
+              className="w-full"
+              onPaymentStart={() => console.log('Pago iniciado')}
+              onPaymentError={(error) => console.error('Error de pago:', error)}
+            />
+          </div>
+        )}
 
         {/* Estado del libro */}
         {condition && (

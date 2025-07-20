@@ -18,6 +18,8 @@ export default ({
   Message,
   Rating,
   UserPublishedBookInteraction,
+  Payment,
+  Transaction,
 }) => {
   //  UserType 1:N User
   UserType.hasMany(User, { foreignKey: "user_type_id" });
@@ -161,5 +163,85 @@ export default ({
   UserPublishedBookInteraction.belongsTo(PublishedBooks, { 
     as: "PublishedBook", 
     foreignKey: "published_book_id" 
+  });
+
+  // === NUEVAS RELACIONES PARA PAYMENTS Y TRANSACTIONS ===
+
+  // Payment relaciones
+  // User 1:N Payment (como comprador)
+  User.hasMany(Payment, { 
+    foreignKey: "buyer_id", 
+    as: "PurchasePayments" 
+  });
+  Payment.belongsTo(User, { 
+    foreignKey: "buyer_id", 
+    as: "Buyer" 
+  });
+
+  // User 1:N Payment (como vendedor)  
+  User.hasMany(Payment, { 
+    foreignKey: "seller_id", 
+    as: "SalePayments" 
+  });
+  Payment.belongsTo(User, { 
+    foreignKey: "seller_id", 
+    as: "Seller" 
+  });
+
+  // PublishedBooks 1:N Payment
+  PublishedBooks.hasMany(Payment, { 
+    foreignKey: "published_book_id" 
+  });
+  Payment.belongsTo(PublishedBooks, { 
+    foreignKey: "published_book_id", 
+    as: "PublishedBook" 
+  });
+
+  // Transaction relaciones
+  // User 1:N Transaction (como vendedor)
+  User.hasMany(Transaction, { 
+    foreignKey: "seller_id", 
+    as: "SaleTransactions" 
+  });
+  Transaction.belongsTo(User, { 
+    foreignKey: "seller_id", 
+    as: "Seller" 
+  });
+
+  // User 1:N Transaction (como comprador)
+  User.hasMany(Transaction, { 
+    foreignKey: "buyer_id", 
+    as: "PurchaseTransactions" 
+  });
+  Transaction.belongsTo(User, { 
+    foreignKey: "buyer_id", 
+    as: "Buyer" 
+  });
+
+  // PublishedBooks 1:N Transaction
+  PublishedBooks.hasMany(Transaction, { 
+    foreignKey: "published_book_id" 
+  });
+  Transaction.belongsTo(PublishedBooks, { 
+    foreignKey: "published_book_id", 
+    as: "PublishedBook" 
+  });
+
+  // PublishedBooks 1:N Transaction (libro de intercambio)
+  PublishedBooks.hasMany(Transaction, { 
+    foreignKey: "exchange_book_id",
+    as: "ExchangeTransactions"
+  });
+  Transaction.belongsTo(PublishedBooks, { 
+    foreignKey: "exchange_book_id", 
+    as: "ExchangeBook" 
+  });
+
+  // Payment 1:1 Transaction (para ventas)
+  Payment.hasOne(Transaction, { 
+    foreignKey: "payment_id" 
+  });
+  Transaction.belongsTo(Payment, { 
+    foreignKey: "payment_id" 
   });
 };

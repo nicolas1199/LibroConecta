@@ -40,3 +40,14 @@ export const EMAIL_CONFIG = {
   user: process.env.EMAIL_USER || "",
   pass: process.env.EMAIL_PASS || "",
 }
+
+// Variables de entorno de MercadoPago
+export const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+export const MP_PUBLIC_KEY = process.env.MP_PUBLIC_KEY;
+export const MP_CLIENT_ID = process.env.MP_CLIENT_ID;
+export const MP_CLIENT_SECRET = process.env.MP_CLIENT_SECRET;
+export const MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET;
+
+// URLs de la aplicación para redirects
+export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+export const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';

@@ -20,6 +20,8 @@ import PublishedBookImage from "./models/PublishedBookImage.js";
 import Message from "./models/Message.js";
 import Rating from "./models/Rating.js";
 import UserPublishedBookInteraction from "./models/UserPublishedBookInteraction.js";
+import Payment from "./models/Payment.js";
+import Transaction from "./models/Transaction.js";
 
 // Configurar relaciones una sola vez
 setupRelations({
@@ -42,6 +44,8 @@ setupRelations({
   Message,
   Rating,
   UserPublishedBookInteraction,
+  Payment,
+  Transaction,
 });
 
 // Exportar todos los modelos + conexión
@@ -65,5 +69,7 @@ export {
   Message,
   Rating,
   UserPublishedBookInteraction,
+  Payment,
+  Transaction,
   sequelize,
 };
