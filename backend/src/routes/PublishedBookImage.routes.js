@@ -8,6 +8,7 @@ import {
   setPrimaryImage,
   uploadImagesForPublishedBook,
   uploadImagesBase64ForPublishedBook,
+  testDatabaseConnection
 } from "../controllers/PublishedBookImage.controller.js"
 import { authenticateToken } from "../middlewares/auth.middleware.js"
 import { uploadBookImagesCloudinary } from "../middlewares/cloudinary.middleware.js"
@@ -46,6 +47,9 @@ router.post("/upload/:publishedBookId", authenticateToken, uploadBookImagesCloud
 
 // Nueva ruta para subir archivos como base64 (almacenamiento en BD)
 router.post("/upload-base64/:publishedBookId", authenticateToken, uploadBookImagesBase64, uploadImagesBase64ForPublishedBook)
+
+// Ruta de prueba para verificar la base de datos
+router.get("/test-db", testDatabaseConnection)
 // Ruta legacy para URLs directas
 router.post("/published-book/:publishedBookId", authenticateToken, addImageToPublishedBook)
 router.put("/:id", authenticateToken, updatePublishedBookImage)

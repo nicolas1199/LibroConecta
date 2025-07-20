@@ -1,4 +1,5 @@
 import { PublishedBookImage, PublishedBooks } from "../db/modelIndex.js";
+import { sequelize } from "../config/configDb.js";
 
 // Obtener imágenes de un libro publicado
 export async function getImagesByPublishedBook(req, res) {
@@ -267,10 +268,20 @@ export async function uploadImagesBase64ForPublishedBook(req, res) {
 
     console.log(`💾 Controlador: Iniciando subida de imágenes base64 para libro ${publishedBookId}`);
     console.log(`💾 Archivos recibidos: ${files?.length || 0}`);
+    console.log(`💾 Tipo de files:`, typeof files);
+    console.log(`💾 Es array:`, Array.isArray(files));
+    console.log(`💾 req.files completo:`, req.files);
+    console.log(`💾 req.body:`, req.body);
+    console.log(`💾 req.headers:`, req.headers);
 
     if (!files || files.length === 0) {
       console.error('❌ Controlador: No se proporcionaron archivos');
-      return res.status(400).json({ error: "No se proporcionaron archivos" });
+      console.error('❌ req.files:', req.files);
+      console.error('❌ req.body:', req.body);
+      return res.status(400).json({ 
+        error: "No se proporcionaron archivos",
+        details: "El middleware no procesó correctamente los archivos"
+      });
     }
 
     // Verificar que el libro publicado existe y pertenece al usuario
@@ -350,6 +361,56 @@ export async function uploadImagesBase64ForPublishedBook(req, res) {
     res.status(500).json({ 
       error: "Error al subir imágenes",
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+// Función de prueba para verificar la base de datos
+export async function testDatabaseConnection(req, res) {
+  try {
+    console.log('🧪 Probando conexión a la base de datos...');
+    
+    // Probar conexión básica
+    const result = await sequelize.query('SELECT 1 as test');
+    console.log('✅ Conexión básica exitosa:', result);
+    
+    // Verificar estructura de la tabla
+    const tableInfo = await sequelize.query(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'PublishedBookImage' 
+      ORDER BY ordinal_position
+    `);
+    console.log('📋 Estructura de la tabla:', tableInfo[0]);
+    
+    // Probar inserción simple
+    const testRecord = await PublishedBookImage.create({
+      published_book_id: 12,
+      image_data: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A',
+      image_filename: 'test.jpg',
+      image_mimetype: 'image/jpeg',
+      image_size: 100,
+      is_primary: false
+    });
+    
+    console.log('✅ Inserción de prueba exitosa:', testRecord.published_book_image_id);
+    
+    // Eliminar registro de prueba
+    await testRecord.destroy();
+    console.log('✅ Registro de prueba eliminado');
+    
+    res.json({
+      success: true,
+      message: 'Conexión a base de datos exitosa',
+      tableStructure: tableInfo[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Error en prueba de base de datos:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: error.stack
     });
   }
 }
