@@ -137,7 +137,7 @@ export default function EditPublishedBook() {
       await deletePublishedBookImage(imageId);
       
       // Remove from local state
-      setImages(prev => prev.filter(img => img.image_id !== imageId));
+      setImages(prev => prev.filter(img => img.published_book_image_id !== imageId));
       alert('Imagen eliminada correctamente');
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -445,7 +445,7 @@ export default function EditPublishedBook() {
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Imágenes Actuales</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {images.map((image) => (
-                    <div key={image.image_id} className="relative">
+                    <div key={image.published_book_image_id} className="relative">
                       <img
                         src={image.image_url || image.src}
                         alt="Libro"
@@ -453,8 +453,8 @@ export default function EditPublishedBook() {
                       />
                       <button
                         type="button"
-                        onClick={() => handleDeleteImage(image.image_id)}
-                        disabled={deletingImage === image.image_id}
+                        onClick={() => handleDeleteImage(image.published_book_image_id)}
+                        disabled={deletingImage === image.published_book_image_id}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
                       >
                         <Trash className="h-3 w-3" />
