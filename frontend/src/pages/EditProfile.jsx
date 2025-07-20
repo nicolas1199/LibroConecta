@@ -199,13 +199,24 @@ export default function EditProfile() {
   }
 
   // Agrupar ubicaciones por región
-  const groupedLocations = locations.reduce((acc, location) => {
+  const groupedLocations = (locations || []).reduce((acc, location) => {
     if (!acc[location.region]) {
       acc[location.region] = []
     }
     acc[location.region].push(location)
     return acc
   }, {})
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando perfil...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

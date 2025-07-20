@@ -25,17 +25,18 @@ const router = Router();
 
 // Rutas públicas
 router.get("/", getAllPublishedBooks);
+
+// Rutas protegidas (requieren autenticación) - ANTES de /:id
+router.get(
+  "/my-books",
+  authenticateToken,
+  getPublishedBooksByUser
+);
+
 router.get("/:id", getPublishedBookById);
 router.get(
   "/user/:userId",
   validateUUIDParam("userId"),
-  getPublishedBooksByUser
-);
-
-// Rutas protegidas (requieren autenticación)
-router.get(
-  "/my-books",
-  authenticateToken,
   getPublishedBooksByUser
 );
 
