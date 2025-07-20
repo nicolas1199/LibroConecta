@@ -9,7 +9,7 @@ import MessageCircle from "../components/icons/MessageCircle";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import BookOpen from "../components/icons/BookOpen";
 import PaymentButton from '../components/PaymentButton';
-import { useAuth } from '../utils/auth.js';
+import { useAuth } from '../utils/auth.jsx';
 
 export default function BookDetails() {
   const { bookId } = useParams();
