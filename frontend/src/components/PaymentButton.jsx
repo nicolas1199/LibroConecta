@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadMercadoPago } from '@mercadopago/sdk-js';
 import { createPaymentPreference } from '../api/payments.js';
-import { DollarSign } from './icons/DollarSign';
+import DollarSign from './icons/DollarSign';
 
 export default function PaymentButton({ 
   publishedBookId, 

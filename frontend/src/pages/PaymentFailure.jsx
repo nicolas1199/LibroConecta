@@ -3,8 +3,11 @@ import { useSearchParams, Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getPaymentStatus } from '../api/payments.js';
 
-// Icons
-import { X, ArrowLeft, RefreshCw, BookOpen } from '../components/icons';
+// Icons - importación individual
+import X from '../components/icons/X';
+import ArrowLeft from '../components/icons/ArrowLeft';
+import RefreshCw from '../components/icons/RefreshCw';
+import BookOpen from '../components/icons/BookOpen';
 
 export default function PaymentFailure() {
   const [searchParams] = useSearchParams();

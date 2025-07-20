@@ -3,8 +3,12 @@ import { useSearchParams, Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getPaymentStatus } from '../api/payments.js';
 
-// Icons
-import { Clock, ArrowLeft, RefreshCw, BookOpen } from '../components/icons';
+// Icons - importación individual
+import Clock from '../components/icons/Clock';
+import ArrowLeft from '../components/icons/ArrowLeft';
+import RefreshCw from '../components/icons/RefreshCw';
+import BookOpen from '../components/icons/BookOpen';
+import X from '../components/icons/X';
 
 export default function PaymentPending() {
   const [searchParams] = useSearchParams();

@@ -3,8 +3,11 @@ import { useSearchParams, Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getPaymentStatus } from '../api/payments.js';
 
-// Icons
-import { CheckCircle, BookOpen, ArrowLeft } from '../components/icons';
+// Icons - importación individual
+import CheckCircle from '../components/icons/CheckCircle';
+import BookOpen from '../components/icons/BookOpen';
+import ArrowLeft from '../components/icons/ArrowLeft';
+import X from '../components/icons/X';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
