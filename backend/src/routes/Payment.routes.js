@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { 
   createPaymentPreference,
-  createPaymentPreferenceTest,
   handlePaymentWebhook,
   getPaymentStatus,
   getUserPayments
@@ -20,17 +19,6 @@ router.post(
   "/preferences/:publishedBookId",
   authenticateToken,
   createPaymentPreference
-);
-
-/**
- * @route POST /api/payments/preferences/:publishedBookId/test
- * @desc Crear preferencia de pago para un libro (MODO PRUEBA)
- * @access Private (requiere autenticación)
- */
-router.post(
-  "/preferences/:publishedBookId/test",
-  authenticateToken,
-  createPaymentPreferenceTest
 );
 
 /**

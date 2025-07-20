@@ -16,12 +16,8 @@ import { success, error } from '../utils/responses.util.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configurar MercadoPago
-if (!MP_ACCESS_TOKEN) {
-  console.error('❌ MP_ACCESS_TOKEN no está configurado');
-}
-
 const client = new MercadoPagoConfig({ 
-  accessToken: MP_ACCESS_TOKEN || 'TEST-1234567890',
+  accessToken: MP_ACCESS_TOKEN,
   options: { timeout: 5000 }
 });
 
@@ -34,13 +30,6 @@ const payment = new MPPayment(client);
  */
 export async function createPaymentPreference(req, res) {
   try {
-    // Validar configuración de MercadoPago
-    if (!MP_ACCESS_TOKEN) {
-      console.error('❌ MP_ACCESS_TOKEN no configurado - usando modo prueba');
-      // Si no hay configuración de MercadoPago, usar modo prueba
-      return await createPaymentPreferenceTest(req, res);
-    }
-
     const { publishedBookId } = req.params;
     const userId = req.user.user_id;
 
@@ -123,18 +112,7 @@ export async function createPaymentPreference(req, res) {
     };
 
     // Crear preferencia en MercadoPago
-    let mpPreference;
-    try {
-      mpPreference = await preference.create({ body: preferenceData });
-      console.log('✅ Preferencia creada en MercadoPago:', mpPreference.id);
-    } catch (mpError) {
-      console.error('❌ Error creando preferencia en MercadoPago:', mpError);
-      
-      // Eliminar el registro de pago creado
-      await paymentRecord.destroy();
-      
-      return error(res, 'Error al procesar el pago. Intente nuevamente.', 500);
-    }
+    const mpPreference = await preference.create({ body: preferenceData });
 
     // Actualizar registro con ID de preferencia
     await paymentRecord.update({
@@ -161,97 +139,7 @@ export async function createPaymentPreference(req, res) {
 
   } catch (error) {
     console.error('❌ Error creando preferencia de pago:', error);
-    
-    // Log detallado del error
-    if (error.response) {
-      console.error('❌ Error de MercadoPago:', error.response.data);
-    }
-    
-    return error(res, 'Error interno del servidor. Intente nuevamente.', 500);
-  }
-}
-
-/**
- * Crear preferencia de pago para un libro (MODO PRUEBA)
- * Esta función simula la creación de una preferencia sin usar MercadoPago
- */
-export async function createPaymentPreferenceTest(req, res) {
-  try {
-    const { publishedBookId } = req.params;
-    const userId = req.user.user_id;
-
-    // Verificar que el libro existe y está disponible para venta
-    const publishedBook = await PublishedBooks.findByPk(publishedBookId, {
-      include: [
-        {
-          model: Book,
-          as: 'Book'
-        },
-        {
-          model: User,
-          as: 'User'
-        }
-      ]
-    });
-
-    if (!publishedBook) {
-      return error(res, 'Libro no encontrado', 404);
-    }
-
-    // Verificar que no sea el propio dueño del libro
-    if (publishedBook.user_id === userId) {
-      return error(res, 'No puedes comprar tu propio libro', 400);
-    }
-
-    // Verificar que el libro esté disponible para venta
-    if (!publishedBook.price || publishedBook.price <= 0) {
-      return error(res, 'Este libro no está disponible para venta', 400);
-    }
-
-    // Crear referencia externa única
-    const externalReference = `LIBRO_${publishedBookId}_${userId}_${Date.now()}`;
-
-    // Crear registro de pago en la base de datos
-    const paymentRecord = await Payment.create({
-      published_book_id: publishedBookId,
-      buyer_id: userId,
-      seller_id: publishedBook.user_id,
-      amount: publishedBook.price,
-      currency: 'CLP',
-      mp_external_reference: externalReference,
-      description: `Compra de libro: ${publishedBook.Book.title}`,
-      status: 'pending'
-    });
-
-    // Simular respuesta de MercadoPago
-    const mockPreferenceId = `pref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Actualizar registro con ID de preferencia simulado
-    await paymentRecord.update({
-      mp_preference_id: mockPreferenceId,
-      notification_url: `${BACKEND_URL}/api/payments/webhook`,
-      success_url: `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}`,
-      failure_url: `${FRONTEND_URL}/payment/failure?payment_id=${paymentRecord.payment_id}`,
-      pending_url: `${FRONTEND_URL}/payment/pending?payment_id=${paymentRecord.payment_id}`
-    });
-
-    console.log(`✅ Preferencia de pago simulada creada: ${mockPreferenceId} para libro ${publishedBookId}`);
-
-    return success(res, {
-      payment_id: paymentRecord.payment_id,
-      preference_id: mockPreferenceId,
-      init_point: `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}`,
-      sandbox_init_point: `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}`,
-      book_info: {
-        title: publishedBook.Book.title,
-        author: publishedBook.Book.author,
-        price: publishedBook.price
-      }
-    }, 'Preferencia de pago creada exitosamente (MODO PRUEBA)', 201);
-
-  } catch (error) {
-    console.error('❌ Error creando preferencia de pago (modo prueba):', error);
-    return error(res, 'Error interno del servidor. Intente nuevamente.', 500);
+    return error(res, 'Error interno del servidor', 500);
   }
 }
 
