@@ -90,6 +90,24 @@ export const getPublishedBookById = async (id) => {
   return res.data
 }
 
+// Eliminar libro publicado
+export const deletePublishedBook = async (id) => {
+  const res = await api.delete(`/published-books/${id}`)
+  return res.data
+}
+
+// Actualizar libro publicado
+export const updatePublishedBook = async (id, data) => {
+  const res = await api.put(`/published-books/${id}`, data)
+  return res.data
+}
+
+// Eliminar imagen de libro publicado
+export const deletePublishedBookImage = async (imageId) => {
+  const res = await api.delete(`/published-book-images/${imageId}`)
+  return res.data
+}
+
 // Obtener recomendaciones para swipe
 export const getRecommendations = async (params = {}) => {
   const res = await api.get("/published-books/recommendations/swipe", { params })
