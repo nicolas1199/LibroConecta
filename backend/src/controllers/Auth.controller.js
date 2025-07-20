@@ -131,6 +131,13 @@ export const login = async (req, res) => {
           [Op.iLike]: email,
         },
       },
+      include: [
+        {
+          model: LocationBook,
+          as: "location",
+          attributes: ["location_book_id", "location_name"],
+        },
+      ],
     });
     if (!user) {
       return res.status(401).json({ message: "Usuario no encontrado" });
@@ -163,7 +170,8 @@ export const login = async (req, res) => {
         email: user.get("email"),
         first_name: user.get("first_name"),
         last_name: user.get("last_name"),
-        location: user.get("location"),
+        location_id: user.get("location_id"),
+        location: user.location,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -278,20 +286,30 @@ export const updateUserProfile = async (req, res) => {
       last_name,
       email,
       username,
-      location: location || null,
       location_id: location_id || null,
+    });
+
+    // Obtener el usuario actualizado con la información de ubicación
+    const updatedUser = await User.findByPk(user_id, {
+      include: [
+        {
+          model: LocationBook,
+          as: "location",
+          attributes: ["location_book_id", "location_name"],
+        },
+      ],
     });
 
     // Respuesta sin contraseña
     const userResponse = {
-      user_id: user.get("user_id"),
-      first_name: user.get("first_name"),
-      last_name: user.get("last_name"),
-      email: user.get("email"),
-      username: user.get("username"),
-      location: user.get("location"),
-      location_id: user.get("location_id"),
-      user_type_id: user.get("user_type_id"),
+      user_id: updatedUser.get("user_id"),
+      first_name: updatedUser.get("first_name"),
+      last_name: updatedUser.get("last_name"),
+      email: updatedUser.get("email"),
+      username: updatedUser.get("username"),
+      location_id: updatedUser.get("location_id"),
+      location: updatedUser.location,
+      user_type_id: updatedUser.get("user_type_id"),
     };
 
     return res.status(200).json({
