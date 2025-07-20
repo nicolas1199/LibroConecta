@@ -7,7 +7,7 @@ import { getLocations } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
-import User from "../components/icons/User"
+import Users from "../components/icons/Users"
 
 export default function EditProfile() {
   const navigate = useNavigate()
@@ -272,7 +272,7 @@ export default function EditProfile() {
                   </div>
                 ) : (
                   <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-                    <User className="h-12 w-12 text-gray-400" />
+                    <Users className="h-12 w-12 text-gray-400" />
                   </div>
                 )}
 

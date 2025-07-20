@@ -7,7 +7,7 @@ import { getLocations } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Edit from "../components/icons/Edit"
 import MapPin from "../components/icons/MapPin"
-import User from "../components/icons/Users"
+import Users from "../components/icons/Users"
 import BookOpen from "../components/icons/BookOpen"
 import Settings from "../components/icons/Settings"
 import MessageCircle from "../components/icons/MessageCircle"
@@ -223,7 +223,7 @@ export default function UserProfile() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">
             No se pudo cargar el perfil
           </h2>
@@ -529,7 +529,7 @@ export default function UserProfile() {
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-purple-600" />
+                    <Users className="h-4 w-4 text-purple-600" />
                     <span className="text-gray-600">Matches</span>
                   </div>
                   <span className="font-semibold text-gray-900">0</span>

@@ -16,7 +16,7 @@ import BarChart from "../icons/BarChart";
 import Settings from "../icons/Settings";
 import LogOut from "../icons/LogOut";
 import ChevronDown from "../icons/ChevronDown";
-import User from "../icons/Users";
+import Users from "../icons/Users";
 import ArrowLeftRight from "../icons/ArrowLeftRight";
 import Edit from "../icons/Edit";
 import { useState } from "react";
@@ -239,7 +239,7 @@ export default function DashboardSidebar({
                 className={`sidebar-nav-item ${currentPath === "/profile" ? "active" : ""}`}
               >
                 <div className="sidebar-nav-content">
-                  <User className="h-4 w-4" />
+                  <Users className="h-4 w-4" />
                   <span>Mi Perfil</span>
                 </div>
               </Link>

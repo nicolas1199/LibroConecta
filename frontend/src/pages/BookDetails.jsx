@@ -126,9 +126,6 @@ export default function BookDetails() {
                 alt={bookInfo?.title || "Libro"}
                 className="w-full h-full object-cover image-render-crisp"
                 style={{
-                  imageRendering: 'crisp-edges',
-                  imageRendering: '-moz-crisp-edges',
-                  imageRendering: '-webkit-optimize-contrast',
                   imageRendering: 'optimize-contrast',
                   msInterpolationMode: 'nearest-neighbor'
                 }}
@@ -153,9 +150,6 @@ export default function BookDetails() {
                       alt={`${bookInfo?.title} - ${index + 1}`}
                       className="w-full h-full object-cover image-render-crisp"
                       style={{
-                        imageRendering: 'crisp-edges',
-                        imageRendering: '-moz-crisp-edges',
-                        imageRendering: '-webkit-optimize-contrast',
                         imageRendering: 'optimize-contrast',
                         msInterpolationMode: 'nearest-neighbor'
                       }}
