@@ -22,7 +22,7 @@ export default function EditProfile() {
     last_name: "",
     email: "",
     username: "",
-    location: "",
+    location_id: "", // Cambiar de location a location_id
     bio: "",
     profile_image: null,
     profile_image_preview: null
@@ -43,7 +43,7 @@ export default function EditProfile() {
           last_name: profileData.data.last_name || "",
           email: profileData.data.email || "",
           username: profileData.data.username || "",
-          location: profileData.data.location || "",
+          location_id: profileData.data.location_id || "", // Cambiar de location a location_id
           bio: profileData.data.bio || "",
           profile_image: null,
           profile_image_preview: profileData.data.profile_image || null
@@ -165,7 +165,8 @@ export default function EditProfile() {
         last_name: formData.last_name,
         email: formData.email,
         username: formData.username,
-        location: formData.location,
+        location_id: formData.location_id,
+        location: formData.location_id ? locations.find(l => l.location_id === Number.parseInt(formData.location_id))?.comuna || "" : "",
         bio: formData.bio
       }
 
@@ -375,15 +376,15 @@ export default function EditProfile() {
             <div>
               <label className="form-label">Ubicación</label>
               <select
-                value={formData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
+                value={formData.location_id}
+                onChange={(e) => handleInputChange("location_id", e.target.value)}
                 className="form-control"
               >
                 <option value="">Selecciona tu ubicación</option>
                 {Object.entries(groupedLocations).map(([region, locations]) => (
                   <optgroup key={region} label={region}>
                     {locations.map((location) => (
-                      <option key={location.location_id} value={location.comuna}>
+                      <option key={location.location_id} value={location.location_id}>
                         {location.comuna}
                       </option>
                     ))}
