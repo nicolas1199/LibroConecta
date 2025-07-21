@@ -105,10 +105,10 @@ export async function getExchangeInfoService(matchId, userId) {
     // Obtener información de los dos usuarios del match
     const [user1, user2] = await Promise.all([
       User.findByPk(match.user_id_1, {
-        attributes: ["user_id", "first_name", "last_name", "location"]
+        attributes: ["user_id", "first_name", "last_name", "location_id"]
       }),
       User.findByPk(match.user_id_2, {
-        attributes: ["user_id", "first_name", "last_name", "location"]
+        attributes: ["user_id", "first_name", "last_name", "location_id"]
       })
     ]);
 
@@ -147,7 +147,7 @@ export async function getExchangeInfoService(matchId, userId) {
         {
           user_id: user1.user_id,
           name: `${user1.first_name} ${user1.last_name}`,
-          location: user1.location,
+          location: user1.location_id,
           books: user1Books.map(book => ({
             published_book_id: book.published_book_id,
             title: book.Book?.title || 'Título no disponible',
@@ -159,7 +159,7 @@ export async function getExchangeInfoService(matchId, userId) {
         {
           user_id: user2.user_id,
           name: `${user2.first_name} ${user2.last_name}`,
-          location: user2.location,
+          location: user2.location_id,
           books: user2Books.map(book => ({
             published_book_id: book.published_book_id,
             title: book.Book?.title || 'Título no disponible',

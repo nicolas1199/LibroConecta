@@ -36,7 +36,7 @@ export default function EnhancedMessages() {
       loadMessages(matchId);
       loadExchangeInfo(matchId);
     }
-  }, [matchId]);
+  }, [matchId, conversations]);
 
   useEffect(() => {
     scrollToBottom();
@@ -59,8 +59,16 @@ export default function EnhancedMessages() {
       const response = await getMessages(matchId);
       setMessages(response.data || []);
       
+      // Si conversations aún no está disponible, cargarlo primero
+      let conversationsList = conversations;
+      if (conversations.length === 0) {
+        const conversationsResponse = await getConversations();
+        conversationsList = conversationsResponse.data || [];
+        setConversations(conversationsList);
+      }
+      
       // Encontrar la conversación seleccionada
-      const conversation = conversations.find(c => c.match_id === parseInt(matchId));
+      const conversation = conversationsList.find(c => c.match_id === parseInt(matchId));
       if (conversation) {
         setSelectedConversation(conversation);
         // Marcar mensajes como leídos
