@@ -16,6 +16,7 @@ export async function getUserLibrary(params = {}) {
   if (params.sortOrder) queryParams.append("sortOrder", params.sortOrder);
 
   const url = `/user-library${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+
   const response = await api.get(url);
   return response.data;
 }

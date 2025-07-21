@@ -29,37 +29,73 @@ export const useLibraryFilters = () => {
     setShowAdvancedSearch(false);
   }, []);
 
-  const getFilterParams = useCallback(() => {
-    const params = {};
+  const getFilterParams = useCallback(
+    (includeAdvanced = false) => {
+      const params = {};
 
-    // Filtro por estado (tab activo)
-    if (activeTab !== "todos") {
-      params.status = activeTab;
-    }
+      // Filtro por estado (tab activo)
+      if (activeTab !== "todos") {
+        params.status = activeTab;
+      }
 
-    // Filtros básicos
-    if (searchTerm) params.search = searchTerm;
-    if (quickGenreFilter) params.genre = quickGenreFilter;
+      // Filtros básicos con validación
+      if (searchTerm && searchTerm.trim().length >= 2) {
+        params.search = searchTerm.trim();
+      }
 
-    // Filtros avanzados
-    if (showAdvancedSearch) {
-      if (advancedFilters.author) params.author = advancedFilters.author;
-      if (advancedFilters.rating) params.rating = advancedFilters.rating;
-      if (advancedFilters.year) params.year = advancedFilters.year;
-      if (advancedFilters.genre) params.genre = advancedFilters.genre;
-      if (advancedFilters.sortBy) params.sortBy = advancedFilters.sortBy;
-      if (advancedFilters.sortOrder)
-        params.sortOrder = advancedFilters.sortOrder;
-    }
+      if (quickGenreFilter && quickGenreFilter.trim()) {
+        params.genre = quickGenreFilter.trim();
+      }
 
-    return params;
-  }, [
-    activeTab,
-    searchTerm,
-    quickGenreFilter,
-    showAdvancedSearch,
-    advancedFilters,
-  ]);
+      // Filtros avanzados con validación (solo si se solicita explícitamente)
+      if (includeAdvanced && showAdvancedSearch) {
+        if (
+          advancedFilters.author &&
+          advancedFilters.author.trim().length >= 2
+        ) {
+          params.author = advancedFilters.author.trim();
+        }
+
+        if (advancedFilters.rating && !isNaN(Number(advancedFilters.rating))) {
+          const rating = Number(advancedFilters.rating);
+          if (rating >= 1 && rating <= 5) {
+            params.rating = rating;
+          }
+        }
+
+        if (advancedFilters.year && !isNaN(Number(advancedFilters.year))) {
+          const year = Number(advancedFilters.year);
+          if (year >= 1000 && year <= new Date().getFullYear()) {
+            params.year = year;
+          }
+        }
+
+        if (advancedFilters.genre && advancedFilters.genre.trim()) {
+          params.genre = advancedFilters.genre.trim();
+        }
+
+        if (advancedFilters.sortBy && advancedFilters.sortBy.trim()) {
+          params.sortBy = advancedFilters.sortBy;
+        }
+
+        if (
+          advancedFilters.sortOrder &&
+          ["ASC", "DESC"].includes(advancedFilters.sortOrder.toUpperCase())
+        ) {
+          params.sortOrder = advancedFilters.sortOrder;
+        }
+      }
+
+      return params;
+    },
+    [
+      activeTab,
+      searchTerm,
+      quickGenreFilter,
+      showAdvancedSearch,
+      advancedFilters,
+    ],
+  );
 
   const updateAdvancedFilter = useCallback((key, value) => {
     setAdvancedFilters((prev) => ({
@@ -67,6 +103,10 @@ export const useLibraryFilters = () => {
       [key]: value,
     }));
   }, []);
+
+  const getAdvancedFilterParams = useCallback(() => {
+    return getFilterParams(true);
+  }, [getFilterParams]);
 
   return {
     // Estado
@@ -86,5 +126,6 @@ export const useLibraryFilters = () => {
     // Utilidades
     resetFilters,
     getFilterParams,
+    getAdvancedFilterParams,
   };
 };

@@ -375,15 +375,10 @@ export default function LibraryInsights() {
 
       {/* Sección de Recomendaciones */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Recomendaciones</h2>
-          <button
-            onClick={loadRecommendationsData}
-            disabled={loadingRecommendations}
-            className="btn btn-primary text-sm"
-          >
-            {loadingRecommendations ? "Cargando..." : "Obtener recomendaciones"}
-          </button>
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Recomendaciones
+          </h2>
         </div>
 
         {loadingRecommendations && (
@@ -539,9 +534,18 @@ export default function LibraryInsights() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Descubre tus recomendaciones personalizadas
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-6">
               Basadas en tu historial de lectura y calificaciones
             </p>
+            <button
+              onClick={loadRecommendationsData}
+              disabled={loadingRecommendations}
+              className="btn btn-primary"
+            >
+              {loadingRecommendations
+                ? "Cargando..."
+                : "Obtener recomendaciones"}
+            </button>
           </div>
         )}
       </div>

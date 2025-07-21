@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
-import { useLibrary } from "../hooks/useLibrary";
+import { useState, useCallback } from "react";
+import { useLibraryWithFilters } from "../hooks/useLibraryQuery";
 import { useLibraryFilters } from "../hooks/useLibraryFilters";
 import { Link } from "react-router-dom";
 import TrendingUp from "../components/icons/TrendingUp";
@@ -11,23 +11,10 @@ import LibraryPagination from "../components/library/LibraryPagination";
 export default function MyLibrary() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bookToDelete, setBookToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [appliedAdvancedFilters, setAppliedAdvancedFilters] = useState({});
 
-  // Custom hooks
-  const {
-    library,
-    globalStats,
-    loading,
-    error,
-    currentPage,
-    totalPages,
-    totalBooks,
-    booksPerPage,
-    loadLibraryData,
-    deleteBook,
-    setCurrentPage,
-    setError,
-  } = useLibrary();
-
+  // Hooks para filtros
   const {
     activeTab,
     searchTerm,
@@ -41,18 +28,92 @@ export default function MyLibrary() {
     updateAdvancedFilter,
     resetFilters,
     getFilterParams,
+    getAdvancedFilterParams,
   } = useLibraryFilters();
+
+  // Obtener filtros básicos (sin avanzados por defecto)
+  const basicFilterParams = getFilterParams();
+  const { status, ...basicFilters } = basicFilterParams;
+
+  // Combinar filtros básicos con filtros avanzados aplicados
+  const allFilters = { ...basicFilters, ...appliedAdvancedFilters };
+
+  // Hook de React Query para obtener datos de la biblioteca
+  const {
+    library,
+    pagination,
+    stats,
+    globalStats,
+    isLoading,
+    isError,
+    error,
+    deleteBook,
+    isDeletingBook,
+    deleteBookError,
+    refetch,
+  } = useLibraryWithFilters(activeTab, searchTerm, allFilters, currentPage);
 
   // Función para manejar búsqueda con filtros
   const handleSearch = useCallback(() => {
-    const filterParams = getFilterParams();
-    loadLibraryData(filterParams);
-  }, [getFilterParams, loadLibraryData]);
+    setCurrentPage(1); // Resetear página al buscar
+    refetch();
+  }, [refetch]);
 
-  // Efecto para cargar datos cuando cambien los filtros
-  useEffect(() => {
-    handleSearch();
-  }, [activeTab, quickGenreFilter, showAdvancedSearch, advancedFilters]);
+  // Función para aplicar filtros avanzados
+  const handleApplyAdvancedFilters = useCallback(() => {
+    // Obtener filtros avanzados actuales
+    const advancedFilterParams = getAdvancedFilterParams();
+    const { status, ...advancedFiltersOnly } = advancedFilterParams;
+
+    // Guardar solo los filtros avanzados (excluyendo búsqueda y género rápido)
+    const newAdvancedFilters = {};
+    if (advancedFilters.author && advancedFilters.author.trim().length >= 2) {
+      newAdvancedFilters.author = advancedFilters.author.trim();
+    }
+    if (advancedFilters.rating && !isNaN(Number(advancedFilters.rating))) {
+      const rating = Number(advancedFilters.rating);
+      if (rating >= 1 && rating <= 5) {
+        newAdvancedFilters.rating = rating;
+      }
+    }
+    if (advancedFilters.year && !isNaN(Number(advancedFilters.year))) {
+      const year = Number(advancedFilters.year);
+      if (year >= 1000 && year <= new Date().getFullYear()) {
+        newAdvancedFilters.year = year;
+      }
+    }
+    if (advancedFilters.genre && advancedFilters.genre.trim()) {
+      newAdvancedFilters.genre = advancedFilters.genre.trim();
+    }
+    if (advancedFilters.sortBy && advancedFilters.sortBy.trim()) {
+      newAdvancedFilters.sortBy = advancedFilters.sortBy;
+    }
+    if (
+      advancedFilters.sortOrder &&
+      ["ASC", "DESC"].includes(advancedFilters.sortOrder.toUpperCase())
+    ) {
+      newAdvancedFilters.sortOrder = advancedFilters.sortOrder;
+    }
+
+    setAppliedAdvancedFilters(newAdvancedFilters);
+    setCurrentPage(1);
+  }, [advancedFilters, setAppliedAdvancedFilters]);
+
+  // Resetear página cuando cambien los filtros principales
+  const handleTabChange = useCallback(
+    (newTab) => {
+      setActiveTab(newTab);
+      setCurrentPage(1);
+    },
+    [setActiveTab],
+  );
+
+  // Función personalizada para resetear todos los filtros
+  const handleResetFilters = useCallback(() => {
+    resetFilters(); // Resetear filtros del hook
+    setAppliedAdvancedFilters({}); // Limpiar filtros avanzados aplicados
+    setCurrentPage(1);
+  }, [resetFilters, setAppliedAdvancedFilters]);
 
   // Función para obtener el badge de estado
   const getStatusBadge = useCallback((status) => {
@@ -84,23 +145,18 @@ export default function MyLibrary() {
   }, []);
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (!bookToDelete) return;
+    if (!bookToDelete || isDeletingBook) return;
 
     try {
-      const result = await deleteBook(bookToDelete.user_library_id);
-      if (result.success) {
-        setShowDeleteModal(false);
-        setBookToDelete(null);
-        // Mostrar mensaje de éxito (aquí podrías integrar un sistema de notificaciones)
-        console.log("Libro eliminado exitosamente");
-      } else {
-        setError(result.error || "Error al eliminar el libro");
-      }
+      await deleteBook(bookToDelete.user_library_id);
+      setShowDeleteModal(false);
+      setBookToDelete(null);
+      // React Query manejará automáticamente la actualización de la UI
     } catch (error) {
       console.error("Error deleting book:", error);
-      setError("Error al eliminar el libro");
+      // El error se mostrará a través del hook de React Query (deleteBookError)
     }
-  }, [bookToDelete, deleteBook, setError]);
+  }, [bookToDelete, deleteBook, isDeletingBook]);
 
   const handleDeleteCancel = useCallback(() => {
     setShowDeleteModal(false);
@@ -108,13 +164,10 @@ export default function MyLibrary() {
   }, []);
 
   // Manejo de paginación
-  const handlePageChange = useCallback(
-    (newPage) => {
-      setCurrentPage(newPage);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [setCurrentPage],
-  );
+  const handlePageChange = useCallback((newPage) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -153,7 +206,7 @@ export default function MyLibrary() {
           {/* Filtros */}
           <LibraryFilters
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={handleTabChange}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             showAdvancedSearch={showAdvancedSearch}
@@ -162,26 +215,26 @@ export default function MyLibrary() {
             setQuickGenreFilter={setQuickGenreFilter}
             advancedFilters={advancedFilters}
             updateAdvancedFilter={updateAdvancedFilter}
-            resetFilters={resetFilters}
+            resetFilters={handleResetFilters}
             onSearch={handleSearch}
+            onApplyAdvancedFilters={handleApplyAdvancedFilters}
             globalStats={globalStats}
           />
 
           {/* Grid de libros */}
           <LibraryGrid
             library={library}
-            loading={loading}
-            error={error}
+            loading={isLoading}
+            error={
+              isError ? error?.message || "Error al cargar los libros" : ""
+            }
             onDelete={handleDeleteClick}
             getStatusBadge={getStatusBadge}
           />
 
           {/* Paginación */}
           <LibraryPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalBooks={totalBooks}
-            booksPerPage={booksPerPage}
+            pagination={pagination}
             onPageChange={handlePageChange}
           />
         </div>
@@ -215,20 +268,52 @@ export default function MyLibrary() {
                   ¿Estás seguro de que quieres eliminar "{bookToDelete?.title}"
                   de tu biblioteca? Esta acción no se puede deshacer.
                 </p>
+                {deleteBookError && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-600">
+                      Error al eliminar el libro:{" "}
+                      {deleteBookError.message || "Error desconocido"}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="items-center px-4 py-3">
                 <div className="flex space-x-3">
                   <button
                     onClick={handleDeleteCancel}
-                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                    disabled={isDeletingBook}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleDeleteConfirm}
-                    className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+                    disabled={isDeletingBook}
+                    className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
-                    Eliminar
+                    {isDeletingBook && (
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    )}
+                    {isDeletingBook ? "Eliminando..." : "Eliminar"}
                   </button>
                 </div>
               </div>

@@ -5,7 +5,6 @@ import Edit from "../icons/Edit";
 import Trash from "../icons/Trash";
 import Star from "../icons/Star";
 
-// eslint-disable-next-line react/prop-types
 const BookCard = memo(({ userBook, onDelete, getStatusBadge }) => {
   const imageRef = useRef(null);
 
@@ -18,7 +17,7 @@ const BookCard = memo(({ userBook, onDelete, getStatusBadge }) => {
             if (entry.isIntersecting) {
               const target = entry.target;
               const src = target.getAttribute("data-src");
-              if (src) {
+              if (src && target instanceof HTMLImageElement) {
                 target.src = src;
                 target.removeAttribute("data-src");
                 observer.unobserve(target);
@@ -125,9 +124,9 @@ const BookCard = memo(({ userBook, onDelete, getStatusBadge }) => {
         <span className="truncate">
           Agregado: {new Date(userBook.createdAt).toLocaleDateString()}
         </span>
-        {userBook.finishedAt && (
+        {userBook.date_finished && (
           <span className="truncate ml-2">
-            Terminado: {new Date(userBook.finishedAt).toLocaleDateString()}
+            Terminado: {new Date(userBook.date_finished).toLocaleDateString()}
           </span>
         )}
       </div>

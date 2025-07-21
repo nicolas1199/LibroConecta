@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useRef } from "react";
 import Search from "../icons/Search";
 import Filter from "../icons/Filter";
 import X from "../icons/X";
@@ -20,6 +20,7 @@ const LibraryFilters = memo(
     updateAdvancedFilter,
     resetFilters,
     onSearch,
+    onApplyAdvancedFilters,
     globalStats,
   }) => {
     const tabs = [
@@ -56,17 +57,23 @@ const LibraryFilters = memo(
       { value: "1", label: "1+ estrellas" },
     ];
 
+    const searchTimeoutRef = useRef(null);
+
     const handleSearchChange = (e) => {
       const value = e.target.value;
       setSearchTerm(value);
 
-      // Debounced search
-      const timeoutId = setTimeout(() => {
-        onSearch(value);
-      }, 500);
+      // Limpiar timeout anterior si existe
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
 
-      // Cleanup function
-      return () => clearTimeout(timeoutId);
+      // Debounced search - solo buscar si hay al menos 2 caracteres o está vacío
+      if (value.length >= 2 || value.length === 0) {
+        searchTimeoutRef.current = setTimeout(() => {
+          onSearch(value);
+        }, 500);
+      }
     };
 
     return (
@@ -141,9 +148,13 @@ const LibraryFilters = memo(
           </button>
 
           {/* Botón reset */}
-          {(searchTerm || quickGenreFilter || showAdvancedSearch) && (
+          {(searchTerm || quickGenreFilter) && (
             <button
-              onClick={resetFilters}
+              onClick={() => {
+                setSearchTerm("");
+                setQuickGenreFilter("");
+                onSearch("");
+              }}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
               Limpiar
@@ -230,6 +241,22 @@ const LibraryFilters = memo(
                   label="Orden"
                   placeholder="Seleccionar orden"
                 />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={onApplyAdvancedFilters}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Aplicar filtros
+                </button>
+                <button
+                  onClick={resetFilters}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Limpiar todo
+                </button>
               </div>
             </div>
           </div>
