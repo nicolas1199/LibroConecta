@@ -1,5 +1,6 @@
 import { PublishedBooks, Match, User, Book } from "../db/modelIndex.js";
 import { Op } from "sequelize";
+import { sequelize } from "../config/configDb.js";
 
 // Servicio para marcar un intercambio como completado
 export async function completeExchangeService(matchId, userId) {
@@ -22,42 +23,37 @@ export async function completeExchangeService(matchId, userId) {
       User.findByPk(match.user_id_2),
     ]);
 
-    // Obtener los libros publicados de ambos usuarios
+    // Obtener los libros publicados de ambos usuarios sin incluir status en el SELECT
     const [user1Books, user2Books] = await Promise.all([
       PublishedBooks.findAll({
         where: { 
           user_id: match.user_id_1
-        }
+        },
+        attributes: { exclude: ['status'] } // Excluir status del SELECT por ahora
       }),
       PublishedBooks.findAll({
         where: { 
           user_id: match.user_id_2
-        }
+        },
+        attributes: { exclude: ['status'] } // Excluir status del SELECT por ahora
       })
     ]);
 
-    // Intentar actualizar el status si la columna existe
+    // Usar SQL directo para actualizar el status
     try {
-      await Promise.all([
-        PublishedBooks.update(
-          { status: 'sold' },
-          { 
-            where: { 
-              user_id: match.user_id_1
-            }
-          }
-        ),
-        PublishedBooks.update(
-          { status: 'sold' },
-          { 
-            where: { 
-              user_id: match.user_id_2
-            }
-          }
-        )
-      ]);
+      await sequelize.query(`
+        UPDATE "PublishedBooks" 
+        SET status = 'sold' 
+        WHERE user_id IN (:user1Id, :user2Id)
+      `, {
+        replacements: { 
+          user1Id: match.user_id_1, 
+          user2Id: match.user_id_2 
+        }
+      });
+      console.log("✅ Status actualizado a 'sold' usando SQL directo");
     } catch (statusError) {
-      console.log("⚠️ No se pudo actualizar el status, pero el intercambio se completó");
+      console.log("⚠️ Error al actualizar status:", statusError.message);
     }
 
     return {
@@ -112,34 +108,29 @@ export async function getExchangeInfoService(matchId, userId) {
       })
     ]);
 
-    // Obtener los libros publicados de ambos usuarios
-    const [user1Books, user2Books] = await Promise.all([
-      PublishedBooks.findAll({
-        where: { 
-          user_id: match.user_id_1
-        },
-        include: [
-          {
-            model: Book,
-            attributes: ["title", "author", "description"]
-          }
-        ]
+    // Usar SQL directo para obtener los libros con status
+    const [user1BooksResult, user2BooksResult] = await Promise.all([
+      sequelize.query(`
+        SELECT pb.*, b.title, b.author, b.description, pb.status
+        FROM "PublishedBooks" pb
+        LEFT JOIN "Books" b ON pb.book_id = b.book_id
+        WHERE pb.user_id = :userId
+      `, {
+        replacements: { userId: match.user_id_1 },
+        type: sequelize.QueryTypes.SELECT
       }),
-      PublishedBooks.findAll({
-        where: { 
-          user_id: match.user_id_2
-        },
-        include: [
-          {
-            model: Book,
-            attributes: ["title", "author", "description"]
-          }
-        ]
+      sequelize.query(`
+        SELECT pb.*, b.title, b.author, b.description, pb.status
+        FROM "PublishedBooks" pb
+        LEFT JOIN "Books" b ON pb.book_id = b.book_id
+        WHERE pb.user_id = :userId
+      `, {
+        replacements: { userId: match.user_id_2 },
+        type: sequelize.QueryTypes.SELECT
       })
     ]);
 
     // Determinar si el intercambio está completado
-    // Por ahora, asumimos que no está completado a menos que tengamos información específica
     const isCompleted = false;
 
     return {
@@ -151,11 +142,11 @@ export async function getExchangeInfoService(matchId, userId) {
           user_id: user1.user_id,
           name: `${user1.first_name} ${user1.last_name}`,
           location: user1.location_id,
-          books: user1Books.map(book => ({
+          books: user1BooksResult.map(book => ({
             published_book_id: book.published_book_id,
-            title: book.Book?.title || 'Título no disponible',
-            author: book.Book?.author || 'Autor desconocido',
-            description: book.Book?.description || '',
+            title: book.title || 'Título no disponible',
+            author: book.author || 'Autor desconocido',
+            description: book.description || '',
             status: book.status || 'available'
           }))
         },
@@ -163,17 +154,17 @@ export async function getExchangeInfoService(matchId, userId) {
           user_id: user2.user_id,
           name: `${user2.first_name} ${user2.last_name}`,
           location: user2.location_id,
-          books: user2Books.map(book => ({
+          books: user2BooksResult.map(book => ({
             published_book_id: book.published_book_id,
-            title: book.Book?.title || 'Título no disponible',
-            author: book.Book?.author || 'Autor desconocido',
-            description: book.Book?.description || '',
+            title: book.title || 'Título no disponible',
+            author: book.author || 'Autor desconocido',
+            description: book.description || '',
             status: book.status || 'available'
           }))
         }
       ],
-      can_complete: true, // Siempre permitir completar por ahora
-      total_books: user1Books.length + user2Books.length
+      can_complete: true,
+      total_books: user1BooksResult.length + user2BooksResult.length
     };
 
   } catch (error) {
