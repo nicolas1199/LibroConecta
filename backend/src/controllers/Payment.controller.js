@@ -30,8 +30,22 @@ const payment = new MPPayment(client);
  */
 export async function createPaymentPreference(req, res) {
   try {
+    console.log('🔍 Iniciando createPaymentPreference...');
+    
+    // Verificar variables de entorno críticas
+    if (!MP_ACCESS_TOKEN) {
+      console.error('❌ MP_ACCESS_TOKEN no está configurado');
+      return error(res, 'Configuración de pagos incompleta', 500);
+    }
+    
+    console.log('✅ MP_ACCESS_TOKEN presente:', MP_ACCESS_TOKEN.substring(0, 20) + '...');
+    console.log('✅ FRONTEND_URL:', FRONTEND_URL);
+    console.log('✅ BACKEND_URL:', BACKEND_URL);
+    
     const { publishedBookId } = req.params;
     const userId = req.user.user_id;
+    
+    console.log('📋 Parámetros recibidos:', { publishedBookId, userId });
 
     // Verificar que el libro existe y está disponible para venta
     const publishedBook = await PublishedBooks.findByPk(publishedBookId, {
@@ -139,6 +153,19 @@ export async function createPaymentPreference(req, res) {
 
   } catch (err) {
     console.error('❌ Error creando preferencia de pago:', err);
+    console.error('❌ Stack trace completo:', err.stack);
+    console.error('❌ Detalles del error:', {
+      message: err.message,
+      name: err.name,
+      code: err.code,
+      status: err.status
+    });
+    
+    // Enviar más información en desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      return error(res, `Error interno del servidor: ${err.message}`, 500);
+    }
+    
     return error(res, 'Error interno del servidor', 500);
   }
 }
