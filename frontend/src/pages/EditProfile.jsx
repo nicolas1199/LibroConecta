@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { getUserProfile, updateUserProfile } from "../api/auth"
 import { getLocations } from "../api/publishedBooks"
@@ -210,13 +210,15 @@ export default function EditProfile() {
   }
 
   // Agrupar ubicaciones por región (igual que en PublishBook)
-  const groupedLocations = locations.reduce((acc, location) => {
-    if (!acc[location.region]) {
-      acc[location.region] = []
-    }
-    acc[location.region].push(location)
-    return acc
-  }, {})
+  const groupedLocations = useMemo(() => {
+    return locations.reduce((acc, location) => {
+      if (!acc[location.region]) {
+        acc[location.region] = []
+      }
+      acc[location.region].push(location)
+      return acc
+    }, {})
+  }, [locations])
 
   if (isLoadingData) {
     return (
@@ -380,14 +382,16 @@ export default function EditProfile() {
             </div>
 
             <div>
-              <label className="form-label">Ubicación</label>
+              <label className="form-label">
+                Ubicación <span className="text-red-500">*</span>
+              </label>
               <select
                 value={formData.location_id}
                 onChange={(e) => handleInputChange("location_id", e.target.value)}
                 className="form-control"
               >
                 <option value="">Selecciona tu ubicación</option>
-                {Object.entries(groupedLocations).map(([region, locations]) => (
+                {locations.length > 0 && Object.entries(groupedLocations).map(([region, locations]) => (
                   <optgroup key={region} label={region}>
                     {locations.map((location) => (
                       <option key={location.location_id} value={location.location_id}>
