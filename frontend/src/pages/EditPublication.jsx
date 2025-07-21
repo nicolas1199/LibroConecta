@@ -226,9 +226,8 @@ export default function EditPublication() {
         description: formData.description,
       }
 
-      // Reemplazar estas líneas:
-      // TODO: Implementar API para actualizar publicación
-      //console.log("Actualizar publicación:", updateData)
+      // Actualizar la publicación - CORREGIDO: ahora sí llama a la API
+      console.log("Actualizando publicación:", updateData)
       const updatedPublication = await updatePublishedBook(id, updateData)
       console.log("Publicación actualizada:", updatedPublication)
 
@@ -261,9 +260,12 @@ export default function EditPublication() {
         }
       }
 
-      // Redirigir con mensaje de éxito
+      // Redirigir con mensaje de éxito y flag para refrescar datos
       navigate("/my-publications", {
-        state: { message: "¡Publicación actualizada exitosamente!" },
+        state: {
+          message: "¡Publicación actualizada exitosamente!",
+          refreshData: true,
+        },
       })
     } catch (error) {
       console.error("Error updating publication:", error)
