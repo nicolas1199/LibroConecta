@@ -9,6 +9,7 @@ export async function createPaymentPreference(publishedBookId) {
   try {
     console.log('🔍 Creando preferencia para libro:', publishedBookId);
     console.log('🔍 Token de auth:', localStorage.getItem('token') ? 'Presente' : 'Ausente');
+    console.log('🔍 URL completa:', `${import.meta.env.VITE_API_URL}/payments/preferences/${publishedBookId}`);
     
     const response = await api.post(`/payments/preferences/${publishedBookId}`);
     console.log('✅ Respuesta de preferencia:', response.data);
@@ -19,8 +20,21 @@ export async function createPaymentPreference(publishedBookId) {
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
-      url: error.config?.url
+      url: error.config?.url,
+      headers: error.config?.headers
     });
+    
+    // Intentar parsear el error HTML del servidor
+    if (error.response?.data && typeof error.response.data === 'string' && error.response.data.includes('<html>')) {
+      console.error('❌ Error HTML del servidor:', error.response.data);
+      
+      // Extraer el mensaje de error del HTML
+      const match = error.response.data.match(/<pre>(.*?)<\/pre>/s);
+      if (match) {
+        console.error('❌ Stack trace del servidor:', match[1]);
+      }
+    }
+    
     throw error;
   }
 }
