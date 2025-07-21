@@ -2,6 +2,7 @@ import { Router } from "express";
 import { 
   createPaymentPreference,
   handlePaymentWebhook,
+  handlePaymentReturn,
   getPaymentStatus,
   getUserPayments,
   processDirectPayment,
@@ -32,6 +33,27 @@ router.post(
  * @note Esta ruta debe estar configurada en MercadoPago
  */
 router.post("/webhook", handlePaymentWebhook);
+
+/**
+ * @route GET /api/payments/return/success
+ * @desc Manejar retorno exitoso de MercadoPago
+ * @access Public (sin autenticación, redirecciona al frontend)
+ */
+router.get("/return/success", handlePaymentReturn);
+
+/**
+ * @route GET /api/payments/return/failure
+ * @desc Manejar retorno fallido de MercadoPago
+ * @access Public (sin autenticación, redirecciona al frontend)
+ */
+router.get("/return/failure", handlePaymentReturn);
+
+/**
+ * @route GET /api/payments/return/pending
+ * @desc Manejar retorno pendiente de MercadoPago
+ * @access Public (sin autenticación, redirecciona al frontend)
+ */
+router.get("/return/pending", handlePaymentReturn);
 
 /**
  * @route GET /api/payments/:paymentId/status

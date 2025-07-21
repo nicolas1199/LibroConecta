@@ -173,10 +173,10 @@ export async function createPaymentPreference(req, res) {
       status: 'pending'
     });
 
-    // Preparar URLs de retorno
-    const successUrl = `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}`;
-    const failureUrl = `${FRONTEND_URL}/payment/failure?payment_id=${paymentRecord.payment_id}`;
-    const pendingUrl = `${FRONTEND_URL}/payment/pending?payment_id=${paymentRecord.payment_id}`;
+    // Preparar URLs de retorno específicas para cada estado
+    const successUrl = `${BACKEND_URL}/api/payments/return/success`;
+    const failureUrl = `${BACKEND_URL}/api/payments/return/failure`; 
+    const pendingUrl = `${BACKEND_URL}/api/payments/return/pending`;
     const notificationUrl = `${BACKEND_URL}/api/payments/webhook`;
 
     console.log('🔗 URLs configuradas:', {
@@ -185,13 +185,20 @@ export async function createPaymentPreference(req, res) {
       pending: pendingUrl,
       notification: notificationUrl,
       FRONTEND_URL_VALUE: FRONTEND_URL,
-      BACKEND_URL_VALUE: BACKEND_URL
+      BACKEND_URL_VALUE: BACKEND_URL,
+      auto_return: 'approved'
     });
 
     // Validar que las URLs estén bien formadas
     if (!successUrl || successUrl.includes('undefined')) {
       console.error('❌ successUrl está mal formada:', successUrl);
       return error(res, 'Error en configuración de URLs de retorno', 500);
+    }
+
+    // Verificar que las URLs sean diferentes (requerido por MercadoPago para auto_return)
+    if (successUrl === failureUrl || successUrl === pendingUrl) {
+      console.error('❌ Las URLs de retorno deben ser diferentes para auto_return');
+      return error(res, 'Error en configuración de URLs: deben ser diferentes', 500);
     }
 
     // Preparar datos para MercadoPago
@@ -233,6 +240,8 @@ export async function createPaymentPreference(req, res) {
         failure: failureUrl,
         pending: pendingUrl
       },
+      // IMPORTANTE: Configurar auto_return para redirigir automáticamente
+      auto_return: 'approved',
       // Configuración de tiempo de expiración
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
@@ -370,7 +379,13 @@ export async function createPaymentPreference(req, res) {
  */
 export async function handlePaymentWebhook(req, res) {
   try {
-    console.log('🔔 Webhook recibido:', JSON.stringify(req.body, null, 2));
+    console.log('🔔 Webhook recibido de MercadoPago:', {
+      headers: req.headers,
+      body: req.body,
+      method: req.method,
+      url: req.url,
+      timestamp: new Date().toISOString()
+    });
 
     const { type, data } = req.body;
 
@@ -378,12 +393,14 @@ export async function handlePaymentWebhook(req, res) {
     if (type === 'payment') {
       const mpPaymentId = data.id;
       
+      console.log(`💳 Procesando pago con ID: ${mpPaymentId}`);
+      
       // Obtener información del pago desde MercadoPago
       const mpPaymentInfo = await payment.get({ id: mpPaymentId });
       
-      console.log('💳 Información del pago:', JSON.stringify(mpPaymentInfo, null, 2));
+      console.log('💳 Información completa del pago de MercadoPago:', JSON.stringify(mpPaymentInfo, null, 2));
 
-      // Buscar el pago en nuestra base de datos
+      // Buscar el pago en nuestra base de datos usando external_reference
       const paymentRecord = await Payment.findOne({
         where: { 
           mp_external_reference: mpPaymentInfo.external_reference 
@@ -391,39 +408,187 @@ export async function handlePaymentWebhook(req, res) {
       });
 
       if (!paymentRecord) {
-        console.error(`❌ Pago no encontrado en BD: ${mpPaymentInfo.external_reference}`);
+        console.error(`❌ Pago no encontrado en BD con external_reference: ${mpPaymentInfo.external_reference}`);
+        
+        // Intentar buscar por mp_payment_id si existe
+        if (mpPaymentId) {
+          const altPaymentRecord = await Payment.findOne({
+            where: { mp_payment_id: mpPaymentId.toString() }
+          });
+          
+          if (altPaymentRecord) {
+            console.log(`✅ Pago encontrado por mp_payment_id: ${mpPaymentId}`);
+            await updatePaymentFromWebhook(altPaymentRecord, mpPaymentInfo, mpPaymentId);
+            return res.status(200).send('OK');
+          }
+        }
+        
         return res.status(404).send('Payment not found');
       }
 
-      // Actualizar información del pago
-      await paymentRecord.update({
-        mp_payment_id: mpPaymentId.toString(),
-        mp_collection_id: mpPaymentInfo.collection_id,
-        mp_collection_status: mpPaymentInfo.status,
-        payment_method: mpPaymentInfo.payment_method_id,
-        payment_date: mpPaymentInfo.date_approved || new Date(),
-        status: mapMercadoPagoStatus(mpPaymentInfo.status)
-      });
+      console.log(`📋 Pago encontrado en BD: ${paymentRecord.payment_id}`);
 
-      // Si el pago fue aprobado, crear la transacción
-      if (mpPaymentInfo.status === 'approved') {
-        await createTransactionFromPayment(paymentRecord);
-      }
+      await updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentId);
 
-      console.log(`✅ Pago actualizado: ${paymentRecord.payment_id} - Estado: ${mpPaymentInfo.status}`);
+      console.log(`✅ Pago actualizado correctamente: ${paymentRecord.payment_id} - Estado: ${mpPaymentInfo.status}`);
+    } else {
+      console.log(`ℹ️ Notificación no es de tipo 'payment', ignorando: ${type}`);
     }
 
     return res.status(200).send('OK');
 
   } catch (error) {
-    console.error('❌ Error procesando webhook:', error);
+    console.error('❌ Error procesando webhook de MercadoPago:', {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
     return res.status(500).send('Internal Server Error');
   }
 }
 
 /**
- * Obtener estado de un pago
+ * Actualizar pago desde webhook de MercadoPago
  */
+async function updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentId) {
+  // Actualizar información del pago
+  await paymentRecord.update({
+    mp_payment_id: mpPaymentId.toString(),
+    mp_collection_id: mpPaymentInfo.collection_id,
+    mp_collection_status: mpPaymentInfo.status,
+    payment_method: mpPaymentInfo.payment_method_id,
+    payment_date: mpPaymentInfo.date_approved || new Date(),
+    status: mapMercadoPagoStatus(mpPaymentInfo.status)
+  });
+
+  // Si el pago fue aprobado, crear la transacción
+  if (mpPaymentInfo.status === 'approved') {
+    console.log(`✅ Pago aprobado, creando transacción para: ${paymentRecord.payment_id}`);
+    await createTransactionFromPayment(paymentRecord);
+  }
+}
+
+/**
+ * Manejar retorno de MercadoPago
+ * Esta función maneja los parámetros que MercadoPago envía en las URLs de retorno
+ */
+export async function handlePaymentReturn(req, res) {
+  try {
+    console.log('🔙 Retorno de MercadoPago recibido:', {
+      query: req.query,
+      headers: req.headers,
+      method: req.method,
+      url: req.url,
+      originalUrl: req.originalUrl,
+      timestamp: new Date().toISOString()
+    });
+
+    // Determinar el tipo de retorno basado en la URL
+    const returnType = req.originalUrl.includes('/success') ? 'success' :
+                      req.originalUrl.includes('/failure') ? 'failure' :
+                      req.originalUrl.includes('/pending') ? 'pending' : 'unknown';
+
+    console.log(`📍 Tipo de retorno detectado: ${returnType}`);
+
+    const { 
+      collection_id, 
+      collection_status, 
+      payment_id, 
+      status, 
+      external_reference,
+      payment_type,
+      merchant_order_id,
+      preference_id
+    } = req.query;
+
+    let frontendPath = '/payment/success'; // por defecto
+
+    // Determinar la página de destino basada en el tipo de retorno
+    switch (returnType) {
+      case 'success':
+        frontendPath = '/payment/success';
+        break;
+      case 'failure':
+        frontendPath = '/payment/failure';
+        break;
+      case 'pending':
+        frontendPath = '/payment/pending';
+        break;
+      default:
+        frontendPath = '/payment/failure';
+    }
+
+    // Si hay información de pago, intentar actualizar nuestro registro
+    if (collection_id && external_reference) {
+      try {
+        // Buscar el pago por external_reference
+        const paymentRecord = await Payment.findOne({
+          where: { mp_external_reference: external_reference }
+        });
+
+        if (paymentRecord) {
+          console.log(`✅ Actualizando pago desde retorno: ${paymentRecord.payment_id}`);
+          
+          // Determinar el estado basado en el tipo de retorno y los parámetros
+          let finalStatus = collection_status || status;
+          if (returnType === 'success' && !finalStatus) {
+            finalStatus = 'approved';
+          } else if (returnType === 'failure' && !finalStatus) {
+            finalStatus = 'rejected';
+          } else if (returnType === 'pending' && !finalStatus) {
+            finalStatus = 'pending';
+          }
+
+          // Actualizar el estado del pago
+          await paymentRecord.update({
+            mp_payment_id: collection_id,
+            mp_collection_id: collection_id,
+            mp_collection_status: finalStatus,
+            status: mapMercadoPagoStatus(finalStatus),
+            payment_date: finalStatus === 'approved' ? new Date() : paymentRecord.payment_date
+          });
+
+          // Crear transacción si fue aprobado
+          if (finalStatus === 'approved') {
+            await createTransactionFromPayment(paymentRecord);
+          }
+        }
+      } catch (updateError) {
+        console.error('❌ Error actualizando pago desde retorno:', updateError);
+      }
+    }
+
+    // Redireccionar al frontend con los parámetros
+    const redirectUrl = new URL(`${FRONTEND_URL}${frontendPath}`);
+    
+    // Agregar parámetros relevantes
+    if (external_reference) {
+      // Extraer payment_id de nuestra DB del external_reference
+      const paymentRecord = await Payment.findOne({
+        where: { mp_external_reference: external_reference }
+      });
+      if (paymentRecord) {
+        redirectUrl.searchParams.set('payment_id', paymentRecord.payment_id);
+      }
+    }
+    
+    if (collection_id) redirectUrl.searchParams.set('collection_id', collection_id);
+    if (collection_status) redirectUrl.searchParams.set('collection_status', collection_status);
+    if (preference_id) redirectUrl.searchParams.set('preference_id', preference_id);
+    if (status) redirectUrl.searchParams.set('status', status);
+
+    console.log(`🔄 Redirigiendo a: ${redirectUrl.toString()}`);
+
+    return res.redirect(redirectUrl.toString());
+
+  } catch (error) {
+    console.error('❌ Error manejando retorno de MercadoPago:', error);
+    
+    // Redireccionar a página de error
+    const errorUrl = `${FRONTEND_URL}/payment/failure?error=return_processing_failed`;
+    return res.redirect(errorUrl);
+  }
+}
 export async function getPaymentStatus(req, res) {
   try {
     const { paymentId } = req.params;
