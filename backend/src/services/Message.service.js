@@ -59,7 +59,7 @@ export async function getMessagesService(matchId, userId, options = {}) {
 }
 
 // Servicio para enviar un mensaje
-export async function sendMessageService(matchId, senderId, messageText) {
+export async function sendMessageService(matchId, senderId, messageData) {
   try {
     // Verificar acceso al match
     const match = await Match.findOne({
@@ -79,12 +79,28 @@ export async function sendMessageService(matchId, senderId, messageText) {
         ? match.get("user_id_2")
         : match.get("user_id_1");
 
+    // Validar el tipo de mensaje
+    const messageType = messageData.message_type || 'text';
+    
+    if (messageType === 'text' && (!messageData.message_text || messageData.message_text.trim() === "")) {
+      throw new Error("El mensaje de texto no puede estar vacío");
+    }
+    
+    if (messageType === 'image' && (!messageData.image_data || messageData.image_data.trim() === "")) {
+      throw new Error("Los datos de la imagen no pueden estar vacíos");
+    }
+
     // Crear el mensaje
     const newMessage = await Message.create({
       sender_id: senderId,
       receiver_id: receiverId,
       match_id: matchId,
-      message_text: messageText.trim(),
+      message_text: messageData.message_text ? messageData.message_text.trim() : null,
+      message_type: messageType,
+      image_data: messageData.image_data || null,
+      image_filename: messageData.image_filename || null,
+      image_mimetype: messageData.image_mimetype || null,
+      image_size: messageData.image_size || null,
       sent_at: new Date(),
     });
 

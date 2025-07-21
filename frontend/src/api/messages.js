@@ -23,14 +23,45 @@ export const getMessages = async (matchId, params = {}) => {
 };
 
 // Enviar un mensaje
-export const sendMessage = async (matchId, messageText) => {
+export const sendMessage = async (matchId, messageData) => {
   try {
-    const response = await api.post(`/messages/${matchId}`, {
-      message_text: messageText,
-    });
+    const response = await api.post(`/messages/${matchId}`, messageData);
     return response.data;
   } catch (error) {
     console.error("Error al enviar mensaje:", error);
+    throw error;
+  }
+};
+
+// Enviar un mensaje de texto
+export const sendTextMessage = async (matchId, messageText) => {
+  return sendMessage(matchId, {
+    message_text: messageText,
+    message_type: 'text'
+  });
+};
+
+// Enviar un mensaje con imagen base64
+export const sendImageMessage = async (matchId, imageFile, caption = '') => {
+  try {
+    // Convertir archivo a base64
+    const base64Data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(imageFile);
+    });
+
+    return sendMessage(matchId, {
+      message_text: caption || null,
+      message_type: 'image',
+      image_data: base64Data,
+      image_filename: imageFile.name,
+      image_mimetype: imageFile.type,
+      image_size: imageFile.size
+    });
+  } catch (error) {
+    console.error("Error al enviar imagen:", error);
     throw error;
   }
 };

@@ -15,6 +15,7 @@ import messageRoutes from "./Message.routes.js";
 import ratingRoutes from "./Rating.routes.js";
 import userRoutes from "./User.routes.js";
 import paymentRoutes from "./Payment.routes.js";
+import exchangeRoutes from "./Exchange.routes.js";
 
 const router = Router();
 
@@ -62,5 +63,8 @@ router.use("/users", userRoutes);
 
 // Rutas de pagos y transacciones
 router.use("/payments", paymentRoutes);
+
+// Rutas de intercambios
+router.use("/exchanges", exchangeRoutes);
 
 export default router;

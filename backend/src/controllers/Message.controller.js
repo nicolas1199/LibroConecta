@@ -85,13 +85,22 @@ export const sendMessage = async (req, res) => {
   try {
     const { user_id } = req.user;
     const { match_id } = req.params;
-    const { message_text } = req.body;
+    const { message_text, message_type = 'text', image_data, image_filename, image_mimetype, image_size } = req.body;
 
-    if (!message_text || message_text.trim() === "") {
+    // Validar que al menos hay contenido
+    if (message_type === 'text' && (!message_text || message_text.trim() === "")) {
       return res
         .status(400)
         .json(
-          createResponse(400, "El mensaje no puede estar vacío", null, null)
+          createResponse(400, "El mensaje de texto no puede estar vacío", null, null)
+        );
+    }
+
+    if (message_type === 'image' && (!image_data || image_data.trim() === "")) {
+      return res
+        .status(400)
+        .json(
+          createResponse(400, "Los datos de la imagen no pueden estar vacíos", null, null)
         );
     }
 
@@ -122,7 +131,12 @@ export const sendMessage = async (req, res) => {
       sender_id: user_id,
       receiver_id,
       match_id,
-      message_text: message_text.trim(),
+      message_text: message_text ? message_text.trim() : null,
+      message_type,
+      image_data: image_data || null,
+      image_filename: image_filename || null,
+      image_mimetype: image_mimetype || null,
+      image_size: image_size || null,
       sent_at: new Date(),
     });
 
