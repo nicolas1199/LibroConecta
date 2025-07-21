@@ -3,7 +3,8 @@ import {
   createPaymentPreference,
   handlePaymentWebhook,
   getPaymentStatus,
-  getUserPayments
+  getUserPayments,
+  processDirectPayment
 } from "../controllers/Payment.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import { validateUUIDParam } from "../utils/uuid.util.js";
@@ -55,5 +56,13 @@ router.get(
   authenticateToken,
   getUserPayments
 );
+
+/**
+ * @route POST /api/payments/process
+ * @desc Procesar pago directo usando MercadoPago Payment API
+ * @access Public (puede ser usado por el frontend directamente)
+ * @body {object} payment_data - Datos del pago según MercadoPago API
+ */
+router.post("/process", processDirectPayment);
 
 export default router; 
