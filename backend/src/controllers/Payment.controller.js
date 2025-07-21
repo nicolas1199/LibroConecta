@@ -219,14 +219,7 @@ export async function createPaymentPreference(req, res) {
         failure: failureUrl,
         pending: pendingUrl
       },
-      back_url: {
-        success: successUrl,
-        failure: failureUrl,
-        pending: pendingUrl
-      },
-      // CONFIGURACIÓN CRÍTICA: auto_return para redirección automática
-      auto_return: 'approved', // Redirigir automáticamente solo en pagos aprobados
-      // Reducir tiempo de redirección (opcional)
+      // Configuración de tiempo de expiración
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
       statement_descriptor: 'LIBROCONECTA',
@@ -266,7 +259,6 @@ export async function createPaymentPreference(req, res) {
     });
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
-    console.log(`🔄 Auto-return configurado: approved`);
     console.log(`🎯 URL de éxito: ${successUrl}`);
 
     return success(res, {
