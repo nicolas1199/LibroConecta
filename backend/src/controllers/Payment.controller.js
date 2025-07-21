@@ -31,11 +31,27 @@ const payment = new MPPayment(client);
 export async function createPaymentPreference(req, res) {
   try {
     console.log('🔍 Iniciando createPaymentPreference...');
+    console.log('🔍 Variables de entorno:', {
+      MP_ACCESS_TOKEN_LENGTH: MP_ACCESS_TOKEN ? MP_ACCESS_TOKEN.length : 0,
+      FRONTEND_URL,
+      BACKEND_URL,
+      NODE_ENV: process.env.NODE_ENV
+    });
     
     // Verificar variables de entorno críticas
     if (!MP_ACCESS_TOKEN) {
       console.error('❌ MP_ACCESS_TOKEN no está configurado');
-      return error(res, 'Configuración de pagos incompleta', 500);
+      return error(res, 'Configuración de pagos incompleta: MP_ACCESS_TOKEN faltante', 500);
+    }
+    
+    if (!FRONTEND_URL) {
+      console.error('❌ FRONTEND_URL no está configurado');
+      return error(res, 'Configuración de pagos incompleta: FRONTEND_URL faltante', 500);
+    }
+    
+    if (!BACKEND_URL) {
+      console.error('❌ BACKEND_URL no está configurado');
+      return error(res, 'Configuración de pagos incompleta: BACKEND_URL faltante', 500);
     }
     
     console.log('✅ MP_ACCESS_TOKEN presente:', MP_ACCESS_TOKEN.substring(0, 20) + '...');
@@ -178,15 +194,18 @@ export async function createPaymentPreference(req, res) {
       message: err.message,
       name: err.name,
       code: err.code,
-      status: err.status
+      status: err.status,
+      response: err.response?.data || 'No response data'
     });
     
-    // Enviar más información en desarrollo
-    if (process.env.NODE_ENV === 'development') {
-      return error(res, `Error interno del servidor: ${err.message}`, 500);
+    // Si es un error de MercadoPago, mostrar detalles específicos
+    if (err.response && err.response.data) {
+      console.error('❌ Error de MercadoPago:', JSON.stringify(err.response.data, null, 2));
+      return error(res, `Error de MercadoPago: ${JSON.stringify(err.response.data)}`, 500);
     }
     
-    return error(res, 'Error interno del servidor', 500);
+    // Enviar más información en desarrollo
+    return error(res, `Error interno del servidor: ${err.message}`, 500);
   }
 }
 
