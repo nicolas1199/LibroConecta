@@ -87,6 +87,24 @@ export async function createPaymentPreference(req, res) {
       return error(res, 'Libro no encontrado', 404);
     }
 
+    console.log('📖 Datos del libro encontrado:', {
+      published_book_id: publishedBook.published_book_id,
+      user_id: publishedBook.user_id,
+      book_title: publishedBook.Book?.title,
+      book_author: publishedBook.Book?.author,
+      price: publishedBook.price
+    });
+
+    console.log('🔍 Comparación de usuarios:', {
+      libro_owner_id: publishedBook.user_id,
+      current_user_id: userId,
+      son_iguales: publishedBook.user_id === userId,
+      tipos: {
+        libro_owner_type: typeof publishedBook.user_id,
+        current_user_type: typeof userId
+      }
+    });
+
     // Verificar que no sea el propio dueño del libro
     if (publishedBook.user_id === userId) {
       return error(res, 'No puedes comprar tu propio libro', 400);
