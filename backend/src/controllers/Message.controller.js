@@ -82,14 +82,37 @@ export const sendMessage = async (req, res) => {
   try {
     const { user_id } = req.user;
     const { match_id } = req.params;
-    const { message_text } = req.body;
+    const { 
+      message_text, 
+      message_type = 'text', 
+      image_data, 
+      image_filename, 
+      image_mimetype, 
+      image_size 
+    } = req.body;
 
-    // Validar que hay contenido
-    if (!message_text || message_text.trim() === "") {
+    // Validar según el tipo de mensaje
+    if (message_type === 'text') {
+      if (!message_text || message_text.trim() === "") {
+        return res
+          .status(400)
+          .json(
+            createResponse(400, "El mensaje de texto no puede estar vacío", null, null)
+          );
+      }
+    } else if (message_type === 'image') {
+      if (!image_data || !image_data.startsWith('data:image/')) {
+        return res
+          .status(400)
+          .json(
+            createResponse(400, "Datos de imagen inválidos", null, null)
+          );
+      }
+    } else {
       return res
         .status(400)
         .json(
-          createResponse(400, "El mensaje no puede estar vacío", null, null)
+          createResponse(400, "Tipo de mensaje inválido", null, null)
         );
     }
 
@@ -116,14 +139,26 @@ export const sendMessage = async (req, res) => {
         : match.get("user_id_1");
 
     // Crear el mensaje
-    const newMessage = await Message.create({
+    const messageData = {
       sender_id: user_id,
       receiver_id,
       match_id,
-      message_text: message_text.trim(),
-      message_type: 'text',
+      message_type,
       sent_at: new Date(),
-    });
+    };
+
+    // Agregar datos específicos según el tipo
+    if (message_type === 'text') {
+      messageData.message_text = message_text.trim();
+    } else if (message_type === 'image') {
+      messageData.image_data = image_data;
+      messageData.image_filename = image_filename;
+      messageData.image_mimetype = image_mimetype;
+      messageData.image_size = image_size;
+      messageData.message_text = null; // Las imágenes pueden no tener texto
+    }
+
+    const newMessage = await Message.create(messageData);
 
     // Obtener el mensaje con información del remitente
     const messageWithSender = await Message.findByPk(newMessage.message_id, {
