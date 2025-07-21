@@ -69,105 +69,58 @@ export async function addToLibraryService(userId, bookData) {
     },
   });
 
-  let userLibrary;
+  // Si el libro ya existe, rechazar la solicitud
   if (existingUserLibrary) {
-    // Si ya existe, actualizar los campos de biblioteca
-    const updateData = {
-      reading_status,
-      rating,
-      review,
-      isbn,
-      image_url,
-      date_of_pub,
-      genres: processedGenres,
-      main_genre,
-    };
-
-    // Usar fechas manuales si están disponibles, sino usar lógica automática
-    if (date_started !== undefined) {
-      updateData.date_started = date_started ? new Date(date_started) : null;
-    } else {
-      // Lógica automática para fecha de inicio
-      if (
-        reading_status === READING_STATUSES.READING &&
-        existingUserLibrary.dataValues.reading_status !==
-          READING_STATUSES.READING
-      ) {
-        updateData.date_started = new Date();
-      } else if (reading_status === READING_STATUSES.TO_READ) {
-        updateData.date_started = null;
-      }
-    }
-
-    if (date_finished !== undefined) {
-      updateData.date_finished = date_finished ? new Date(date_finished) : null;
-    } else {
-      // Lógica automática para fecha de finalización
-      if (
-        reading_status === READING_STATUSES.READ &&
-        existingUserLibrary.dataValues.reading_status !== READING_STATUSES.READ
-      ) {
-        updateData.date_finished = new Date();
-        if (
-          !existingUserLibrary.dataValues.date_started &&
-          date_started === undefined
-        ) {
-          updateData.date_started = new Date();
-        }
-      } else if (reading_status === READING_STATUSES.READING) {
-        updateData.date_finished = null;
-      } else if (reading_status === READING_STATUSES.TO_READ) {
-        updateData.date_finished = null;
-      } else if (reading_status === READING_STATUSES.ABANDONED) {
-        updateData.date_finished = null;
-      }
-    }
-
-    await existingUserLibrary.update(updateData);
-    userLibrary = existingUserLibrary;
-  } else {
-    // Si no existe, crear nueva entrada
-    let createData = {
-      user_id: userId,
-      title: title.trim(),
-      author: author ? author.trim() : null,
-      isbn,
-      image_url,
-      date_of_pub,
-      reading_status,
-      rating,
-      review,
-      genres: processedGenres,
-      main_genre,
-    };
-
-    // Usar fechas manuales si están disponibles, sino usar lógica automática
-    if (date_started !== undefined) {
-      createData.date_started = date_started ? new Date(date_started) : null;
-    } else {
-      // Establecer fechas según el estado inicial
-      if (reading_status === READING_STATUSES.READING) {
-        createData.date_started = new Date();
-      } else if (reading_status === READING_STATUSES.READ) {
-        createData.date_started = new Date();
-      } else {
-        createData.date_started = null;
-      }
-    }
-
-    if (date_finished !== undefined) {
-      createData.date_finished = date_finished ? new Date(date_finished) : null;
-    } else {
-      if (reading_status === READING_STATUSES.READ) {
-        createData.date_finished = new Date();
-      } else {
-        createData.date_finished = null;
-      }
-    }
-
-    userLibrary = await UserLibrary.create(createData);
+    const error = new Error(
+      `El libro "${title}" de ${
+        author || "autor desconocido"
+      } ya está en tu biblioteca`
+    );
+    error.statusCode = 409; // Conflict
+    error.code = "DUPLICATE_BOOK";
+    throw error;
   }
 
+  // Crear nueva entrada en la biblioteca
+  let createData = {
+    user_id: userId,
+    title: title.trim(),
+    author: author ? author.trim() : null,
+    isbn,
+    image_url,
+    date_of_pub,
+    reading_status,
+    rating,
+    review,
+    genres: processedGenres,
+    main_genre,
+  };
+
+  // Usar fechas manuales si están disponibles, sino usar lógica automática
+  if (date_started !== undefined) {
+    createData.date_started = date_started ? new Date(date_started) : null;
+  } else {
+    // Establecer fechas según el estado inicial
+    if (reading_status === READING_STATUSES.READING) {
+      createData.date_started = new Date();
+    } else if (reading_status === READING_STATUSES.READ) {
+      createData.date_started = new Date();
+    } else {
+      createData.date_started = null;
+    }
+  }
+
+  if (date_finished !== undefined) {
+    createData.date_finished = date_finished ? new Date(date_finished) : null;
+  } else {
+    if (reading_status === READING_STATUSES.READ) {
+      createData.date_finished = new Date();
+    } else {
+      createData.date_finished = null;
+    }
+  }
+
+  const userLibrary = await UserLibrary.create(createData);
   return userLibrary;
 }
 
@@ -727,4 +680,100 @@ export async function getAdvancedLibraryInsights(userId) {
     console.error("Error en getAdvancedLibraryInsights:", error);
     throw error;
   }
+}
+
+// Actualizar un libro existente en la biblioteca (función separada para futuro uso)
+export async function updateExistingBookService(
+  userId,
+  userLibraryId,
+  bookData
+) {
+  const {
+    reading_status,
+    rating,
+    review,
+    date_started,
+    date_finished,
+    genres,
+  } = bookData;
+
+  // Validaciones de negocio
+  if (rating !== undefined && rating !== null) {
+    validateRatingService(rating);
+    validateRatingConsistency(rating, reading_status);
+  }
+
+  if (review) {
+    validateReviewLength(review);
+  }
+
+  if (date_started && date_finished) {
+    validateDatesService(date_started, date_finished);
+  }
+
+  // Buscar el libro existente
+  const existingUserLibrary = await findUserLibraryByIdService(
+    userLibraryId,
+    userId
+  );
+
+  if (!existingUserLibrary) {
+    const error = new Error("Libro no encontrado en tu biblioteca");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Procesar géneros
+  const { genres: processedGenres, main_genre } = processGenres(genres);
+
+  // Preparar datos de actualización
+  const updateData = {
+    reading_status,
+    rating,
+    review,
+    genres: processedGenres,
+    main_genre,
+  };
+
+  // Manejar fechas automáticamente o usar las proporcionadas
+  if (date_started !== undefined) {
+    updateData.date_started = date_started ? new Date(date_started) : null;
+  } else {
+    // Lógica automática para fecha de inicio
+    if (
+      reading_status === READING_STATUSES.READING &&
+      existingUserLibrary.dataValues.reading_status !== READING_STATUSES.READING
+    ) {
+      updateData.date_started = new Date();
+    } else if (reading_status === READING_STATUSES.TO_READ) {
+      updateData.date_started = null;
+    }
+  }
+
+  if (date_finished !== undefined) {
+    updateData.date_finished = date_finished ? new Date(date_finished) : null;
+  } else {
+    // Lógica automática para fecha de finalización
+    if (
+      reading_status === READING_STATUSES.READ &&
+      existingUserLibrary.dataValues.reading_status !== READING_STATUSES.READ
+    ) {
+      updateData.date_finished = new Date();
+      if (
+        !existingUserLibrary.dataValues.date_started &&
+        date_started === undefined
+      ) {
+        updateData.date_started = new Date();
+      }
+    } else if (reading_status === READING_STATUSES.READING) {
+      updateData.date_finished = null;
+    } else if (reading_status === READING_STATUSES.TO_READ) {
+      updateData.date_finished = null;
+    } else if (reading_status === READING_STATUSES.ABANDONED) {
+      updateData.date_finished = null;
+    }
+  }
+
+  await existingUserLibrary.update(updateData);
+  return existingUserLibrary;
 }

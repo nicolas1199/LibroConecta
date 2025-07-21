@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { BOOK_GENRES } from "../utils/constants";
 import { searchGoogleBooks } from "../services/googleBooks";
+import { checkBookExists } from "../api/userLibrary";
 import BookOpen from "../components/icons/BookOpen";
 import Search from "../components/icons/Search";
 import Plus from "../components/icons/Plus";
@@ -23,6 +24,8 @@ export default function AddToLibrary() {
   const [showForm, setShowForm] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [activeSearchType, setActiveSearchType] = useState("google"); // "google", "manual"
+  const [existingBook, setExistingBook] = useState(null);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     author: "",
@@ -71,7 +74,20 @@ export default function AddToLibrary() {
     }
   }, [searchTerm, activeSearchType]);
 
-  const handleGoogleBookSelect = (book) => {
+  const handleGoogleBookSelect = async (book) => {
+    // Verificar si el libro ya existe en la biblioteca
+    try {
+      const existing = await checkBookExists(book.title, book.author);
+      if (existing) {
+        setExistingBook(existing);
+        setShowDuplicateWarning(true);
+        return; // No permitir agregar el libro duplicado
+      }
+    } catch (error) {
+      console.error("Error checking book existence:", error);
+    }
+
+    // Si no existe duplicado, proceder normalmente
     setSelectedBook(book);
     setFormData({
       title: book.title,
@@ -80,7 +96,7 @@ export default function AddToLibrary() {
       image_url: book.thumbnail || book.image_url || "",
       date_of_pub: book.date_of_pub || "",
       reading_status: "por_leer",
-      rating: 0,
+      rating: 0, // Mantener 0 para el formulario, pero será convertido a null al enviar
       review: "",
       date_started: "",
       date_finished: "",
@@ -124,28 +140,48 @@ export default function AddToLibrary() {
       }
     }
 
-    try {
-      const dataToSend = {
-        title: formData.title,
-        author: formData.author,
-        isbn: formData.isbn,
-        image_url: formData.image_url,
-        date_of_pub: formData.date_of_pub || null,
-        reading_status: formData.reading_status,
-        rating: formData.rating || null,
-        review: formData.review,
-        date_started: formData.date_started || null,
-        date_finished: formData.date_finished || null,
-        genres: formData.genres || [],
-        main_genre: formData.main_genre || null,
-      };
+    const dataToSend = {
+      title: formData.title,
+      author: formData.author,
+      isbn: formData.isbn,
+      image_url: formData.image_url,
+      date_of_pub: formData.date_of_pub || null,
+      reading_status: formData.reading_status,
+      rating: formData.rating > 0 ? formData.rating : null, // Solo enviar rating si es mayor a 0
+      review: formData.review,
+      date_started: formData.date_started || null,
+      date_finished: formData.date_finished || null,
+      genres: formData.genres || [],
+      main_genre: formData.main_genre || null,
+    };
 
+    // Verificar si el libro ya existe en la biblioteca
+    try {
+      const existing = await checkBookExists(formData.title, formData.author);
+      if (existing) {
+        console.log("Libro duplicado encontrado:", existing);
+        setExistingBook(existing);
+        setShowDuplicateWarning(true);
+        return; // No permitir agregar el libro duplicado
+      }
+
+      // Si no hay duplicado, proceder con la adición normal
+      console.log("Enviando datos al backend:", dataToSend);
       await addBookAsync(dataToSend);
       navigate("/dashboard/library");
     } catch (error) {
       console.error("Error adding book:", error);
-      alert("Error al agregar el libro a la biblioteca");
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.message ||
+        "Error al agregar el libro a la biblioteca";
+      alert(errorMessage);
     }
+  };
+
+  const handleCancelDuplicate = () => {
+    setShowDuplicateWarning(false);
+    setExistingBook(null);
   };
 
   // Busqueda con Google Books API
@@ -176,6 +212,59 @@ export default function AddToLibrary() {
       return () => clearTimeout(timeoutId);
     }
   }, [searchTerm, activeSearchType]);
+
+  // Modal de advertencia para libros duplicados
+  if (showDuplicateWarning && existingBook) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              ¡Libro ya en tu biblioteca!
+            </h2>
+            <p className="text-gray-600">
+              Este libro ya está en tu biblioteca:
+            </p>
+            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+              <h3 className="font-semibold text-gray-900">
+                {existingBook.title}
+              </h3>
+              <p className="text-sm text-gray-600">{existingBook.author}</p>
+              <p className="text-sm text-blue-600 mt-1">
+                Estado actual:{" "}
+                {existingBook.reading_status === "por_leer"
+                  ? "Quiero leer"
+                  : existingBook.reading_status === "leyendo"
+                    ? "Leyendo"
+                    : existingBook.reading_status === "leido"
+                      ? "Leído"
+                      : "Abandonado"}
+              </p>
+            </div>
+            <p className="text-gray-600 mt-3">
+              No puedes agregar el mismo libro dos veces. Si quieres modificar
+              la información, ve a tu biblioteca y edita el libro existente.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={handleCancelDuplicate}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Entendido
+            </button>
+            <button
+              onClick={() => navigate("/dashboard/library")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Ir a mi biblioteca
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Formulario manual
   if (showManualForm) {
