@@ -26,6 +26,9 @@ const client = new MercadoPagoConfig({
 const preference = new Preference(client);
 const payment = new MPPayment(client);
 
+// Store temporal para tracking de pagos pendientes (en producción usar Redis)
+const pendingPayments = new Map();
+
 /**
  * Crear preferencia de pago para un libro
  * Según la documentación: https://www.mercadopago.cl/developers/es/reference/preferences/_checkout_preferences/post
@@ -240,8 +243,7 @@ export async function createPaymentPreference(req, res) {
         failure: failureUrl,
         pending: pendingUrl
       },
-      // IMPORTANTE: Configurar auto_return para redirigir automáticamente
-      auto_return: 'approved',
+      // Sin auto_return - manejaremos la redirección desde el webhook
       // Configuración de tiempo de expiración
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
@@ -300,6 +302,13 @@ export async function createPaymentPreference(req, res) {
 
     console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
 
+    // Log específico para las URLs de retorno
+    console.log('🔗 URLs de retorno en preferenceData:', {
+      back_urls: preferenceData.back_urls,
+      notification_url: preferenceData.notification_url,
+      auto_return: preferenceData.auto_return
+    });
+
     // Log final de verificación antes de enviar a MercadoPago
     console.log('🔍 VERIFICACIÓN FINAL ANTES DE MERCADOPAGO:');
     console.log('👤 COMPRADOR:', {
@@ -338,6 +347,24 @@ export async function createPaymentPreference(req, res) {
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
     console.log(`🎯 URL de éxito: ${successUrl}`);
+
+    // Almacenar información del pago para redirección automática desde webhook
+    pendingPayments.set(paymentRecord.payment_id, {
+      externalReference: externalReference,
+      buyerId: userId,
+      createdAt: Date.now(),
+      preferenceId: mpPreference.id
+    });
+
+    // Limpiar registros antiguos (más de 1 hora)
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    for (const [key, value] of pendingPayments.entries()) {
+      if (value.createdAt < oneHourAgo) {
+        pendingPayments.delete(key);
+      }
+    }
+
+    console.log(`📝 Pago rastreado para redirección: ${paymentRecord.payment_id}`);
 
     return success(res, {
       payment_id: paymentRecord.payment_id,
@@ -465,6 +492,23 @@ async function updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentI
   if (mpPaymentInfo.status === 'approved') {
     console.log(`✅ Pago aprobado, creando transacción para: ${paymentRecord.payment_id}`);
     await createTransactionFromPayment(paymentRecord);
+    
+    // Verificar si este pago está siendo rastreado para redirección
+    const pendingPayment = pendingPayments.get(paymentRecord.payment_id);
+    if (pendingPayment) {
+      console.log(`🔄 Iniciando redirección automática para pago: ${paymentRecord.payment_id}`);
+      
+      // Enviar notificación de redirección al frontend (usando WebSocket o similar)
+      // Por ahora, almacenamos que el pago está listo para redirección
+      pendingPayments.set(paymentRecord.payment_id, {
+        ...pendingPayment,
+        status: 'approved',
+        readyForRedirect: true,
+        redirectUrl: `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}&collection_id=${mpPaymentInfo.collection_id}&collection_status=${mpPaymentInfo.status}`
+      });
+      
+      console.log(`✅ Pago marcado para redirección: ${paymentRecord.payment_id}`);
+    }
   }
 }
 
@@ -501,18 +545,18 @@ export async function handlePaymentReturn(req, res) {
       preference_id
     } = req.query;
 
-    let frontendPath = '/payment/success'; // por defecto
+    let frontendPath = '/payment/processing'; // por defecto a processing
 
     // Determinar la página de destino basada en el tipo de retorno
     switch (returnType) {
       case 'success':
-        frontendPath = '/payment/success';
+        frontendPath = '/payment/processing'; // Ir a processing, no directamente a success
         break;
       case 'failure':
         frontendPath = '/payment/failure';
         break;
       case 'pending':
-        frontendPath = '/payment/pending';
+        frontendPath = '/payment/processing'; // También ir a processing para pending
         break;
       default:
         frontendPath = '/payment/failure';
@@ -587,6 +631,56 @@ export async function handlePaymentReturn(req, res) {
     // Redireccionar a página de error
     const errorUrl = `${FRONTEND_URL}/payment/failure?error=return_processing_failed`;
     return res.redirect(errorUrl);
+  }
+}
+
+/**
+ * Verificar el estado de un pago para redirección automática
+ * Este endpoint permite al frontend hacer polling para detectar cuando un pago ha sido procesado
+ */
+export async function checkPaymentRedirect(req, res) {
+  try {
+    const { paymentId } = req.params;
+    
+    console.log(`🔍 Verificando redirección para pago: ${paymentId}`);
+    
+    // Verificar si el pago está marcado para redirección
+    const pendingPayment = pendingPayments.get(paymentId);
+    
+    if (pendingPayment && pendingPayment.readyForRedirect) {
+      console.log(`✅ Pago listo para redirección: ${paymentId}`);
+      
+      // Limpiar el registro una vez que se ha enviado la redirección
+      pendingPayments.delete(paymentId);
+      
+      return success(res, {
+        ready: true,
+        redirectUrl: pendingPayment.redirectUrl,
+        status: pendingPayment.status
+      }, 'Pago procesado, redirección disponible');
+    }
+    
+    // También verificar en la base de datos
+    const paymentRecord = await Payment.findByPk(paymentId);
+    
+    if (paymentRecord && paymentRecord.status === 'paid') {
+      const redirectUrl = `${FRONTEND_URL}/payment/success?payment_id=${paymentId}&collection_id=${paymentRecord.mp_collection_id}&collection_status=${paymentRecord.mp_collection_status}`;
+      
+      return success(res, {
+        ready: true,
+        redirectUrl: redirectUrl,
+        status: 'paid'
+      }, 'Pago completado');
+    }
+    
+    return success(res, {
+      ready: false,
+      status: paymentRecord ? paymentRecord.status : 'pending'
+    }, 'Pago aún pendiente');
+    
+  } catch (err) {
+    console.error('❌ Error verificando redirección de pago:', err);
+    return error(res, 'Error verificando estado del pago', 500);
   }
 }
 export async function getPaymentStatus(req, res) {

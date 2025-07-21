@@ -31,6 +31,7 @@ import EditPublication from "../pages/EditPublication";
 import PaymentSuccess from "../pages/PaymentSuccess";
 import PaymentFailure from "../pages/PaymentFailure";
 import PaymentPending from "../pages/PaymentPending";
+import PaymentProcessing from "../pages/PaymentProcessing";
 import PaymentDebug from "../pages/PaymentDebug";
 
 export default function AppRouter() {
@@ -330,6 +331,7 @@ export default function AppRouter() {
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />
+        <Route path="/payment/processing" element={<PaymentProcessing />} />
         <Route path="/payment/debug" element={<PaymentDebug />} />
       </Routes>
     </Router>

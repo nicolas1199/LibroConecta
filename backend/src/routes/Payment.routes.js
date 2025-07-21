@@ -3,6 +3,7 @@ import {
   createPaymentPreference,
   handlePaymentWebhook,
   handlePaymentReturn,
+  checkPaymentRedirect,
   getPaymentStatus,
   getUserPayments,
   processDirectPayment,
@@ -54,6 +55,13 @@ router.get("/return/failure", handlePaymentReturn);
  * @access Public (sin autenticación, redirecciona al frontend)
  */
 router.get("/return/pending", handlePaymentReturn);
+
+/**
+ * @route GET /api/payments/:paymentId/redirect-status
+ * @desc Verificar si un pago está listo para redirección automática
+ * @access Public (para polling desde frontend)
+ */
+router.get("/:paymentId/redirect-status", checkPaymentRedirect);
 
 /**
  * @route GET /api/payments/:paymentId/status
