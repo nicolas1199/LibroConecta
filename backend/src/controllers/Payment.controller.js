@@ -32,7 +32,7 @@ export async function createPaymentPreference(req, res) {
   console.log('🚨 FUNCIÓN EJECUTADA - createPaymentPreference');
   console.log('🚨 METHOD:', req.method);
   console.log('🚨 URL:', req.url);
-  console.log('🚨 PARAMS:', req.params);
+  console.log('🚨 PARAMS:', JSON.stringify(req.params));
   console.log('🚨 USER:', req.user ? 'Present' : 'Missing');
   
   try {
