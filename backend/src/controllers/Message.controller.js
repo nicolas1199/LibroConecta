@@ -59,13 +59,42 @@ export const getMessages = async (req, res) => {
       }
     );
 
+    // Formatear la respuesta para evitar problemas de renderizado
+    const formattedMessages = messages.map((msg) => ({
+      message_id: msg.message_id,
+      sender_id: msg.sender_id,
+      receiver_id: msg.receiver_id,
+      match_id: msg.match_id,
+      message_text: msg.message_text,
+      message_type: msg.message_type || "text",
+      image_data: msg.image_data,
+      image_filename: msg.image_filename,
+      image_mimetype: msg.image_mimetype,
+      image_size: msg.image_size,
+      sent_at: msg.sent_at,
+      read_at: msg.read_at,
+      is_deleted: msg.is_deleted,
+      sender: {
+        user_id: msg.Sender?.user_id,
+        first_name: msg.Sender?.first_name,
+        last_name: msg.Sender?.last_name,
+        full_name: `${msg.Sender?.first_name || ""} ${msg.Sender?.last_name || ""}`.trim(),
+      },
+      receiver: {
+        user_id: msg.Receiver?.user_id,
+        first_name: msg.Receiver?.first_name,
+        last_name: msg.Receiver?.last_name,
+        full_name: `${msg.Receiver?.first_name || ""} ${msg.Receiver?.last_name || ""}`.trim(),
+      },
+    }));
+
     return res.json(
       createResponse(
         200,
         "Mensajes obtenidos exitosamente",
-        messages,
+        formattedMessages,
         null,
-        { total: messages.length }
+        { total: formattedMessages.length }
       )
     );
   } catch (error) {
@@ -82,17 +111,17 @@ export const sendMessage = async (req, res) => {
   try {
     const { user_id } = req.user;
     const { match_id } = req.params;
-    const { 
-      message_text, 
-      message_type = 'text', 
-      image_data, 
-      image_filename, 
-      image_mimetype, 
-      image_size 
+    const {
+      message_text,
+      message_type = "text",
+      image_data,
+      image_filename,
+      image_mimetype,
+      image_size,
     } = req.body;
 
     // Validar según el tipo de mensaje
-    if (message_type === 'text') {
+    if (message_type === "text") {
       if (!message_text || message_text.trim() === "") {
         return res
           .status(400)
@@ -100,8 +129,8 @@ export const sendMessage = async (req, res) => {
             createResponse(400, "El mensaje de texto no puede estar vacío", null, null)
           );
       }
-    } else if (message_type === 'image') {
-      if (!image_data || !image_data.startsWith('data:image/')) {
+    } else if (message_type === "image") {
+      if (!image_data || !image_data.startsWith("data:image/")) {
         return res
           .status(400)
           .json(
@@ -148,9 +177,9 @@ export const sendMessage = async (req, res) => {
     };
 
     // Agregar datos específicos según el tipo
-    if (message_type === 'text') {
+    if (message_type === "text") {
       messageData.message_text = message_text.trim();
-    } else if (message_type === 'image') {
+    } else if (message_type === "image") {
       messageData.image_data = image_data;
       messageData.image_filename = image_filename;
       messageData.image_mimetype = image_mimetype;
@@ -176,11 +205,40 @@ export const sendMessage = async (req, res) => {
       ],
     });
 
+    // Formatear la respuesta
+    const formattedMessage = {
+      message_id: messageWithSender.message_id,
+      sender_id: messageWithSender.sender_id,
+      receiver_id: messageWithSender.receiver_id,
+      match_id: messageWithSender.match_id,
+      message_text: messageWithSender.message_text,
+      message_type: messageWithSender.message_type || "text",
+      image_data: messageWithSender.image_data,
+      image_filename: messageWithSender.image_filename,
+      image_mimetype: messageWithSender.image_mimetype,
+      image_size: messageWithSender.image_size,
+      sent_at: messageWithSender.sent_at,
+      read_at: messageWithSender.read_at,
+      is_deleted: messageWithSender.is_deleted,
+      sender: {
+        user_id: messageWithSender.Sender?.user_id,
+        first_name: messageWithSender.Sender?.first_name,
+        last_name: messageWithSender.Sender?.last_name,
+        full_name: `${messageWithSender.Sender?.first_name || ""} ${messageWithSender.Sender?.last_name || ""}`.trim(),
+      },
+      receiver: {
+        user_id: messageWithSender.Receiver?.user_id,
+        first_name: messageWithSender.Receiver?.first_name,
+        last_name: messageWithSender.Receiver?.last_name,
+        full_name: `${messageWithSender.Receiver?.first_name || ""} ${messageWithSender.Receiver?.last_name || ""}`.trim(),
+      },
+    };
+
     return res.status(201).json(
       createResponse(
         201,
         "Mensaje enviado exitosamente",
-        messageWithSender,
+        formattedMessage,
         null
       )
     );
@@ -307,8 +365,26 @@ export const getConversations = async (req, res) => {
         return {
           match_id: match.match_id,
           date_match: match.date_match,
-          other_user: otherUser,
-          last_message: lastMessage,
+          other_user: {
+            user_id: otherUser.user_id,
+            first_name: otherUser.first_name,
+            last_name: otherUser.last_name,
+            full_name: `${otherUser.first_name} ${otherUser.last_name}`.trim(),
+          },
+          last_message: lastMessage
+            ? {
+                message_id: lastMessage.message_id,
+                message_text: lastMessage.message_text,
+                message_type: lastMessage.message_type || "text",
+                sent_at: lastMessage.sent_at,
+                sender: {
+                  user_id: lastMessage.Sender?.user_id,
+                  first_name: lastMessage.Sender?.first_name,
+                  last_name: lastMessage.Sender?.last_name,
+                  full_name: `${lastMessage.Sender?.first_name || ""} ${lastMessage.Sender?.last_name || ""}`.trim(),
+                },
+              }
+            : null,
           unread_count: unreadCount,
         };
       })
