@@ -108,10 +108,10 @@ export async function getExchangeInfoService(matchId, userId) {
       })
     ]);
 
-    // Usar SQL directo para obtener los libros con status
+    // Usar SQL directo para obtener los libros con status (sin description que no existe)
     const [user1BooksResult, user2BooksResult] = await Promise.all([
       sequelize.query(`
-        SELECT pb.*, b.title, b.author, b.description, pb.status
+        SELECT pb.*, b.title, b.author, pb.status
         FROM "PublishedBooks" pb
         LEFT JOIN "Books" b ON pb.book_id = b.book_id
         WHERE pb.user_id = :userId
@@ -120,7 +120,7 @@ export async function getExchangeInfoService(matchId, userId) {
         type: sequelize.QueryTypes.SELECT
       }),
       sequelize.query(`
-        SELECT pb.*, b.title, b.author, b.description, pb.status
+        SELECT pb.*, b.title, b.author, pb.status
         FROM "PublishedBooks" pb
         LEFT JOIN "Books" b ON pb.book_id = b.book_id
         WHERE pb.user_id = :userId
@@ -146,7 +146,7 @@ export async function getExchangeInfoService(matchId, userId) {
             published_book_id: book.published_book_id,
             title: book.title || 'Título no disponible',
             author: book.author || 'Autor desconocido',
-            description: book.description || '',
+            description: book.description || 'Sin descripción', // Usar la description de PublishedBooks
             status: book.status || 'available'
           }))
         },
@@ -158,7 +158,7 @@ export async function getExchangeInfoService(matchId, userId) {
             published_book_id: book.published_book_id,
             title: book.title || 'Título no disponible',
             author: book.author || 'Autor desconocido',
-            description: book.description || '',
+            description: book.description || 'Sin descripción', // Usar la description de PublishedBooks
             status: book.status || 'available'
           }))
         }
