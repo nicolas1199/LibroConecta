@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/config';
+import api from '../api/api.js';
 
 const POLLING_INTERVAL = 2000; // 2 segundos
 const MAX_POLLING_TIME = 300000; // 5 minutos
