@@ -9,9 +9,6 @@ import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
 import Users from "../components/icons/Users"
-import {
-  getLocations,
-} from "../api/publishedBooks"
 
 
 export default function EditProfile() {
