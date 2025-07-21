@@ -140,8 +140,11 @@ api.interceptors.response.use(
       }
     }
 
-    // Para otros errores, usar el manejo normal
-    handleAuthError(error);
+    // Solo manejar como error de autenticación los códigos 401 y 403
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      handleAuthError(error);
+    }
+
     return Promise.reject(error);
   },
 );

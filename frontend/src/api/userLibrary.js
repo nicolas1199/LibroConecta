@@ -62,3 +62,28 @@ export async function getRecommendations() {
   const response = await api.get("/user-library/recommendations");
   return response.data;
 }
+
+// Verificar si un libro ya existe en la biblioteca del usuario
+export async function checkBookExists(title, author) {
+  try {
+    const params = new URLSearchParams();
+    // Usar solo el título para la búsqueda inicial
+    if (title) params.append("search", title.trim());
+
+    const response = await api.get(`/user-library?${params.toString()}`);
+
+    // Verificar si hay una coincidencia exacta de título y autor en el lado cliente
+    const books = response.data.books || [];
+    return books.find((book) => {
+      const bookTitle = book.title?.toLowerCase().trim() || "";
+      const bookAuthor = book.author?.toLowerCase().trim() || "";
+      const searchTitle = title?.toLowerCase().trim() || "";
+      const searchAuthor = author?.toLowerCase().trim() || "";
+
+      return bookTitle === searchTitle && bookAuthor === searchAuthor;
+    });
+  } catch (error) {
+    console.error("Error checking book existence:", error);
+    return null;
+  }
+}

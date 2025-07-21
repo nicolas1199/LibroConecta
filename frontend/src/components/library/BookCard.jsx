@@ -122,7 +122,11 @@ const BookCard = memo(({ userBook, onDelete, getStatusBadge }) => {
 
       <div className="flex justify-between text-xs text-gray-500 pt-2 border-t">
         <span className="truncate">
-          Agregado: {new Date(userBook.createdAt).toLocaleDateString()}
+          {userBook.reading_status === "por_leer"
+            ? `Agregado: ${new Date(userBook.createdAt).toLocaleDateString()}`
+            : userBook.date_started
+              ? `Iniciado: ${new Date(userBook.date_started).toLocaleDateString()}`
+              : `Agregado: ${new Date(userBook.createdAt).toLocaleDateString()}`}
         </span>
         {userBook.date_finished && (
           <span className="truncate ml-2">

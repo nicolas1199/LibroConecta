@@ -24,6 +24,15 @@ export async function addToLibrary(req, res) {
     });
   } catch (error) {
     console.error("Error en addToLibrary:", error);
+
+    // Manejar error de libro duplicado específicamente
+    if (error.code === "DUPLICATE_BOOK") {
+      return res.status(409).json({
+        error: error.message,
+        code: "DUPLICATE_BOOK",
+      });
+    }
+
     res.status(500).json({
       error: error.message || "Error al agregar libro a biblioteca",
     });
