@@ -8,7 +8,7 @@ import { JWT } from "../config/configEnv.js";
 import { generateTokens, verifyRefreshToken } from "../utils/jwt.util.js";
 
 export const register = async (req, res) => {
-  const { fullname, location, email, username, password } = req.body;
+  const { fullname, email, username, password } = req.body;
 
   // Validar datos obligatorios
   if (!fullname || !email || !username || !password) {
@@ -79,7 +79,6 @@ export const register = async (req, res) => {
     const newUser = await User.create({
       first_name,
       last_name,
-      location: location || null,
       user_type_id: regularUserType ? 2 : null, // Usar el tipo encontrado o null
       email,
       username,
@@ -131,6 +130,13 @@ export const login = async (req, res) => {
           [Op.iLike]: email,
         },
       },
+      include: [
+        {
+          model: LocationBook,
+          as: "locationData",
+          attributes: ["location_id", "comuna", "region"],
+        },
+      ],
     });
     if (!user) {
       return res.status(401).json({ message: "Usuario no encontrado" });
@@ -163,7 +169,8 @@ export const login = async (req, res) => {
         email: user.get("email"),
         first_name: user.get("first_name"),
         last_name: user.get("last_name"),
-        location: user.get("location"),
+        location_id: user.get("location_id"),
+        location: user.locationData,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -192,8 +199,8 @@ export const getUserProfile = async (req, res) => {
       include: [
         {
           model: LocationBook,
-          as: "location",
-          attributes: ["location_book_id", "location_name"],
+          as: "locationData",
+          attributes: ["location_id", "comuna", "region"],
         },
       ],
     });
@@ -211,7 +218,7 @@ export const getUserProfile = async (req, res) => {
         email: user.get("email"),
         username: user.get("username"),
         location_id: user.get("location_id"),
-        location: user.location,
+        location: user.locationData,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -227,7 +234,7 @@ export const getUserProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const { user_id } = req.user;
-    const { first_name, last_name, email, username, location, location_id } = req.body;
+    const { first_name, last_name, email, username, location_id } = req.body;
 
     // Validar datos obligatorios
     if (!first_name || !last_name || !email || !username) {
@@ -278,20 +285,30 @@ export const updateUserProfile = async (req, res) => {
       last_name,
       email,
       username,
-      location: location || null,
       location_id: location_id || null,
+    });
+
+    // Obtener el usuario actualizado con la información de ubicación
+    const updatedUser = await User.findByPk(user_id, {
+      include: [
+        {
+          model: LocationBook,
+          as: "locationData",
+          attributes: ["location_id", "comuna", "region"],
+        },
+      ],
     });
 
     // Respuesta sin contraseña
     const userResponse = {
-      user_id: user.get("user_id"),
-      first_name: user.get("first_name"),
-      last_name: user.get("last_name"),
-      email: user.get("email"),
-      username: user.get("username"),
-      location: user.get("location"),
-      location_id: user.get("location_id"),
-      user_type_id: user.get("user_type_id"),
+      user_id: updatedUser.get("user_id"),
+      first_name: updatedUser.get("first_name"),
+      last_name: updatedUser.get("last_name"),
+      email: updatedUser.get("email"),
+      username: updatedUser.get("username"),
+      location_id: updatedUser.get("location_id"),
+      location: updatedUser.locationData,
+      user_type_id: updatedUser.get("user_type_id"),
     };
 
     return res.status(200).json({
