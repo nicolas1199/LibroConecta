@@ -62,6 +62,12 @@ export async function createPaymentPreference(req, res) {
     const userId = req.user.user_id;
     
     console.log('📋 Parámetros recibidos:', { publishedBookId, userId });
+    console.log('👤 Datos del usuario:', {
+      first_name: req.user.first_name,
+      last_name: req.user.last_name,
+      email: req.user.email,
+      user_id: req.user.user_id
+    });
 
     // Verificar que el libro existe y está disponible para venta
     const publishedBook = await PublishedBooks.findByPk(publishedBookId, {
@@ -116,8 +122,16 @@ export async function createPaymentPreference(req, res) {
       success: successUrl,
       failure: failureUrl,
       pending: pendingUrl,
-      notification: notificationUrl
+      notification: notificationUrl,
+      FRONTEND_URL_VALUE: FRONTEND_URL,
+      BACKEND_URL_VALUE: BACKEND_URL
     });
+
+    // Validar que las URLs estén bien formadas
+    if (!successUrl || successUrl.includes('undefined')) {
+      console.error('❌ successUrl está mal formada:', successUrl);
+      return error(res, 'Error en configuración de URLs de retorno', 500);
+    }
 
     // Preparar datos para MercadoPago
     const preferenceData = {
@@ -133,13 +147,13 @@ export async function createPaymentPreference(req, res) {
         }
       ],
       payer: {
-        name: req.user.first_name,
-        surname: req.user.last_name,
-        email: req.user.email
+        name: req.user.first_name || 'Usuario',
+        surname: req.user.last_name || 'LibroConecta',
+        email: req.user.email || 'usuario@libroconecta.com'
       },
       external_reference: externalReference,
       notification_url: notificationUrl,
-      back_urls: {
+      back_url: {
         success: successUrl,
         failure: failureUrl,
         pending: pendingUrl

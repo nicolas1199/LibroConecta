@@ -41,7 +41,7 @@ const testPreferenceData = {
     email: "test@example.com"
   },
   external_reference: `TEST_${Date.now()}`,
-  back_urls: {
+  back_url: {
     success: "http://localhost:3000/success",
     failure: "http://localhost:3000/failure",
     pending: "http://localhost:3000/pending"
