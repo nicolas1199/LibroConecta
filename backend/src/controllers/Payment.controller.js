@@ -373,4 +373,55 @@ async function createTransactionFromPayment(paymentRecord) {
     console.error('❌ Error creando transacción:', error);
     throw error;
   }
+}
+
+/**
+ * Procesar pago directo usando MercadoPago Payment API
+ * Basado en el snippet proporcionado
+ */
+export async function processDirectPayment(req, res) {
+  try {
+    console.log('🔄 Procesando pago directo con MercadoPago...');
+    console.log('📋 Datos recibidos:', JSON.stringify(req.body, null, 2));
+
+    // Configurar cliente de MercadoPago
+    const client = new MercadoPagoConfig({ accessToken: MP_ACCESS_TOKEN });
+    const payment = new MPPayment(client);
+
+    // Procesar el pago
+    const result = await payment.create({ body: req.body });
+    
+    console.log('✅ Pago procesado exitosamente:', JSON.stringify(result, null, 2));
+
+    // Si el pago tiene external_reference, actualizar en la base de datos
+    if (result.external_reference) {
+      const paymentRecord = await Payment.findOne({
+        where: { mp_external_reference: result.external_reference }
+      });
+
+      if (paymentRecord) {
+        await paymentRecord.update({
+          mp_payment_id: result.id.toString(),
+          mp_collection_id: result.collection_id,
+          mp_collection_status: result.status,
+          payment_method: result.payment_method_id,
+          payment_date: result.date_approved || new Date(),
+          status: mapMercadoPagoStatus(result.status)
+        });
+
+        // Si el pago fue aprobado, crear la transacción
+        if (result.status === 'approved') {
+          await createTransactionFromPayment(paymentRecord);
+        }
+
+        console.log(`✅ Pago actualizado en BD: ${paymentRecord.payment_id}`);
+      }
+    }
+
+    return success(res, result, 'Pago procesado exitosamente', 201);
+
+  } catch (error) {
+    console.error('❌ Error procesando pago directo:', error);
+    return error(res, `Error procesando pago: ${error.message}`, 500);
+  }
 } 
