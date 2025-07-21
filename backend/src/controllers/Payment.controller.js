@@ -212,7 +212,7 @@ export async function createPaymentPreference(req, res) {
       },
       external_reference: externalReference,
       notification_url: notificationUrl,
-      back_urls: {
+      back_url: {
         success: successUrl,
         failure: failureUrl,
         pending: pendingUrl
@@ -259,6 +259,8 @@ export async function createPaymentPreference(req, res) {
     });
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
+    console.log(`🔄 Auto-return configurado: approved`);
+    console.log(`🎯 URL de éxito: ${successUrl}`);
 
     return success(res, {
       payment_id: paymentRecord.payment_id,
