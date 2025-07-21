@@ -153,12 +153,11 @@ export async function createPaymentPreference(req, res) {
       },
       external_reference: externalReference,
       notification_url: notificationUrl,
-      back_url: {
+      back_urls: {
         success: successUrl,
         failure: failureUrl,
         pending: pendingUrl
       },
-      auto_return: 'approved',
       statement_descriptor: 'LIBROCONECTA',
       metadata: {
         payment_id: paymentRecord.payment_id,
