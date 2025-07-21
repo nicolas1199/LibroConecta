@@ -48,6 +48,12 @@ const PublishedBooks = sequelize.define(
       allowNull: true,
       comment: "Descripción adicional sobre la publicación",
     },
+    status: {
+      type: DataTypes.ENUM('available', 'sold', 'reserved', 'inactive'),
+      defaultValue: 'available',
+      allowNull: false,
+      comment: "Estado de la publicación: available, sold, reserved, inactive",
+    },
     updated_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

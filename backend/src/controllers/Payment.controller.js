@@ -10,7 +10,9 @@ import {
   Transaction, 
   PublishedBooks, 
   User,
-  Book 
+  Book,
+  Rating,
+  Category
 } from '../db/modelIndex.js';
 import { success, error } from '../utils/responses.util.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -212,6 +214,11 @@ export async function createPaymentPreference(req, res) {
       },
       external_reference: externalReference,
       notification_url: notificationUrl,
+      back_urls: {
+        success: successUrl,
+        failure: failureUrl,
+        pending: pendingUrl
+      },
       back_url: {
         success: successUrl,
         failure: failureUrl,
@@ -404,6 +411,216 @@ export async function getPaymentStatus(req, res) {
 }
 
 /**
+ * Obtener historial de compras del usuario
+ */
+export async function getUserPurchaseHistory(req, res) {
+  try {
+    const userId = req.user.user_id;
+    const { status = 'all', limit = 20, offset = 0 } = req.query;
+
+    const whereClause = {
+      buyer_id: userId,
+      status: 'paid' // Solo mostrar compras exitosas
+    };
+
+    const purchases = await Payment.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: PublishedBooks,
+          as: 'PublishedBook',
+          include: [
+            { 
+              model: Book, 
+              as: 'Book',
+              include: [{
+                model: Category,
+                as: 'Categories',
+                through: { attributes: [] }
+              }]
+            },
+            {
+              model: User,
+              as: 'User', // Vendedor
+              attributes: ['user_id', 'first_name', 'last_name', 'username']
+            }
+          ]
+        },
+        {
+          model: User,
+          as: 'Seller',
+          attributes: ['user_id', 'first_name', 'last_name', 'username']
+        }
+      ],
+      order: [['payment_date', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    // Verificar si ya calificó cada transacción
+    const purchasesWithRatings = await Promise.all(
+      purchases.rows.map(async (purchase) => {
+        const existingRating = await Rating.findOne({
+          where: {
+            rater_id: userId,
+            rated_id: purchase.seller_id,
+            transaction_id: purchase.payment_id
+          }
+        });
+
+        return {
+          ...purchase.toJSON(),
+          has_rated: !!existingRating,
+          rating_info: existingRating || null
+        };
+      })
+    );
+
+    return success(res, {
+      purchases: purchasesWithRatings,
+      total: purchases.count,
+      hasMore: purchases.count > parseInt(offset) + parseInt(limit)
+    }, 'Historial de compras obtenido exitosamente');
+
+  } catch (err) {
+    console.error('❌ Error obteniendo historial de compras:', err);
+    return error(res, 'Error interno del servidor', 500);
+  }
+}
+
+/**
+ * Obtener historial de ventas del usuario
+ */
+export async function getUserSalesHistory(req, res) {
+  try {
+    const userId = req.user.user_id;
+    const { limit = 20, offset = 0 } = req.query;
+
+    const whereClause = {
+      seller_id: userId,
+      status: 'paid' // Solo mostrar ventas exitosas
+    };
+
+    const sales = await Payment.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: PublishedBooks,
+          as: 'PublishedBook',
+          include: [
+            { 
+              model: Book, 
+              as: 'Book',
+              include: [{
+                model: Category,
+                as: 'Categories',
+                through: { attributes: [] }
+              }]
+            }
+          ]
+        },
+        {
+          model: User,
+          as: 'Buyer',
+          attributes: ['user_id', 'first_name', 'last_name', 'username']
+        }
+      ],
+      order: [['payment_date', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    // Verificar si ya fue calificado por el comprador
+    const salesWithRatings = await Promise.all(
+      sales.rows.map(async (sale) => {
+        const receivedRating = await Rating.findOne({
+          where: {
+            rater_id: sale.buyer_id,
+            rated_id: userId,
+            transaction_id: sale.payment_id
+          }
+        });
+
+        return {
+          ...sale.toJSON(),
+          buyer_has_rated: !!receivedRating,
+          received_rating: receivedRating || null
+        };
+      })
+    );
+
+    return success(res, {
+      sales: salesWithRatings,
+      total: sales.count,
+      hasMore: sales.count > parseInt(offset) + parseInt(limit)
+    }, 'Historial de ventas obtenido exitosamente');
+
+  } catch (err) {
+    console.error('❌ Error obteniendo historial de ventas:', err);
+    return error(res, 'Error interno del servidor', 500);
+  }
+}
+
+/**
+ * Calificar una transacción
+ */
+export async function rateTransaction(req, res) {
+  try {
+    const { transactionId } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user.user_id;
+
+    // Validar datos
+    if (!rating || rating < 1 || rating > 5) {
+      return error(res, 'La calificación debe ser entre 1 y 5', 400);
+    }
+
+    // Verificar que la transacción existe y el usuario puede calificarla
+    const paymentRecord = await Payment.findOne({
+      where: { 
+        payment_id: transactionId,
+        buyer_id: userId, // Solo el comprador puede calificar
+        status: 'paid' // Solo transacciones exitosas
+      }
+    });
+
+    if (!paymentRecord) {
+      return error(res, 'Transacción no encontrada o no autorizada', 404);
+    }
+
+    // Verificar si ya calificó esta transacción
+    const existingRating = await Rating.findOne({
+      where: {
+        rater_id: userId,
+        rated_id: paymentRecord.seller_id,
+        transaction_id: transactionId
+      }
+    });
+
+    if (existingRating) {
+      return error(res, 'Ya has calificado esta transacción', 400);
+    }
+
+    // Crear la calificación
+    const newRating = await Rating.create({
+      rater_id: userId,
+      rated_id: paymentRecord.seller_id,
+      transaction_id: transactionId,
+      rating: parseInt(rating),
+      comment: comment || null
+    });
+
+    console.log(`✅ Calificación creada: ${newRating.rating_id} - ${rating} estrellas para usuario ${paymentRecord.seller_id}`);
+
+    return success(res, newRating, 'Calificación guardada exitosamente', 201);
+
+  } catch (err) {
+    console.error('❌ Error guardando calificación:', err);
+    return error(res, 'Error interno del servidor', 500);
+  }
+}
+
+/**
  * Listar pagos del usuario
  */
 export async function getUserPayments(req, res) {
@@ -519,7 +736,15 @@ async function createTransactionFromPayment(paymentRecord) {
       buyer_confirmed_at: new Date()
     });
 
+    // 🚀 NUEVO: Marcar el libro como vendido
+    await PublishedBooks.update(
+      { status: 'sold' },
+      { where: { published_book_id: paymentRecord.published_book_id } }
+    );
+
     console.log(`✅ Transacción creada: ${transaction.transaction_id}`);
+    console.log(`📚 Libro marcado como vendido: ${paymentRecord.published_book_id}`);
+    
     return transaction;
 
   } catch (error) {

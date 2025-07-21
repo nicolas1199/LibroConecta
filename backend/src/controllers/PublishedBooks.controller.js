@@ -26,6 +26,9 @@ export async function getAllPublishedBooks(req, res) {
     if (location_id) whereConditions.location_id = location_id
     if (min_price) whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price }
     if (max_price) whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price }
+    
+    // 🚀 NUEVO: Solo mostrar libros disponibles (no vendidos)
+    whereConditions.status = { [Op.in]: ['available', 'reserved'] }
 
     const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
       where: whereConditions,
