@@ -20,7 +20,7 @@ import Favorites from "../pages/Favorites";
 import Wishlist from "../pages/Wishlist";
 import Drafts from "../pages/Drafts";
 import History from "../pages/History";
-import MyBooks from "../pages/MyBooks";
+
 import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
@@ -120,16 +120,7 @@ export default function AppRouter() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/dashboard/my-books"
-          element={
-            <PrivateRoute>
-              <DashboardLayout>
-                <MyBooks />
-              </DashboardLayout>
-            </PrivateRoute>
-          }
-        />
+        
         <Route
           path="/dashboard/library/add"
           element={
