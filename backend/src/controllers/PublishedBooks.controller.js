@@ -58,7 +58,7 @@ export async function getAllPublishedBooks(req, res) {
             include: [
               {
                 model: LocationBook,
-                as: "locationData",
+                as: "userLocation",
                 attributes: ["location_id", "comuna", "region"],
               },
             ],
@@ -122,7 +122,7 @@ export async function getPublishedBookById(req, res) {
           include: [
             {
               model: LocationBook,
-              as: "locationData",
+              as: "userLocation",
               attributes: ["location_id", "comuna", "region"],
             },
           ],
@@ -292,7 +292,7 @@ export async function createPublishedBook(req, res) {
             include: [
               {
                 model: LocationBook,
-                as: "locationData",
+                as: "userLocation",
                 attributes: ["location_id", "comuna", "region"],
               },
             ],

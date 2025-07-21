@@ -133,7 +133,7 @@ export const login = async (req, res) => {
       include: [
         {
           model: LocationBook,
-          as: "locationData",
+          as: "userLocation",
           attributes: ["location_id", "comuna", "region"],
         },
       ],
@@ -170,7 +170,7 @@ export const login = async (req, res) => {
         first_name: user.get("first_name"),
         last_name: user.get("last_name"),
         location_id: user.get("location_id"),
-        location: user.locationData,
+        location: user.userLocation,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -199,7 +199,7 @@ export const getUserProfile = async (req, res) => {
       include: [
         {
           model: LocationBook,
-          as: "locationData",
+          as: "userLocation",
           attributes: ["location_id", "comuna", "region"],
         },
       ],
@@ -218,7 +218,7 @@ export const getUserProfile = async (req, res) => {
         email: user.get("email"),
         username: user.get("username"),
         location_id: user.get("location_id"),
-        location: user.locationData,
+        location: user.userLocation,
         user_type_id: user.get("user_type_id"),
       },
     });
@@ -293,7 +293,7 @@ export const updateUserProfile = async (req, res) => {
       include: [
         {
           model: LocationBook,
-          as: "locationData",
+          as: "userLocation",
           attributes: ["location_id", "comuna", "region"],
         },
       ],
@@ -307,7 +307,7 @@ export const updateUserProfile = async (req, res) => {
       email: updatedUser.get("email"),
       username: updatedUser.get("username"),
       location_id: updatedUser.get("location_id"),
-      location: updatedUser.locationData,
+      location: updatedUser.userLocation,
       user_type_id: updatedUser.get("user_type_id"),
     };
 
