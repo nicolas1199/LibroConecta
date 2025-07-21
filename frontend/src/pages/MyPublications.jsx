@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { getMyPublishedBooks, deletePublishedBook } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import BookOpen from "../components/icons/BookOpen"
@@ -11,7 +11,6 @@ import Plus from "../components/icons/Plus"
 
 export default function MyPublications() {
   const navigate = useNavigate()
-  const location = useLocation()
   const [publications, setPublications] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -19,16 +18,6 @@ export default function MyPublications() {
   useEffect(() => {
     loadPublications()
   }, [])
-
-  // Recargar publicaciones cuando se regrese de editar
-  useEffect(() => {
-    if (location.state?.message) {
-      // Mostrar mensaje de éxito si existe
-      console.log(location.state.message)
-      // Recargar datos después de editar
-      loadPublications()
-    }
-  }, [location.state])
 
   const loadPublications = async () => {
     try {
@@ -61,8 +50,8 @@ export default function MyPublications() {
 
   const getImageUrl = (publication) => {
     const images = publication.PublishedBookImages || []
-    const primaryImage = images.find((img) => img.is_primary) || images[0]
-
+    const primaryImage = images.find(img => img.is_primary) || images[0]
+    
     if (primaryImage) {
       // Si tiene image_data (base64), usarlo
       if (primaryImage.image_data) {
@@ -73,9 +62,9 @@ export default function MyPublications() {
         return primaryImage.image_url
       }
     }
-
+    
     // Imagen por defecto
-    return "/placeholder.svg?height=200&width=300"
+    return "/api/placeholder/300/200"
   }
 
   const getTransactionTypeIcon = (type) => {
@@ -120,30 +109,37 @@ export default function MyPublications() {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Mis Publicaciones</h1>
               <p className="text-gray-600">Gestiona tus libros publicados</p>
             </div>
-
-            <button onClick={() => navigate("/publish-book")} className="btn btn-primary">
+            
+            <button
+              onClick={() => navigate("/dashboard/publish")}
+              className="btn btn-primary"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Publicar nuevo libro
             </button>
           </div>
         </div>
 
-        {/* Mensaje de éxito */}
-        {location.state?.message && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
-            {location.state.message}
+        {/* Content */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
           </div>
         )}
-
-        {/* Content */}
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>}
 
         {publications.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-medium text-gray-900 mb-2">No tienes publicaciones aún</h2>
-            <p className="text-gray-600 mb-6">Comienza publicando tu primer libro para compartir con la comunidad</p>
-            <button onClick={() => navigate("/publish-book")} className="btn btn-primary">
+            <h2 className="text-xl font-medium text-gray-900 mb-2">
+              No tienes publicaciones aún
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Comienza publicando tu primer libro para compartir con la comunidad
+            </p>
+            <button
+              onClick={() => navigate("/dashboard/publish")}
+              className="btn btn-primary"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Publicar mi primer libro
             </button>
@@ -151,18 +147,15 @@ export default function MyPublications() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {publications.map((publication) => (
-              <div
-                key={publication.published_book_id}
-                className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow"
-              >
+              <div key={publication.published_book_id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
                 {/* Imagen */}
                 <div className="h-48 bg-gray-100 relative">
                   <img
-                    src={getImageUrl(publication) || "/placeholder.svg"}
+                    src={getImageUrl(publication)}
                     alt={publication.Book?.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.target.src = "/placeholder.svg?height=200&width=300"
+                      e.target.src = "/api/placeholder/300/200"
                     }}
                   />
                   <div className="absolute top-2 left-2">
@@ -175,19 +168,29 @@ export default function MyPublications() {
 
                 {/* Contenido */}
                 <div className="p-4">
-                  <h3 className="font-medium text-gray-900 mb-1 truncate">{publication.Book?.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">por {publication.Book?.author}</p>
+                  <h3 className="font-medium text-gray-900 mb-1 truncate">
+                    {publication.Book?.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    por {publication.Book?.author}
+                  </p>
 
                   {/* Precio/Estado */}
                   {publication.price && (
-                    <p className="text-lg font-semibold text-green-600 mb-2">${publication.price.toLocaleString()}</p>
+                    <p className="text-lg font-semibold text-green-600 mb-2">
+                      ${publication.price.toLocaleString()}
+                    </p>
                   )}
 
                   {/* Condición */}
-                  <p className="text-sm text-gray-500 mb-3">Estado: {publication.BookCondition?.condition}</p>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Estado: {publication.BookCondition?.condition}
+                  </p>
 
                   {/* Descripción */}
-                  <p className="text-sm text-gray-700 mb-4 line-clamp-2">{publication.description}</p>
+                  <p className="text-sm text-gray-700 mb-4 line-clamp-2">
+                    {publication.description}
+                  </p>
 
                   {/* Ubicación */}
                   <p className="text-xs text-gray-500 mb-4">
@@ -203,7 +206,7 @@ export default function MyPublications() {
                       <Edit className="h-4 w-4 mr-1" />
                       Editar
                     </button>
-
+                    
                     <button
                       onClick={() => handleDelete(publication.published_book_id)}
                       className="btn bg-red-50 text-red-600 hover:bg-red-100 border-red-200 text-sm"
@@ -216,8 +219,12 @@ export default function MyPublications() {
                 {/* Footer con estadísticas */}
                 <div className="bg-gray-50 px-4 py-3 border-t">
                   <div className="flex justify-between text-xs text-gray-500">
-                    <span>{publication.PublishedBookImages?.length || 0} imagen(es)</span>
-                    <span>Publicado: {new Date(publication.date_published).toLocaleDateString()}</span>
+                    <span>
+                      {publication.PublishedBookImages?.length || 0} imagen(es)
+                    </span>
+                    <span>
+                      Publicado: {new Date(publication.date_published).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
