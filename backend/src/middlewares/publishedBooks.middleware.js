@@ -1,35 +1,41 @@
-import { PublishedBooks, Book, TransactionType, BookCondition } from "../db/modelIndex.js"
+import { PublishedBooks, Book, TransactionType, BookCondition, Category } from "../db/modelIndex.js"
 
 // Validar datos de libro publicado
 export function validatePublishedBookData(req, res, next) {
   try {
-    const { book_id, transaction_type_id, condition_id, price, look_for, description } = req.body
+    const { book_id, transaction_type_id, condition_id, price, look_for, description, location_id } = req.body
 
     // Validar campos requeridos
-    if (!book_id) {
-      return res.status(400).json({ error: "El ID del libro es requerido" })
-    }
+    const isUpdate = req.method === "PUT"
 
-    if (!transaction_type_id) {
-      return res.status(400).json({ error: "El tipo de transacción es requerido" })
-    }
-
-    if (!condition_id) {
-      return res.status(400).json({ error: "La condición del libro es requerida" })
+    // Solo validar campos si están presentes en la solicitud o si es una creación
+    if (!isUpdate) {
+      if (!transaction_type_id) {
+        return res.status(400).json({ error: "El tipo de transacción es requerido" })
+      }
+      if (!condition_id) {
+        return res.status(400).json({ error: "La condición del libro es requerida" })
+      }
+      if (!description) {
+        return res.status(400).json({ error: "La descripción es requerida" })
+      }
+      if (!location_id) {
+        return res.status(400).json({ error: "La ubicación es requerida" })
+      }
     }
 
     // Validar que book_id sea un número
-    if (isNaN(book_id)) {
+    if (book_id && isNaN(book_id)) {
       return res.status(400).json({ error: "El ID del libro debe ser un número válido" })
     }
 
     // Validar que transaction_type_id sea un número
-    if (isNaN(transaction_type_id)) {
+    if (transaction_type_id && isNaN(transaction_type_id)) {
       return res.status(400).json({ error: "El tipo de transacción debe ser un número válido" })
     }
 
     // Validar que condition_id sea un número
-    if (isNaN(condition_id)) {
+    if (condition_id && isNaN(condition_id)) {
       return res.status(400).json({ error: "La condición debe ser un número válido" })
     }
 
@@ -52,7 +58,7 @@ export function validatePublishedBookData(req, res, next) {
     next()
   } catch (error) {
     console.error("Error en validatePublishedBookData:", error)
-    res.status(500).json({ error: "Error interno en validación de datos" })
+    res.status(500).json({ error: "Error al validar datos del libro publicado" })
   }
 }
 
@@ -62,39 +68,34 @@ export async function validatePublishedBookOwnership(req, res, next) {
     const { id } = req.params
     const userId = req.user.user_id
 
-    const publishedBook = await PublishedBooks.findOne({
-      where: {
-        published_book_id: id,
-        user_id: userId,
-      },
-    })
-
+    const publishedBook = await PublishedBooks.findByPk(id)
     if (!publishedBook) {
-      return res.status(404).json({
-        error: "Libro publicado no encontrado o no tienes permisos para acceder a él",
-      })
+      return res.status(404).json({ error: "Libro publicado no encontrado" })
     }
 
+    if (publishedBook.user_id !== userId) {
+      return res.status(403).json({ error: "No tienes permisos para modificar este libro" })
+    }
+
+    // Añadir el libro publicado a la solicitud para uso posterior
     req.publishedBook = publishedBook
     next()
   } catch (error) {
     console.error("Error en validatePublishedBookOwnership:", error)
-    res.status(500).json({
-      error: "Error al validar acceso al libro publicado",
-    })
+    res.status(500).json({ error: "Error al validar propiedad del libro" })
   }
 }
 
 // Validar que existan las referencias necesarias
 export async function validatePublishedBookReferences(req, res, next) {
   try {
-    const { book_id, transaction_type_id, condition_id } = req.body
+    const { book_id, transaction_type_id, condition_id, category_ids } = req.body
 
     // Validar que el libro existe
     if (book_id) {
       const book = await Book.findByPk(book_id)
       if (!book) {
-        return res.status(400).json({ error: "El libro especificado no existe" })
+        return res.status(400).json({ error: "El libro referenciado no existe" })
       }
     }
 
@@ -114,11 +115,20 @@ export async function validatePublishedBookReferences(req, res, next) {
       }
     }
 
+    // Validar categorías si se proporcionan
+    if (category_ids && category_ids.length > 0) {
+      const categories = await Category.findAll({
+        where: { category_id: category_ids },
+      })
+
+      if (categories.length !== category_ids.length) {
+        return res.status(400).json({ error: "Una o más categorías no existen" })
+      }
+    }
+
     next()
   } catch (error) {
     console.error("Error en validatePublishedBookReferences:", error)
-    res.status(500).json({
-      error: "Error al validar referencias",
-    })
+    res.status(500).json({ error: "Error al validar referencias del libro" })
   }
 }

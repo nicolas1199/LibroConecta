@@ -22,7 +22,7 @@ export default function EditPublication() {
   const { id } = useParams()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
-  const [imageStorageType, setImageStorageType] = useState('base64')
+  const [imageStorageType, setImageStorageType] = useState("base64")
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [publication, setPublication] = useState(null)
 
@@ -60,20 +60,15 @@ export default function EditPublication() {
     const loadData = async () => {
       try {
         setIsLoadingData(true)
-        
-        const [
-          transactionTypesData,
-          bookConditionsData,
-          locationsData,
-          categoriesData,
-          publicationData
-        ] = await Promise.all([
-          getTransactionTypes(),
-          getBookConditions(),
-          getLocations(),
-          getCategories(),
-          getPublishedBookById(id)
-        ])
+
+        const [transactionTypesData, bookConditionsData, locationsData, categoriesData, publicationData] =
+          await Promise.all([
+            getTransactionTypes(),
+            getBookConditions(),
+            getLocations(),
+            getCategories(),
+            getPublishedBookById(id),
+          ])
 
         setTransactionTypes(transactionTypesData)
         setBookConditions(bookConditionsData)
@@ -86,7 +81,7 @@ export default function EditPublication() {
         setFormData({
           title: publication.Book?.title || "",
           author: publication.Book?.author || "",
-          category_ids: publication.Book?.BookCategories?.map(bc => bc.Category?.category_id) || [],
+          category_ids: publication.Book?.BookCategories?.map((bc) => bc.Category?.category_id) || [],
           date_of_pub: publication.Book?.date_of_pub || "",
           condition_id: publication.condition_id?.toString() || "",
           transaction_type_id: publication.transaction_type_id?.toString() || "",
@@ -97,7 +92,6 @@ export default function EditPublication() {
           images: [],
           existingImages: publication.PublishedBookImages || [],
         })
-
       } catch (error) {
         console.error("Error loading data:", error)
         alert("Error al cargar los datos de la publicación")
@@ -154,7 +148,7 @@ export default function EditPublication() {
       console.log("Eliminar imagen:", imageId)
       setFormData((prev) => ({
         ...prev,
-        existingImages: prev.existingImages.filter(img => img.published_book_image_id !== imageId),
+        existingImages: prev.existingImages.filter((img) => img.published_book_image_id !== imageId),
       }))
     }
   }
@@ -167,7 +161,7 @@ export default function EditPublication() {
           ...img,
           is_primary: i === index,
         })),
-        images: prev.images.map(img => ({ ...img, is_primary: false })),
+        images: prev.images.map((img) => ({ ...img, is_primary: false })),
       }))
     } else {
       setFormData((prev) => ({
@@ -176,7 +170,7 @@ export default function EditPublication() {
           ...img,
           is_primary: i === index,
         })),
-        existingImages: prev.existingImages.map(img => ({ ...img, is_primary: false })),
+        existingImages: prev.existingImages.map((img) => ({ ...img, is_primary: false })),
       }))
     }
   }
@@ -209,66 +203,68 @@ export default function EditPublication() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
 
     setIsLoading(true)
     try {
-      // Preparar datos para actualizar
+      // Preparar datos para actualizar - SOLO datos de la publicación
       const updateData = {
-        // Datos del libro
-        book: {
-          title: formData.title,
-          author: formData.author,
-          date_of_pub: formData.date_of_pub || null,
-          category_ids: formData.category_ids,
-        },
-        // Datos de la publicación
         transaction_type_id: Number.parseInt(formData.transaction_type_id),
         price: formData.price ? Number.parseFloat(formData.price) : null,
         look_for: formData.look_for || null,
         condition_id: Number.parseInt(formData.condition_id),
         location_id: Number.parseInt(formData.location_id),
         description: formData.description,
+        // Incluir datos del libro para actualización
+        book: {
+          title: formData.title,
+          author: formData.author,
+          date_of_pub: formData.date_of_pub || null,
+        },
       }
 
-      // TODO: Implementar API para actualizar publicación
-      console.log("Actualizar publicación:", updateData)
-      
+      // Actualizar la publicación - CORREGIDO: ahora sí llama a la API
+      console.log("Actualizando publicación:", updateData)
+      const updatedPublication = await updatePublishedBook(id, updateData)
+      console.log("Publicación actualizada:", updatedPublication)
+
       // Subir nuevas imágenes si las hay
       if (formData.images.length > 0) {
-        if (imageStorageType === 'base64') {
+        if (imageStorageType === "base64") {
           const base64Images = await Promise.all(
             formData.images.map(
               (img) =>
                 new Promise((resolve, reject) => {
-                  const reader = new FileReader();
+                  const reader = new FileReader()
                   reader.onload = () => {
                     resolve({
                       base64: reader.result,
                       is_primary: img.is_primary || false,
-                    });
-                  };
-                  reader.onerror = reject;
-                  reader.readAsDataURL(img.file);
-                })
-            )
-          );
-          await uploadBookImagesBase64(id, base64Images);
+                    })
+                  }
+                  reader.onerror = reject
+                  reader.readAsDataURL(img.file)
+                }),
+            ),
+          )
+          await uploadBookImagesBase64(id, base64Images)
         } else {
-          const imageFormData = new FormData();
+          const imageFormData = new FormData()
           formData.images.forEach((image) => {
-            imageFormData.append('images', image.file);
-          });
-          await uploadBookImages(id, imageFormData);
+            imageFormData.append("images", image.file)
+          })
+          await uploadBookImages(id, imageFormData)
         }
       }
 
-      // Redirigir con mensaje de éxito
-      navigate("/my-publications", { 
-        state: { message: "¡Publicación actualizada exitosamente!" } 
+      // Redirigir con mensaje de éxito y flag para refrescar datos
+      navigate("/my-publications", {
+        state: {
+          message: "¡Publicación actualizada exitosamente!",
+          refreshData: true,
+        },
       })
-
     } catch (error) {
       console.error("Error updating publication:", error)
       setErrors({ submit: "Error al actualizar la publicación. Inténtalo de nuevo." })
@@ -327,7 +323,7 @@ export default function EditPublication() {
             {/* Información básica del libro */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Información del libro</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="form-label">
@@ -375,7 +371,7 @@ export default function EditPublication() {
             {/* Estado y transacción */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Estado y transacción</h3>
-              
+
               {/* Estado del libro */}
               <div className="mb-6">
                 <label className="form-label mb-4">
@@ -483,7 +479,7 @@ export default function EditPublication() {
             {/* Detalles adicionales */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Detalles adicionales</h3>
-              
+
               <div className="space-y-6">
                 <div>
                   <label className="form-label">
@@ -541,7 +537,7 @@ export default function EditPublication() {
                       type="radio"
                       name="storageType"
                       value="base64"
-                      checked={imageStorageType === 'base64'}
+                      checked={imageStorageType === "base64"}
                       onChange={(e) => setImageStorageType(e.target.value)}
                       className="mr-2"
                     />
@@ -554,7 +550,7 @@ export default function EditPublication() {
                       type="radio"
                       name="storageType"
                       value="cloudinary"
-                      checked={imageStorageType === 'cloudinary'}
+                      checked={imageStorageType === "cloudinary"}
                       onChange={(e) => setImageStorageType(e.target.value)}
                       className="mr-2"
                     />
@@ -573,7 +569,7 @@ export default function EditPublication() {
                     {formData.existingImages.map((image, index) => (
                       <div key={image.published_book_image_id} className="relative group">
                         <img
-                          src={getImageUrl(image)}
+                          src={getImageUrl(image) || "/placeholder.svg"}
                           alt={`Imagen ${index + 1}`}
                           className="w-full h-32 object-cover rounded-lg border"
                         />
@@ -634,7 +630,7 @@ export default function EditPublication() {
                     {formData.images.map((image, index) => (
                       <div key={index} className="relative group">
                         <img
-                          src={image.preview}
+                          src={image.preview || "/placeholder.svg"}
                           alt={`Nueva imagen ${index + 1}`}
                           className="w-full h-32 object-cover rounded-lg border"
                         />
@@ -670,26 +666,16 @@ export default function EditPublication() {
 
             {/* Mensaje de error */}
             {errors.submit && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {errors.submit}
-              </div>
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{errors.submit}</div>
             )}
 
             {/* Botones */}
             <div className="flex justify-end space-x-4">
-              <button
-                type="button"
-                onClick={() => navigate("/my-publications")}
-                className="btn btn-secondary"
-              >
+              <button type="button" onClick={() => navigate("/my-publications")} className="btn btn-secondary">
                 Cancelar
               </button>
-              
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn btn-primary"
-              >
+
+              <button type="submit" disabled={isLoading} className="btn btn-primary">
                 {isLoading ? (
                   <>
                     <div className="spinner mr-2" />
