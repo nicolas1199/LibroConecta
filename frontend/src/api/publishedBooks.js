@@ -144,7 +144,7 @@ export const deletePublishedBookImage = async (imageId) => {
   return res.data;
 };
 
-// Obtener mis publicaciones (libros del usuario autenticado)
+// Obtener mis publicaciones (libros del usuario autenticaddo)
 export const getMyPublishedBooks = async (params = {}) => {
   const res = await api.get("/published-books/my-books", { params });
   return res.data;
