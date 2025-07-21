@@ -22,18 +22,18 @@ export async function completeExchangeService(matchId, userId) {
       User.findByPk(match.user_id_2),
     ]);
 
-    // Obtener los libros publicados de ambos usuarios (activos)
+    // Obtener los libros publicados de ambos usuarios (disponibles)
     const [user1Books, user2Books] = await Promise.all([
       PublishedBooks.findAll({
         where: { 
           user_id: match.user_id_1,
-          status: 'active'
+          status: 'available'
         }
       }),
       PublishedBooks.findAll({
         where: { 
           user_id: match.user_id_2,
-          status: 'active'
+          status: 'available'
         }
       })
     ]);
@@ -45,7 +45,7 @@ export async function completeExchangeService(matchId, userId) {
         { 
           where: { 
             user_id: match.user_id_1,
-            status: 'active'
+            status: 'available'
           }
         }
       ),
@@ -54,7 +54,7 @@ export async function completeExchangeService(matchId, userId) {
         { 
           where: { 
             user_id: match.user_id_2,
-            status: 'active'
+            status: 'available'
           }
         }
       )
@@ -117,7 +117,7 @@ export async function getExchangeInfoService(matchId, userId) {
       PublishedBooks.findAll({
         where: { 
           user_id: match.user_id_1,
-          status: 'active'
+          status: 'available'
         },
         include: [
           {
@@ -129,7 +129,7 @@ export async function getExchangeInfoService(matchId, userId) {
       PublishedBooks.findAll({
         where: { 
           user_id: match.user_id_2,
-          status: 'active'
+          status: 'available'
         },
         include: [
           {
