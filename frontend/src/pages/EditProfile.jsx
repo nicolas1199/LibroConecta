@@ -9,6 +9,10 @@ import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
 import Users from "../components/icons/Users"
+import {
+  getLocations,
+} from "../api/publishedBooks"
+
 
 export default function EditProfile() {
   const navigate = useNavigate()
@@ -382,7 +386,7 @@ export default function EditProfile() {
               {errors.username && <p className="form-error">{errors.username}</p>}
             </div>
 
-                  <div>
+            <div>
               <label className="form-label">
                 Ubicación <span className="text-red-500">*</span>
               </label>
@@ -462,6 +466,7 @@ export default function EditProfile() {
           </form>
         </div>
       </div>
+        return <DashboardLayout>{renderContent()}</DashboardLayout>
     </div>
   )
 }

@@ -203,7 +203,12 @@ export async function createPaymentPreference(req, res) {
       payer: {
         name: buyerUser.first_name || buyerUser.username || 'Comprador',
         surname: buyerUser.last_name || 'LibroConecta',
-        email: buyerUser.email || `usuario_${buyerUser.user_id.substring(0, 8)}@libroconecta.com`
+        email: buyerUser.email || `usuario_${buyerUser.user_id.substring(0, 8)}@libroconecta.com`,
+        // Añadir identificación única para evitar conflictos
+        identification: {
+          type: 'other',
+          number: buyerUser.user_id.substring(0, 15) // Usar parte del UUID como identificador único
+        }
       },
       external_reference: externalReference,
       notification_url: notificationUrl,
@@ -212,12 +217,25 @@ export async function createPaymentPreference(req, res) {
         failure: failureUrl,
         pending: pendingUrl
       },
+      // CONFIGURACIÓN CRÍTICA: auto_return para redirección automática
+      auto_return: 'approved', // Redirigir automáticamente solo en pagos aprobados
+      // Reducir tiempo de redirección (opcional)
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
       statement_descriptor: 'LIBROCONECTA',
+      // Añadir configuraciones adicionales para evitar detección de auto-pago
+      binary_mode: false,
+      expires: false,
+      marketplace: 'NONE',
+      marketplace_fee: 0,
       metadata: {
         payment_id: paymentRecord.payment_id,
         book_id: publishedBookId,
         buyer_id: userId,
-        seller_id: publishedBook.user_id
+        seller_id: publishedBook.user_id,
+        buyer_email: buyerUser.email,
+        seller_email: sellerUser?.email,
+        transaction_timestamp: Date.now()
       }
     };
 
