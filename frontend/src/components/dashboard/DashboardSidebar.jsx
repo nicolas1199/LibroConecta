@@ -89,6 +89,10 @@ export default function DashboardSidebar({
   return (
     <aside
       className={`dashboard-sidebar ${isOpen ? "dashboard-sidebar-open" : ""}`}
+      style={{ 
+        // Temporalmente forzar visible para debug
+        transform: window.innerWidth >= 1024 ? 'translateX(0)' : undefined 
+      }}
     >
       <div className="sidebar-section">
         {/* User Profile */}

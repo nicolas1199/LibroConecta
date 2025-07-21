@@ -33,10 +33,15 @@ export default function EditProfile() {
     const loadData = async () => {
       try {
         setIsLoadingData(true)
+        console.log("🔄 Cargando datos del perfil y ubicaciones...")
+        
         const [profileData, locationsData] = await Promise.all([
           getUserProfile(),
           getLocations()
         ])
+
+        console.log("✅ Datos del perfil cargados:", profileData)
+        console.log("✅ Ubicaciones cargadas:", locationsData)
 
         setFormData({
           first_name: profileData.data.first_name || "",
@@ -51,8 +56,12 @@ export default function EditProfile() {
 
         setLocations(locationsData)
       } catch (error) {
-        console.error("Error loading data:", error)
-        setMessage("Error al cargar los datos del perfil")
+        console.error("❌ Error loading data:", error)
+        if (error.message?.includes('locations')) {
+          setMessage("Error al cargar las ubicaciones. Verifique la conexión al servidor.")
+        } else {
+          setMessage("Error al cargar los datos del perfil")
+        }
       } finally {
         setIsLoadingData(false)
       }
@@ -211,6 +220,22 @@ export default function EditProfile() {
     acc[location.region].push(location)
     return acc
   }, {})
+
+  // Fallback locations en caso de error
+  const fallbackLocations = {
+    "Región Metropolitana": [
+      { location_id: 1, comuna: "Santiago", region: "Región Metropolitana" },
+      { location_id: 2, comuna: "Providencia", region: "Región Metropolitana" },
+      { location_id: 3, comuna: "Las Condes", region: "Región Metropolitana" },
+    ],
+    "Región de Valparaíso": [
+      { location_id: 4, comuna: "Valparaíso", region: "Región de Valparaíso" },
+      { location_id: 5, comuna: "Viña del Mar", region: "Región de Valparaíso" },
+    ]
+  }
+
+  // Usar fallback si no hay ubicaciones cargadas
+  const locationsToUse = Object.keys(groupedLocations).length > 0 ? groupedLocations : fallbackLocations
 
   if (isLoadingData) {
     return (
@@ -381,7 +406,7 @@ export default function EditProfile() {
                 className="form-control"
               >
                 <option value="">Selecciona tu ubicación</option>
-                {Object.entries(groupedLocations).map(([region, locations]) => (
+                {Object.entries(locationsToUse).map(([region, locations]) => (
                   <optgroup key={region} label={region}>
                     {locations.map((location) => (
                       <option key={location.location_id} value={location.location_id}>
