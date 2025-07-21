@@ -15,6 +15,7 @@ import LibraryInsights from "../pages/LibraryInsights";
 import Matches from "../pages/Matches";
 import Messages from "../pages/Messages";
 import Ratings from "../pages/Ratings";
+import ReviewsPage from "../pages/ReviewsPage";
 import Favorites from "../pages/Favorites";
 import Wishlist from "../pages/Wishlist";
 import Drafts from "../pages/Drafts";
@@ -212,6 +213,16 @@ export default function AppRouter() {
               <DashboardLayout>
                 <Ratings />
               </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Reviews routes */}
+        <Route
+          path="/dashboard/reviews"
+          element={
+            <PrivateRoute>
+              <ReviewsPage />
             </PrivateRoute>
           }
         />
