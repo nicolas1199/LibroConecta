@@ -137,8 +137,8 @@ export async function createPaymentPreference(req, res) {
       }
     }, 'Preferencia de pago creada exitosamente', 201);
 
-  } catch (error) {
-    console.error('❌ Error creando preferencia de pago:', error);
+  } catch (err) {
+    console.error('❌ Error creando preferencia de pago:', err);
     return error(res, 'Error interno del servidor', 500);
   }
 }
@@ -244,8 +244,8 @@ export async function getPaymentStatus(req, res) {
 
     return success(res, paymentRecord, 'Estado del pago obtenido');
 
-  } catch (error) {
-    console.error('❌ Error obteniendo estado del pago:', error);
+  } catch (err) {
+    console.error('❌ Error obteniendo estado del pago:', err);
     return error(res, 'Error interno del servidor', 500);
   }
 }
@@ -309,8 +309,8 @@ export async function getUserPayments(req, res) {
       hasMore: payments.count > parseInt(offset) + parseInt(limit)
     }, 'Pagos obtenidos exitosamente');
 
-  } catch (error) {
-    console.error('❌ Error obteniendo pagos del usuario:', error);
+  } catch (err) {
+    console.error('❌ Error obteniendo pagos del usuario:', err);
     return error(res, 'Error interno del servidor', 500);
   }
 }
@@ -420,8 +420,8 @@ export async function processDirectPayment(req, res) {
 
     return success(res, result, 'Pago procesado exitosamente', 201);
 
-  } catch (error) {
-    console.error('❌ Error procesando pago directo:', error);
-    return error(res, `Error procesando pago: ${error.message}`, 500);
+  } catch (err) {
+    console.error('❌ Error procesando pago directo:', err);
+    return error(res, `Error procesando pago: ${err.message}`, 500);
   }
 } 
