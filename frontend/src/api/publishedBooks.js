@@ -14,17 +14,8 @@ export const getBookConditions = async () => {
 
 // Obtener ubicaciones
 export const getLocations = async () => {
-  try {
-    console.log("🌍 Obteniendo ubicaciones de:", "/locations")
-    const res = await api.get("/locations")
-    console.log("✅ Ubicaciones obtenidas:", res.data)
-    return res.data
-  } catch (error) {
-    console.error("❌ Error obteniendo ubicaciones:", error)
-    console.error("❌ Error response:", error.response?.data)
-    console.error("❌ Error status:", error.response?.status)
-    throw error
-  }
+  const res = await api.get("/locations")
+  return res.data
 }
 
 // Obtener categorías
