@@ -1,6 +1,15 @@
 import "./config/configEnv.js";
 import express from "express";
 
+console.log('🚀 SERVIDOR INICIANDO...');
+console.log('🚀 PUERTO:', process.env.PORT);
+console.log('🚀 NODE_ENV:', process.env.NODE_ENV);
+console.log('🚀 MODO:', process.env.NODE_ENV || 'development');
+
+// Forzar logs en cualquier modo
+console.log = (...args) => process.stdout.write(args.join(' ') + '\n');
+console.error = (...args) => process.stderr.write(args.join(' ') + '\n');
+
 import corsMiddleware from "./middlewares/cors.middleware.js";
 import jsonParserMiddleware from "./middlewares/jsonParser.middleware.js";
 import cookieParserMiddleware from "./middlewares/cookieParser.middleware.js";

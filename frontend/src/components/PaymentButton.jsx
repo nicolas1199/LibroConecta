@@ -28,15 +28,20 @@ export default function PaymentButton({
       console.log('🔑 Public Key configurada:', import.meta.env.VITE_MP_PUBLIC_KEY);
 
       // Crear preferencia de pago
-      const { data: preference } = await createPaymentPreference(publishedBookId);
+      const response = await createPaymentPreference(publishedBookId);
+      const preference = response.data; // Extraer data de la respuesta
       
+      console.log('✅ Respuesta completa:', response);
+      console.log('✅ Preference data:', preference);
       console.log('✅ Preferencia creada:', preference.preference_id);
       console.log('✅ Init point:', preference.init_point);
 
       // Redirigir directamente a MercadoPago
       if (preference.init_point) {
+        console.log('🚀 Redirigiendo a:', preference.init_point);
         window.location.href = preference.init_point;
       } else {
+        console.error('❌ No hay init_point en la preferencia:', preference);
         throw new Error('No se pudo obtener el link de pago');
       }
 

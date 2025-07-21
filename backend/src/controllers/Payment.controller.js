@@ -29,6 +29,12 @@ const payment = new MPPayment(client);
  * Según la documentación: https://www.mercadopago.cl/developers/es/reference/preferences/_checkout_preferences/post
  */
 export async function createPaymentPreference(req, res) {
+  console.log('🚨 FUNCIÓN EJECUTADA - createPaymentPreference');
+  console.log('🚨 METHOD:', req.method);
+  console.log('🚨 URL:', req.url);
+  console.log('🚨 PARAMS:', req.params);
+  console.log('🚨 USER:', req.user ? 'Present' : 'Missing');
+  
   try {
     console.log('🔍 Iniciando createPaymentPreference...');
     console.log('🔍 Variables de entorno:', {
