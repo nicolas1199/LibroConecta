@@ -42,6 +42,8 @@ export default function EditProfile() {
 
         console.log("✅ Datos del perfil cargados:", profileData)
         console.log("✅ Ubicaciones cargadas:", locationsData)
+        console.log("🔍 Primera ubicación:", locationsData[0])
+        console.log("🔍 Estructura de ubicación:", Object.keys(locationsData[0] || {}))
 
         setFormData({
           first_name: profileData.data.first_name || "",
@@ -221,6 +223,9 @@ export default function EditProfile() {
     return acc
   }, {})
 
+  console.log("🏘️ Ubicaciones agrupadas:", groupedLocations)
+  console.log("🏘️ Cantidad de regiones:", Object.keys(groupedLocations).length)
+
   // Fallback locations en caso de error
   const fallbackLocations = {
     "Región Metropolitana": [
@@ -236,6 +241,9 @@ export default function EditProfile() {
 
   // Usar fallback si no hay ubicaciones cargadas
   const locationsToUse = Object.keys(groupedLocations).length > 0 ? groupedLocations : fallbackLocations
+  
+  console.log("📍 Ubicaciones finales para el selector:", locationsToUse)
+  console.log("📍 Usando fallback?", Object.keys(groupedLocations).length === 0)
 
   if (isLoadingData) {
     return (
