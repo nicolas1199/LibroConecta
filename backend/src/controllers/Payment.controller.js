@@ -239,7 +239,6 @@ export async function createPaymentPreference(req, res) {
       statement_descriptor: 'LIBROCONECTA',
       // Configuración mejorada para marketplace
       binary_mode: false,
-      auto_return: 'approved',
       // Información adicional para diferenciar transacciones
       additional_info: {
         items: [
