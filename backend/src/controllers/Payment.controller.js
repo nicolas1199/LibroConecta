@@ -83,6 +83,11 @@ export async function createPaymentPreference(req, res) {
       return error(res, 'Usuario comprador no encontrado', 404);
     }
 
+    // Validar que el usuario comprador tenga email válido
+    if (!buyerUser.email || !buyerUser.email.includes('@')) {
+      return error(res, 'El usuario debe tener un email válido para realizar compras', 400);
+    }
+
     console.log('👤 Datos completos del usuario comprador:', {
       first_name: buyerUser.first_name,
       last_name: buyerUser.last_name,
@@ -205,11 +210,20 @@ export async function createPaymentPreference(req, res) {
       payer: {
         name: buyerUser.first_name || buyerUser.username || 'Comprador',
         surname: buyerUser.last_name || 'LibroConecta',
-        email: buyerUser.email || `usuario_${buyerUser.user_id.substring(0, 8)}@libroconecta.com`,
-        // Añadir identificación única para evitar conflictos
+        email: buyerUser.email,
+        // Usar información más específica para identificación
         identification: {
           type: 'other',
-          number: buyerUser.user_id.substring(0, 15) // Usar parte del UUID como identificador único
+          number: `USER_${buyerUser.user_id.substring(0, 10)}_${Date.now().toString().slice(-6)}`
+        },
+        // Agregar información adicional del comprador
+        phone: {
+          area_code: '+56',
+          number: '000000000'
+        },
+        address: {
+          zip_code: '1234567',
+          street_name: 'No especificada'
         }
       },
       external_reference: externalReference,
@@ -223,23 +237,79 @@ export async function createPaymentPreference(req, res) {
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
       statement_descriptor: 'LIBROCONECTA',
-      // Añadir configuraciones adicionales para evitar detección de auto-pago
+      // Configuración mejorada para marketplace
       binary_mode: false,
-      expires: false,
-      marketplace: 'NONE',
-      marketplace_fee: 0,
+      auto_return: 'approved',
+      // Información adicional para diferenciar transacciones
+      additional_info: {
+        items: [
+          {
+            id: publishedBookId,
+            title: publishedBook.Book.title,
+            description: `Libro: ${publishedBook.Book.title} por ${publishedBook.Book.author}`,
+            picture_url: '',
+            category_id: 'books',
+            quantity: 1,
+            unit_price: parseFloat(publishedBook.price)
+          }
+        ],
+        payer: {
+          first_name: buyerUser.first_name || buyerUser.username,
+          last_name: buyerUser.last_name || 'Usuario',
+          phone: {
+            area_code: '+56',
+            number: '000000000'
+          },
+          address: {
+            street_name: 'Dirección no especificada',
+            street_number: 0,
+            zip_code: '1234567'
+          },
+          registration_date: buyerUser.createdAt || new Date().toISOString()
+        },
+        shipments: {
+          receiver_address: {
+            zip_code: '1234567',
+            street_name: 'Retiro en persona',
+            street_number: 0,
+            floor: '',
+            apartment: ''
+          }
+        }
+      },
       metadata: {
-        payment_id: paymentRecord.payment_id,
-        book_id: publishedBookId,
-        buyer_id: userId,
-        seller_id: publishedBook.user_id,
-        buyer_email: buyerUser.email,
-        seller_email: sellerUser?.email,
-        transaction_timestamp: Date.now()
+        transaction_id: paymentRecord.payment_id,
+        published_book_id: publishedBookId,
+        buyer_user_id: userId,
+        seller_user_id: publishedBook.user_id,
+        book_title: publishedBook.Book.title,
+        book_author: publishedBook.Book.author,
+        transaction_type: 'book_purchase',
+        platform: 'libroconecta',
+        timestamp: Date.now()
       }
     };
 
     console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
+
+    // Log final de verificación antes de enviar a MercadoPago
+    console.log('🔍 VERIFICACIÓN FINAL ANTES DE MERCADOPAGO:');
+    console.log('👤 COMPRADOR:', {
+      user_id: buyerUser.user_id,
+      email: buyerUser.email,
+      name: `${buyerUser.first_name} ${buyerUser.last_name}`,
+      identification: preferenceData.payer.identification.number
+    });
+    console.log('🏪 VENDEDOR:', {
+      user_id: publishedBook.user_id,
+      email: sellerUser?.email,
+      name: `${sellerUser?.first_name} ${sellerUser?.last_name}`
+    });
+    console.log('📚 LIBRO:', {
+      id: publishedBookId,
+      title: publishedBook.Book.title,
+      price: publishedBook.price
+    });
 
     // Crear preferencia en MercadoPago
     const mpPreference = await preference.create({ body: preferenceData });
