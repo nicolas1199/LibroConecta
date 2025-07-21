@@ -210,22 +210,16 @@ export default function EditPublication() {
     try {
       // Preparar datos para actualizar - SOLO datos de la publicación
       const updateData = {
+        // Datos de la publicación (sin incluir datos del libro base)
         transaction_type_id: Number.parseInt(formData.transaction_type_id),
+        price: formData.price ? Number.parseFloat(formData.price) : null,
+        look_for: formData.look_for || null,
         condition_id: Number.parseInt(formData.condition_id),
         location_id: Number.parseInt(formData.location_id),
         description: formData.description,
       }
 
-      // Solo agregar price si es una venta
-      if (formData.transaction_type_id === "1" && formData.price) {
-        updateData.price = Number.parseFloat(formData.price)
-      }
-
-      // Solo agregar look_for si es un intercambio y tiene valor
-      if (formData.transaction_type_id === "2" && formData.look_for) {
-        updateData.look_for = formData.look_for
-      }
-
+      // Actualizar la publicación - CORREGIDO: ahora sí llama a la API
       console.log("Actualizando publicación:", updateData)
       const updatedPublication = await updatePublishedBook(id, updateData)
       console.log("Publicación actualizada:", updatedPublication)
@@ -259,7 +253,7 @@ export default function EditPublication() {
         }
       }
 
-      // Redirigir con mensaje de éxito
+      // Redirigir con mensaje de éxito y flag para refrescar datos
       navigate("/my-publications", {
         state: {
           message: "¡Publicación actualizada exitosamente!",
