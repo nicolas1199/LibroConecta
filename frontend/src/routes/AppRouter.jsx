@@ -26,6 +26,7 @@ import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
 import SwipeHistory from "../pages/SwipeHistory";
 import EditProfile from "../pages/EditProfile";
+import MyPublications from "../pages/MyPublications";
 import EditPublication from "../pages/EditPublication";
 // Páginas de pago
 import PaymentSuccess from "../pages/PaymentSuccess";
@@ -300,6 +301,16 @@ export default function AppRouter() {
           element={
             <PrivateRoute>
               <EditProfile />
+            </PrivateRoute>
+          }
+        />
+
+        {/* My publications route */}
+        <Route
+          path="/my-publications"
+          element={
+            <PrivateRoute>
+              <MyPublications />
             </PrivateRoute>
           }
         />
