@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/api.js';
 import StarRating from './StarRating';
 import ReviewCard from './ReviewCard';
 
@@ -15,8 +15,6 @@ const ReviewsSection = ({ userId, showMyReviews = false }) => {
   const [activeTab, setActiveTab] = useState('received');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:1234/api';
 
   useEffect(() => {
     loadReviews(true);
@@ -37,7 +35,7 @@ const ReviewsSection = ({ userId, showMyReviews = false }) => {
       let response;
       if (showMyReviews) {
         // Cargar mis reviews (recibidas o dadas)
-        response = await axios.get(`${API_BASE_URL}/ratings/my`, {
+        response = await api.get(`/ratings/my`, {
           params: {
             type: activeTab,
             limit,
@@ -46,7 +44,7 @@ const ReviewsSection = ({ userId, showMyReviews = false }) => {
         });
       } else {
         // Cargar reviews de un usuario específico
-        response = await axios.get(`${API_BASE_URL}/ratings/user/${userId}`, {
+        response = await api.get(`/ratings/user/${userId}`, {
           params: {
             limit,
             offset
