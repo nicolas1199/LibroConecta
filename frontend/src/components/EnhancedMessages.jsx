@@ -9,6 +9,7 @@ import ImageIcon from "../components/icons/ImageIcon";
 import Paperclip from "../components/icons/Paperclip";
 import CheckCircle from "../components/icons/CheckCircle";
 import Star from "../components/icons/Star";
+import X from "../components/icons/X"; // Para cerrar el modal
 import { Link } from "react-router-dom";
 
 export default function EnhancedMessages() {
@@ -24,6 +25,8 @@ export default function EnhancedMessages() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState(null);
   const [showExchangeActions, setShowExchangeActions] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false); // Nuevo estado para el modal
+  const [exchangeCompleted, setExchangeCompleted] = useState(false); // Para track del intercambio
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -171,9 +174,17 @@ export default function EnhancedMessages() {
     }
 
     try {
-      await completeExchange(selectedConversation.match_id);
+      const response = await completeExchange(selectedConversation.match_id);
+      console.log("✅ Intercambio completado:", response.data);
+      
       setShowExchangeActions(false);
       setExchangeInfo(prev => ({ ...prev, is_completed: true }));
+      setExchangeCompleted(true);
+      
+      // Mostrar modal de calificación después de completar
+      setTimeout(() => {
+        setShowRatingModal(true);
+      }, 1000); // Mostrar después de 1 segundo
       
       // Recargar información del intercambio
       loadExchangeInfo(selectedConversation.match_id);
@@ -184,9 +195,18 @@ export default function EnhancedMessages() {
   };
 
   const handleGoToReview = () => {
-    if (exchangeInfo && exchangeInfo.other_user) {
-      navigate(`/dashboard/ratings?review_user=${exchangeInfo.other_user.user_id}&match_id=${selectedConversation.match_id}`);
+    if (exchangeInfo && exchangeInfo.users) {
+      // Encontrar el otro usuario
+      const otherUser = exchangeInfo.users.find(user => user.user_id !== currentUser.user_id);
+      if (otherUser) {
+        navigate(`/dashboard/ratings?review_user=${otherUser.user_id}&match_id=${selectedConversation.match_id}`);
+      }
     }
+    setShowRatingModal(false);
+  };
+
+  const handleSkipRating = () => {
+    setShowRatingModal(false);
   };
 
   const scrollToBottom = () => {
@@ -467,19 +487,103 @@ export default function EnhancedMessages() {
   }, [selectedConversation, messages, currentUser, newMessage, sendingMessage, uploadingImage, handleSendMessage, formatDate, exchangeInfo, showExchangeActions]);
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Mobile: Show either conversation list or chat */}
-      <div className="md:hidden flex-1">
-        {matchId ? ChatArea() : ConversationList}
+    <div className="flex h-screen bg-gray-50">
+      {/* Existing sidebar code */}
+      <div className="w-1/3 bg-white border-r border-gray-200">
+        {ConversationList}
       </div>
 
-      {/* Desktop: Show both side by side */}
-      <div className="hidden md:flex flex-1">
-        <div className="w-1/3 min-w-0">
-          {ConversationList}
-        </div>
-        {ChatArea()}
+      {/* Existing main content */}
+      <div className="flex-1 flex flex-col">
+        {matchId ? ChatArea() : (
+          <div className="flex-1 flex items-center justify-center">
+            <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Selecciona una conversación
+            </h3>
+            <p className="text-gray-600">
+              Elige una conversación para empezar a chatear
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Modal de Calificación */}
+      {showRatingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                ¡Intercambio Completado! 🎉
+              </h3>
+              <button
+                onClick={handleSkipRating}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-600 mb-2">
+                El intercambio se ha completado exitosamente.
+              </p>
+              <p className="text-sm text-gray-500">
+                ¿Te gustaría calificar tu experiencia con este intercambio?
+              </p>
+            </div>
+
+            {exchangeInfo && (
+              <div className="mb-6 p-3 bg-gray-50 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">
+                  Detalles del intercambio:
+                </h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  {exchangeInfo.users?.map((user, index) => (
+                    <div key={user.user_id} className="flex justify-between">
+                      <span>{user.name}</span>
+                      <span>{user.books?.length || 0} libro(s)</span>
+                    </div>
+                  ))}
+                  <div className="border-t pt-1 mt-2">
+                    <span className="font-medium">Total de libros: {exchangeInfo.total_books || 0}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleGoToReview}
+                className="flex-1 btn btn-primary flex items-center justify-center space-x-2"
+              >
+                <Star className="h-4 w-4" />
+                <span>Calificar Ahora</span>
+              </button>
+              <button
+                onClick={handleSkipRating}
+                className="flex-1 btn btn-secondary"
+              >
+                Más Tarde
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-3">
+              Puedes calificar más tarde desde tu perfil
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {exchangeCompleted && !showRatingModal && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-40">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="h-4 w-4" />
+            <span>¡Intercambio completado exitosamente!</span>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 m-4">

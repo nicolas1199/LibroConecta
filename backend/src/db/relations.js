@@ -1,3 +1,5 @@
+import MatchBooks from "./models/MatchBooks.js";
+
 export default ({
   Book,
   User,
@@ -248,4 +250,14 @@ export default ({
   Transaction.belongsTo(Payment, { 
     foreignKey: "payment_id" 
   });
+
+  // Nuevas relaciones para MatchBooks
+  Match.hasMany(MatchBooks, { foreignKey: "match_id" });
+  MatchBooks.belongsTo(Match, { foreignKey: "match_id" });
+
+  PublishedBooks.hasMany(MatchBooks, { foreignKey: "published_book_id" });
+  MatchBooks.belongsTo(PublishedBooks, { foreignKey: "published_book_id" });
+
+  User.hasMany(MatchBooks, { foreignKey: "user_id" });
+  MatchBooks.belongsTo(User, { foreignKey: "user_id" });
 };
