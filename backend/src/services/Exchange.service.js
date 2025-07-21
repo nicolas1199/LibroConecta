@@ -1,4 +1,4 @@
-import { PublishedBooks, Match, User } from "../db/modelIndex.js";
+import { PublishedBooks, Match, User, Book } from "../db/modelIndex.js";
 import { Op } from "sequelize";
 
 // Servicio para marcar un intercambio como completado
@@ -16,66 +16,73 @@ export async function completeExchangeService(matchId, userId) {
       throw new Error("Match no encontrado o no autorizado");
     }
 
-    // Obtener información del match con los libros publicados
-    const matchData = await Match.findByPk(matchId, {
-      include: [
-        {
-          model: PublishedBooks,
-          as: "PublishedBook1",
-          include: [
-            {
-              model: User,
-              attributes: ["user_id", "first_name", "last_name"],
-            },
-          ],
-        },
-        {
-          model: PublishedBooks,
-          as: "PublishedBook2",
-          include: [
-            {
-              model: User,
-              attributes: ["user_id", "first_name", "last_name"],
-            },
-          ],
-        },
-      ],
-    });
+    // Obtener información de los dos usuarios del match
+    const [user1, user2] = await Promise.all([
+      User.findByPk(match.user_id_1),
+      User.findByPk(match.user_id_2),
+    ]);
 
-    if (!matchData) {
-      throw new Error("Datos del match no encontrados");
-    }
+    // Obtener los libros publicados de ambos usuarios (activos)
+    const [user1Books, user2Books] = await Promise.all([
+      PublishedBooks.findAll({
+        where: { 
+          user_id: match.user_id_1,
+          status: 'active'
+        }
+      }),
+      PublishedBooks.findAll({
+        where: { 
+          user_id: match.user_id_2,
+          status: 'active'
+        }
+      })
+    ]);
 
-    // Marcar ambos libros como vendidos/intercambiados
-    const updatePromises = [];
-    
-    if (matchData.PublishedBook1) {
-      updatePromises.push(
-        PublishedBooks.update(
-          { status: 'sold', updated_at: new Date() },
-          { where: { published_book_id: matchData.PublishedBook1.published_book_id } }
-        )
-      );
-    }
-    
-    if (matchData.PublishedBook2) {
-      updatePromises.push(
-        PublishedBooks.update(
-          { status: 'sold', updated_at: new Date() },
-          { where: { published_book_id: matchData.PublishedBook2.published_book_id } }
-        )
-      );
-    }
-
-    await Promise.all(updatePromises);
+    // Marcar todos los libros de ambos usuarios como "sold" (intercambiados)
+    await Promise.all([
+      PublishedBooks.update(
+        { status: 'sold' },
+        { 
+          where: { 
+            user_id: match.user_id_1,
+            status: 'active'
+          }
+        }
+      ),
+      PublishedBooks.update(
+        { status: 'sold' },
+        { 
+          where: { 
+            user_id: match.user_id_2,
+            status: 'active'
+          }
+        }
+      )
+    ]);
 
     return {
       success: true,
-      message: "Intercambio marcado como completado",
-      match: matchData,
+      message: "Intercambio completado exitosamente",
+      match: {
+        match_id: match.match_id,
+        users: [
+          {
+            user_id: user1.user_id,
+            name: `${user1.first_name} ${user1.last_name}`,
+            books_exchanged: user1Books.length
+          },
+          {
+            user_id: user2.user_id,
+            name: `${user2.first_name} ${user2.last_name}`,
+            books_exchanged: user2Books.length
+          }
+        ],
+        completed_at: new Date()
+      }
     };
+
   } catch (error) {
-    console.error("Error al completar intercambio:", error);
+    console.error("Error en completeExchangeService:", error);
     throw error;
   }
 }
@@ -89,59 +96,85 @@ export async function getExchangeInfoService(matchId, userId) {
         match_id: matchId,
         [Op.or]: [{ user_id_1: userId }, { user_id_2: userId }],
       },
-      include: [
-        {
-          model: PublishedBooks,
-          as: "PublishedBook1",
-          include: [
-            {
-              model: User,
-              attributes: ["user_id", "first_name", "last_name"],
-            },
-          ],
-        },
-        {
-          model: PublishedBooks,
-          as: "PublishedBook2",
-          include: [
-            {
-              model: User,
-              attributes: ["user_id", "first_name", "last_name"],
-            },
-          ],
-        },
-        {
-          model: User,
-          as: "User1",
-          attributes: ["user_id", "first_name", "last_name"],
-        },
-        {
-          model: User,
-          as: "User2",
-          attributes: ["user_id", "first_name", "last_name"],
-        },
-      ],
     });
 
     if (!match) {
       throw new Error("Match no encontrado o no autorizado");
     }
 
-    // Determinar el otro usuario
-    const otherUser = match.user_id_1 === userId ? match.User2 : match.User1;
-    const myBook = match.user_id_1 === userId ? match.PublishedBook1 : match.PublishedBook2;
-    const otherBook = match.user_id_1 === userId ? match.PublishedBook2 : match.PublishedBook1;
+    // Obtener información de los dos usuarios del match
+    const [user1, user2] = await Promise.all([
+      User.findByPk(match.user_id_1, {
+        attributes: ["user_id", "first_name", "last_name", "location"]
+      }),
+      User.findByPk(match.user_id_2, {
+        attributes: ["user_id", "first_name", "last_name", "location"]
+      })
+    ]);
+
+    // Obtener los libros publicados de ambos usuarios
+    const [user1Books, user2Books] = await Promise.all([
+      PublishedBooks.findAll({
+        where: { 
+          user_id: match.user_id_1,
+          status: 'active'
+        },
+        include: [
+          {
+            model: Book,
+            attributes: ["title", "author", "description"]
+          }
+        ]
+      }),
+      PublishedBooks.findAll({
+        where: { 
+          user_id: match.user_id_2,
+          status: 'active'
+        },
+        include: [
+          {
+            model: Book,
+            attributes: ["title", "author", "description"]
+          }
+        ]
+      })
+    ]);
 
     return {
       match_id: match.match_id,
       date_match: match.date_match,
-      other_user: otherUser,
-      my_book: myBook,
-      other_book: otherBook,
-      is_completed: myBook?.status === 'sold' || otherBook?.status === 'sold',
+      users: [
+        {
+          user_id: user1.user_id,
+          name: `${user1.first_name} ${user1.last_name}`,
+          location: user1.location,
+          books: user1Books.map(book => ({
+            published_book_id: book.published_book_id,
+            title: book.Book?.title || 'Título no disponible',
+            author: book.Book?.author || 'Autor desconocido',
+            description: book.Book?.description || '',
+            status: book.status
+          }))
+        },
+        {
+          user_id: user2.user_id,
+          name: `${user2.first_name} ${user2.last_name}`,
+          location: user2.location,
+          books: user2Books.map(book => ({
+            published_book_id: book.published_book_id,
+            title: book.Book?.title || 'Título no disponible',
+            author: book.Book?.author || 'Autor desconocido',
+            description: book.Book?.description || '',
+            status: book.status
+          }))
+        }
+      ],
+      can_complete: userId === match.user_id_1 || userId === match.user_id_2,
+      total_books: user1Books.length + user2Books.length
     };
+
   } catch (error) {
-    console.error("Error al obtener información del intercambio:", error);
+    console.error("Error en getExchangeInfoService:", error);
     throw error;
   }
 }
