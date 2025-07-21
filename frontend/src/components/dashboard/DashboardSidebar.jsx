@@ -66,7 +66,6 @@ export default function DashboardSidebar({
     ],
     misLibros: [
       { icon: BookOpen, label: "Mi biblioteca", path: "/dashboard/library" },
-      { icon: BookOpen, label: "Mis libros", path: "/dashboard/my-books" },
       { icon: Plus, label: "Publicar libro", path: "/dashboard/publish" },
       { icon: Edit, label: "Mis publicaciones", path: "/my-publications" },
       {
