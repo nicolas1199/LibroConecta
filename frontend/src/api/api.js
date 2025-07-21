@@ -6,7 +6,7 @@ import {
   isTokenNearExpiry,
 } from "../utils/auth.js";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://146.83.198.35:1234/api";
 
 const defaultConfig = {
   baseURL: BASE_URL,

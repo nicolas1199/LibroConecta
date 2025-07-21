@@ -25,6 +25,8 @@ export default function PaymentButton({
       onPaymentStart?.();
 
       console.log('🛒 Iniciando proceso de pago para libro:', publishedBookId);
+      console.log('🔧 URL API configurada:', import.meta.env.VITE_API_URL);
+      console.log('🔑 Public Key configurada:', import.meta.env.VITE_MP_PUBLIC_KEY);
 
       // Crear preferencia de pago
       const { data: preference } = await createPaymentPreference(publishedBookId);
@@ -60,10 +62,22 @@ export default function PaymentButton({
 
     } catch (error) {
       console.error('❌ Error en el proceso de pago:', error);
+      console.error('❌ Error completo:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        }
+      });
       
       let errorMessage = 'Error procesando el pago';
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       }

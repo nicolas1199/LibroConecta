@@ -7,10 +7,20 @@ import api from './api.js';
  */
 export async function createPaymentPreference(publishedBookId) {
   try {
+    console.log('🔍 Creando preferencia para libro:', publishedBookId);
+    console.log('🔍 Token de auth:', localStorage.getItem('token') ? 'Presente' : 'Ausente');
+    
     const response = await api.post(`/payments/preferences/${publishedBookId}`);
+    console.log('✅ Respuesta de preferencia:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error creando preferencia de pago:', error);
+    console.error('❌ Error creando preferencia de pago:', error);
+    console.error('❌ Detalles del error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url
+    });
     throw error;
   }
 }
