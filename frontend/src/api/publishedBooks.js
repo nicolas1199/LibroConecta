@@ -45,7 +45,7 @@ export const publishBook = async (publishData) => {
 export const uploadBookImages = async (publishedBookId, formData) => {
   const res = await api.post(`/published-book-images/upload/${publishedBookId}`, formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      "Content-Type": "multipart/form-data",
     },
   })
   return res.data
@@ -59,12 +59,12 @@ export const uploadBookImagesBase64 = async (publishedBookId, base64Images) => {
     { images: base64Images },
     {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    }
-  );
-  return res.data;
-};
+    },
+  )
+  return res.data
+}
 
 // Subir imagen de libro publicado (legacy)
 export const uploadBookImage = async (publishedBookId, imageData) => {
@@ -110,42 +110,42 @@ export const getUserSwipeStats = async () => {
 
 // Obtener historial de interacciones del usuario
 export const getUserSwipeHistory = async (params = {}) => {
-  const res = await api.get("/published-books/interactions/history", { params });
-  return res.data;
-};
+  const res = await api.get("/published-books/interactions/history", { params })
+  return res.data
+}
 
 // Actualizar una interacción existente
 export const updateSwipeInteraction = async (interactionId, interactionData) => {
-  const res = await api.put(`/published-books/interactions/${interactionId}`, interactionData);
-  return res.data;
-};
+  const res = await api.put(`/published-books/interactions/${interactionId}`, interactionData)
+  return res.data
+}
 
 // Eliminar una interacción
 export const deleteSwipeInteraction = async (interactionId) => {
-  const res = await api.delete(`/published-books/interactions/${interactionId}`);
-  return res.data;
-};
+  const res = await api.delete(`/published-books/interactions/${interactionId}`)
+  return res.data
+}
 
-// Actualizar una publicación de libro
+// Actualizar una publicación de libro - 
 export const updatePublishedBook = async (publishedBookId, updateData) => {
-  const res = await api.put(`/published-books/${publishedBookId}`, updateData);
-  return res.data;
-};
+  const res = await api.put(`/published-books/${publishedBookId}`, updateData)
+  return res.data
+}
 
 // Eliminar una publicación de libro
 export const deletePublishedBook = async (publishedBookId) => {
-  const res = await api.delete(`/published-books/${publishedBookId}`);
-  return res.data;
-};
+  const res = await api.delete(`/published-books/${publishedBookId}`)
+  return res.data
+}
 
 // Eliminar una imagen específica de una publicación
 export const deletePublishedBookImage = async (imageId) => {
-  const res = await api.delete(`/published-book-images/${imageId}`);
-  return res.data;
-};
+  const res = await api.delete(`/published-book-images/${imageId}`)
+  return res.data
+}
 
 // Obtener mis publicaciones (libros del usuario autenticado)
 export const getMyPublishedBooks = async (params = {}) => {
-  const res = await api.get("/published-books/my-books", { params });
-  return res.data;
-};
+  const res = await api.get("/published-books/my-books", { params })
+  return res.data
+}
