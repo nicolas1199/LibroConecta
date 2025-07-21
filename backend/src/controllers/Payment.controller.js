@@ -90,6 +90,19 @@ export async function createPaymentPreference(req, res) {
       status: 'pending'
     });
 
+    // Preparar URLs de retorno
+    const successUrl = `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}`;
+    const failureUrl = `${FRONTEND_URL}/payment/failure?payment_id=${paymentRecord.payment_id}`;
+    const pendingUrl = `${FRONTEND_URL}/payment/pending?payment_id=${paymentRecord.payment_id}`;
+    const notificationUrl = `${BACKEND_URL}/api/payments/webhook`;
+
+    console.log('🔗 URLs configuradas:', {
+      success: successUrl,
+      failure: failureUrl,
+      pending: pendingUrl,
+      notification: notificationUrl
+    });
+
     // Preparar datos para MercadoPago
     const preferenceData = {
       items: [
@@ -109,11 +122,11 @@ export async function createPaymentPreference(req, res) {
         email: req.user.email
       },
       external_reference: externalReference,
-      notification_url: `${BACKEND_URL}/api/payments/webhook`,
+      notification_url: notificationUrl,
       back_urls: {
-        success: `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}`,
-        failure: `${FRONTEND_URL}/payment/failure?payment_id=${paymentRecord.payment_id}`,
-        pending: `${FRONTEND_URL}/payment/pending?payment_id=${paymentRecord.payment_id}`
+        success: successUrl,
+        failure: failureUrl,
+        pending: pendingUrl
       },
       auto_return: 'approved',
       statement_descriptor: 'LIBROCONECTA',
@@ -125,16 +138,23 @@ export async function createPaymentPreference(req, res) {
       }
     };
 
+    console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
+
     // Crear preferencia en MercadoPago
     const mpPreference = await preference.create({ body: preferenceData });
+
+    console.log('✅ Preferencia creada en MercadoPago:', {
+      id: mpPreference.id,
+      init_point: mpPreference.init_point
+    });
 
     // Actualizar registro con ID de preferencia
     await paymentRecord.update({
       mp_preference_id: mpPreference.id,
-      notification_url: `${BACKEND_URL}/api/payments/webhook`,
-      success_url: `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}`,
-      failure_url: `${FRONTEND_URL}/payment/failure?payment_id=${paymentRecord.payment_id}`,
-      pending_url: `${FRONTEND_URL}/payment/pending?payment_id=${paymentRecord.payment_id}`
+      notification_url: notificationUrl,
+      success_url: successUrl,
+      failure_url: failureUrl,
+      pending_url: pendingUrl
     });
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);

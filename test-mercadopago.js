@@ -58,7 +58,7 @@ async function testMercadoPago() {
         failure: 'http://146.83.198.35:1235/payment/failure',
         pending: 'http://146.83.198.35:1235/payment/pending'
       },
-      auto_return: 'approved'
+      notification_url: 'http://146.83.198.35:1234/api/payments/webhook'
     };
     
     const result = await preference.create({ body: testPreference });
