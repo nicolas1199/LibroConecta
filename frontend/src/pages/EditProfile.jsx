@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { getUserProfile, updateUserProfile } from "../api/auth"
 import { getLocations } from "../api/publishedBooks"
+import DashboardLayout from "../layouts/DashboardLayout"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
@@ -381,17 +382,17 @@ export default function EditProfile() {
               {errors.username && <p className="form-error">{errors.username}</p>}
             </div>
 
-            <div>
+                  <div>
               <label className="form-label">
                 Ubicación <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.location_id}
                 onChange={(e) => handleInputChange("location_id", e.target.value)}
-                className="form-control"
+                className={`form-control ${errors.location_id ? "border-red-500" : ""}`}
               >
                 <option value="">Selecciona tu ubicación</option>
-                {locations.length > 0 && Object.entries(groupedLocations).map(([region, locations]) => (
+                {Object.entries(groupedLocations).map(([region, locations]) => (
                   <optgroup key={region} label={region}>
                     {locations.map((location) => (
                       <option key={location.location_id} value={location.location_id}>
@@ -401,6 +402,7 @@ export default function EditProfile() {
                   </optgroup>
                 ))}
               </select>
+              {errors.location_id && <p className="form-error">{errors.location_id}</p>}
             </div>
 
             <div>

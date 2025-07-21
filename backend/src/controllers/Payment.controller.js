@@ -68,11 +68,25 @@ export async function createPaymentPreference(req, res) {
     const userId = req.user.user_id;
     
     console.log('📋 Parámetros recibidos:', { publishedBookId, userId });
-    console.log('👤 Datos del usuario:', {
+    console.log('👤 Datos del usuario desde req.user:', {
       first_name: req.user.first_name,
       last_name: req.user.last_name,
       email: req.user.email,
       user_id: req.user.user_id
+    });
+
+    // Obtener datos completos del usuario comprador
+    const buyerUser = await User.findByPk(userId);
+    if (!buyerUser) {
+      return error(res, 'Usuario comprador no encontrado', 404);
+    }
+
+    console.log('👤 Datos completos del usuario comprador:', {
+      first_name: buyerUser.first_name,
+      last_name: buyerUser.last_name,
+      email: buyerUser.email,
+      username: buyerUser.username,
+      user_id: buyerUser.user_id
     });
 
     // Verificar que el libro existe y está disponible para venta
@@ -109,6 +123,22 @@ export async function createPaymentPreference(req, res) {
         libro_owner_type: typeof publishedBook.user_id,
         current_user_type: typeof userId
       }
+    });
+
+    // Obtener datos del vendedor para comparación
+    const sellerUser = await User.findByPk(publishedBook.user_id);
+    console.log('🏪 Datos del vendedor:', {
+      seller_id: sellerUser?.user_id,
+      seller_email: sellerUser?.email,
+      seller_name: `${sellerUser?.first_name || ''} ${sellerUser?.last_name || ''}`.trim()
+    });
+
+    console.log('⚖️ Comparación comprador vs vendedor:', {
+      buyer_email: buyerUser.email,
+      seller_email: sellerUser?.email,
+      emails_diferentes: buyerUser.email !== sellerUser?.email,
+      buyer_name: `${buyerUser.first_name || ''} ${buyerUser.last_name || ''}`.trim(),
+      seller_name: `${sellerUser?.first_name || ''} ${sellerUser?.last_name || ''}`.trim()
     });
 
     // Verificar que no sea el propio dueño del libro
@@ -171,9 +201,9 @@ export async function createPaymentPreference(req, res) {
         }
       ],
       payer: {
-        name: req.user.first_name || 'Usuario',
-        surname: req.user.last_name || 'LibroConecta',
-        email: req.user.email || 'usuario@libroconecta.com'
+        name: buyerUser.first_name || buyerUser.username || 'Comprador',
+        surname: buyerUser.last_name || 'LibroConecta',
+        email: buyerUser.email || `usuario_${buyerUser.user_id.substring(0, 8)}@libroconecta.com`
       },
       external_reference: externalReference,
       notification_url: notificationUrl,
