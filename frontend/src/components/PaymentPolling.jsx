@@ -7,28 +7,34 @@ const MAX_POLLING_TIME = 300000; // 5 minutos
 
 /**
  * Hook personalizado para manejar la redirección automática después del pago
- * @param {string} paymentId - ID del pago a monitorear
+ * @param {string} identifier - ID del pago o external_reference a monitorear
  * @param {boolean} enabled - Si el polling debe estar activo
+ * @param {boolean} useExternalReference - Si debe usar external_reference en lugar de payment_id
  */
-export function usePaymentRedirect(paymentId, enabled = true) {
+export function usePaymentRedirect(identifier, enabled = true, useExternalReference = false) {
   const [status, setStatus] = useState('checking');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!paymentId || !enabled) return;
+    if (!identifier || !enabled) return;
 
     let pollCount = 0;
     const maxPolls = MAX_POLLING_TIME / POLLING_INTERVAL;
     
-    console.log(`🔄 Iniciando polling para pago: ${paymentId}`);
+    console.log(`🔄 Iniciando polling para ${useExternalReference ? 'external_reference' : 'payment_id'}: ${identifier}`);
 
     const checkPaymentStatus = async () => {
       try {
-        const response = await api.get(`/payments/${paymentId}/redirect-status`);
+        // Construir la URL según el tipo de identificador
+        const endpoint = useExternalReference 
+          ? `/payments/reference/${identifier}/redirect-status`
+          : `/payments/${identifier}/redirect-status`;
+          
+        const response = await api.get(endpoint);
         const data = response.data;
 
-        console.log(`📊 Estado del pago ${paymentId}:`, data);
+        console.log(`📊 Estado del ${useExternalReference ? 'external_reference' : 'pago'} ${identifier}:`, data);
 
         if (data.success && data.data.ready) {
           console.log(`✅ Pago completado, redirigiendo...`);
@@ -46,7 +52,7 @@ export function usePaymentRedirect(paymentId, enabled = true) {
           pollCount++;
           
           if (pollCount >= maxPolls) {
-            console.log(`⏰ Timeout del polling para pago: ${paymentId}`);
+            console.log(`⏰ Timeout del polling para ${useExternalReference ? 'external_reference' : 'pago'}: ${identifier}`);
             setStatus('timeout');
             setError('El tiempo de espera ha expirado');
             return true; // Detener polling
@@ -55,7 +61,7 @@ export function usePaymentRedirect(paymentId, enabled = true) {
           return false; // Continuar polling
         }
       } catch (err) {
-        console.error(`❌ Error verificando estado del pago ${paymentId}:`, err);
+        console.error(`❌ Error verificando estado del ${useExternalReference ? 'external_reference' : 'pago'} ${identifier}:`, err);
         setError(err.message);
         pollCount++;
         
@@ -87,7 +93,7 @@ export function usePaymentRedirect(paymentId, enabled = true) {
       };
     });
 
-  }, [paymentId, enabled, navigate]);
+  }, [identifier, enabled, useExternalReference, navigate]);
 
   return { status, error };
 }
@@ -95,8 +101,15 @@ export function usePaymentRedirect(paymentId, enabled = true) {
 /**
  * Componente que muestra el estado del pago mientras se procesa
  */
-export default function PaymentPolling({ paymentId, onComplete, onError }) {
-  const { status, error } = usePaymentRedirect(paymentId, true);
+export default function PaymentPolling({ 
+  paymentId, 
+  externalReference, 
+  useExternalReference = false, 
+  onComplete, 
+  onError 
+}) {
+  const identifier = useExternalReference ? externalReference : paymentId;
+  const { status, error } = usePaymentRedirect(identifier, !!identifier, useExternalReference);
 
   if (error) {
     onError?.(error);

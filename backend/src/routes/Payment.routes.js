@@ -4,6 +4,7 @@ import {
   handlePaymentWebhook,
   handlePaymentReturn,
   checkPaymentRedirect,
+  checkPaymentRedirectByReference,
   getPaymentStatus,
   getUserPayments,
   processDirectPayment,
@@ -62,6 +63,13 @@ router.get("/return/pending", handlePaymentReturn);
  * @access Public (para polling desde frontend)
  */
 router.get("/:paymentId/redirect-status", checkPaymentRedirect);
+
+/**
+ * @route GET /api/payments/reference/:externalReference/redirect-status
+ * @desc Verificar si un pago está listo para redirección usando external_reference
+ * @access Public (para polling desde frontend cuando viene de MercadoPago)
+ */
+router.get("/reference/:externalReference/redirect-status", checkPaymentRedirectByReference);
 
 /**
  * @route GET /api/payments/:paymentId/status

@@ -9,6 +9,11 @@ export default function PaymentProcessing() {
   
   const paymentId = searchParams.get('payment_id');
   const preferenceId = searchParams.get('preference_id');
+  const externalReference = searchParams.get('external_reference');
+  const status = searchParams.get('status');
+  
+  // Determinar si viene desde MercadoPago (por back_urls) o desde nuestra app
+  const isFromMercadoPago = !paymentId && externalReference;
   
   // Log de debug
   useEffect(() => {
@@ -17,27 +22,55 @@ export default function PaymentProcessing() {
       allParams[key] = value;
     }
     console.log('🔍 PaymentProcessing - Parámetros URL:', allParams);
+    console.log('🔍 PaymentProcessing - Parámetros extraídos:', {
+      paymentId,
+      preferenceId,
+      externalReference,
+      status,
+      isFromMercadoPago
+    });
   }, [searchParams]);
 
-  // Usar el hook de redirección automática
-  const { status, error: redirectError } = usePaymentRedirect(paymentId, !!paymentId);
+  // Determinar qué tipo de polling usar
+  const shouldUseExternalReference = isFromMercadoPago && externalReference && !paymentId;
+  const identifierForPolling = shouldUseExternalReference ? externalReference : paymentId;
+  const pollingEnabled = !!(identifierForPolling);
 
-  // Si no hay payment_id, mostrar error
-  if (!paymentId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center"
-        >
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error</h2>
-          <p className="text-gray-600 mb-6">No se encontró información del pago</p>
+  console.log('🔍 Configuración de polling:', {
+    shouldUseExternalReference,
+    identifierForPolling,
+    pollingEnabled,
+    isFromMercadoPago
+  });
+
+  // Usar el hook de redirección automática
+  const { status: pollStatus, error: redirectError } = usePaymentRedirect(
+    identifierForPolling, 
+    pollingEnabled, 
+    shouldUseExternalReference
+  );
+
+      if (!pollingEnabled) {
+        return (
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center"
+            >
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Error</h2>
+              <p className="text-gray-600 mb-6">
+                No se encontró información del pago para procesar
+                <br />
+                <small className="text-xs">
+                  (payment_id: {paymentId || 'No'}, external_reference: {externalReference || 'No'})
+                </small>
+              </p>
           <Link
             to="/dashboard"
             className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -81,6 +114,8 @@ export default function PaymentProcessing() {
         <div className="p-8">
           <PaymentPolling 
             paymentId={paymentId}
+            externalReference={externalReference}
+            useExternalReference={shouldUseExternalReference}
             onError={setError}
           />
 
@@ -91,9 +126,17 @@ export default function PaymentProcessing() {
               <div className="flex justify-between">
                 <span className="text-gray-600">ID de Pago:</span>
                 <span className="font-mono text-gray-900 text-xs">
-                  {paymentId}
+                  {paymentId || 'Se obtendrá del external_reference'}
                 </span>
               </div>
+              {externalReference && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">External Reference:</span>
+                  <span className="font-mono text-gray-900 text-xs">
+                    {externalReference}
+                  </span>
+                </div>
+              )}
               {preferenceId && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">ID de Preferencia:</span>
@@ -105,13 +148,27 @@ export default function PaymentProcessing() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Estado:</span>
                 <span className="text-gray-900 capitalize">
-                  {status === 'checking' ? 'Verificando' :
-                   status === 'pending' ? 'Pendiente' :
-                   status === 'completed' ? 'Completado' :
-                   status === 'timeout' ? 'Tiempo agotado' :
-                   status === 'error' ? 'Error' : status}
+                  {pollStatus === 'checking' ? 'Verificando' :
+                   pollStatus === 'pending' ? 'Pendiente' :
+                   pollStatus === 'completed' ? 'Completado' :
+                   pollStatus === 'timeout' ? 'Tiempo agotado' :
+                   pollStatus === 'error' ? 'Error' : pollStatus}
                 </span>
               </div>
+              {source && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Fuente:</span>
+                  <span className="text-gray-900">
+                    {isFromMercadoPago ? 'MercadoPago (back_url)' : 'LibroConecta App'}
+                  </span>
+                </div>
+              )}
+              {shouldUseExternalReference && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Método de Polling:</span>
+                  <span className="text-gray-900">External Reference</span>
+                </div>
+              )}
             </div>
           </div>
 

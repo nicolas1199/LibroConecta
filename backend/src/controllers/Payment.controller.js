@@ -176,10 +176,11 @@ export async function createPaymentPreference(req, res) {
       status: 'pending'
     });
 
-    // Preparar URLs de retorno específicas para cada estado
-    const successUrl = `${BACKEND_URL}/api/payments/return/success`;
-    const failureUrl = `${BACKEND_URL}/api/payments/return/failure`; 
-    const pendingUrl = `${BACKEND_URL}/api/payments/return/pending`;
+    // Preparar URLs de retorno según documentación de MercadoPago - mismo dominio que el frontend
+    // Incluir external_reference para identificación posterior
+    const successUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=success`;
+    const failureUrl = `${FRONTEND_URL}/payment/failure?external_reference=${externalReference}&status=failure`; 
+    const pendingUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=pending`;
     const notificationUrl = `${BACKEND_URL}/api/payments/webhook`;
 
     console.log('🔗 URLs configuradas:', {
@@ -189,19 +190,13 @@ export async function createPaymentPreference(req, res) {
       notification: notificationUrl,
       FRONTEND_URL_VALUE: FRONTEND_URL,
       BACKEND_URL_VALUE: BACKEND_URL,
-      auto_return: 'approved'
+      sin_auto_return: 'usamos_webhook_y_polling'
     });
 
     // Validar que las URLs estén bien formadas
     if (!successUrl || successUrl.includes('undefined')) {
       console.error('❌ successUrl está mal formada:', successUrl);
       return error(res, 'Error en configuración de URLs de retorno', 500);
-    }
-
-    // Verificar que las URLs sean diferentes (requerido por MercadoPago para auto_return)
-    if (successUrl === failureUrl || successUrl === pendingUrl) {
-      console.error('❌ Las URLs de retorno deben ser diferentes para auto_return');
-      return error(res, 'Error en configuración de URLs: deben ser diferentes', 500);
     }
 
     // Preparar datos para MercadoPago
@@ -631,6 +626,68 @@ export async function handlePaymentReturn(req, res) {
     // Redireccionar a página de error
     const errorUrl = `${FRONTEND_URL}/payment/failure?error=return_processing_failed`;
     return res.redirect(errorUrl);
+  }
+}
+
+/**
+ * Verificar el estado de un pago para redirección automática usando external_reference
+ * Este endpoint permite al frontend hacer polling cuando viene desde MercadoPago
+ */
+export async function checkPaymentRedirectByReference(req, res) {
+  try {
+    const { externalReference } = req.params;
+    
+    console.log(`🔍 Verificando redirección para external_reference: ${externalReference}`);
+    
+    // Buscar el pago por external_reference
+    const paymentRecord = await Payment.findOne({
+      where: { mp_external_reference: externalReference }
+    });
+    
+    if (!paymentRecord) {
+      return error(res, 'Pago no encontrado', 404);
+    }
+    
+    console.log(`📋 Pago encontrado: ${paymentRecord.payment_id} - Estado: ${paymentRecord.status}`);
+    
+    // Verificar si el pago está marcado para redirección en memoria
+    const pendingPayment = pendingPayments.get(paymentRecord.payment_id);
+    
+    if (pendingPayment && pendingPayment.readyForRedirect) {
+      console.log(`✅ Pago listo para redirección: ${paymentRecord.payment_id}`);
+      
+      // Limpiar el registro una vez que se ha enviado la redirección
+      pendingPayments.delete(paymentRecord.payment_id);
+      
+      return success(res, {
+        ready: true,
+        payment_id: paymentRecord.payment_id,
+        redirectUrl: pendingPayment.redirectUrl,
+        status: pendingPayment.status
+      }, 'Pago procesado, redirección disponible');
+    }
+    
+    // También verificar en la base de datos
+    if (paymentRecord.status === 'paid') {
+      const redirectUrl = `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}&collection_id=${paymentRecord.mp_collection_id}&collection_status=${paymentRecord.mp_collection_status}`;
+      
+      return success(res, {
+        ready: true,
+        payment_id: paymentRecord.payment_id,
+        redirectUrl: redirectUrl,
+        status: 'paid'
+      }, 'Pago completado');
+    }
+    
+    return success(res, {
+      ready: false,
+      payment_id: paymentRecord.payment_id,
+      status: paymentRecord.status
+    }, 'Pago aún pendiente');
+    
+  } catch (err) {
+    console.error('❌ Error verificando redirección de pago por referencia:', err);
+    return error(res, 'Error verificando estado del pago', 500);
   }
 }
 
