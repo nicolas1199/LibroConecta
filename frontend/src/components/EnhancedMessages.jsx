@@ -27,6 +27,7 @@ export default function EnhancedMessages() {
   const [showExchangeActions, setShowExchangeActions] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false); // Nuevo estado para el modal
   const [exchangeCompleted, setExchangeCompleted] = useState(false); // Para track del intercambio
+  const [debugInfo, setDebugInfo] = useState(null); // Para debuggear
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -178,14 +179,17 @@ export default function EnhancedMessages() {
       setExchangeCompleted(true);
       
       console.log("🔔 Configurando timer para mostrar modal...");
+      setDebugInfo("Timer configurado, esperando 1 segundo...");
+      
       // Mostrar modal de calificación después de completar
       setTimeout(() => {
-        console.log("🎭 Mostrando modal de calificación");
+        console.log("🎭 Timer ejecutado - Mostrando modal de calificación");
         setShowRatingModal(true);
+        setDebugInfo("Modal debería estar visible ahora");
       }, 1000); // Mostrar después de 1 segundo
       
       // Recargar información del intercambio
-      loadExchangeInfo(selectedConversation.matchId);
+      loadExchangeInfo(selectedConversation.match_id);
     } catch (error) {
       console.error("Error completing exchange:", error);
       setError("Error al completar el intercambio");
@@ -201,10 +205,12 @@ export default function EnhancedMessages() {
       }
     }
     setShowRatingModal(false);
+    setDebugInfo(null);
   };
 
   const handleSkipRating = () => {
     setShowRatingModal(false);
+    setDebugInfo(null);
   };
 
   const scrollToBottom = () => {
@@ -481,8 +487,7 @@ export default function EnhancedMessages() {
           </form>
         </div>
       </div>
-    );
-  }, [selectedConversation, messages, currentUser, newMessage, sendingMessage, uploadingImage, handleSendMessage, formatDate, exchangeInfo, showExchangeActions]);
+    ), [selectedConversation, messages, currentUser, newMessage, sendingMessage, uploadingImage, handleSendMessage, formatDate, exchangeInfo, showExchangeActions]);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -507,9 +512,16 @@ export default function EnhancedMessages() {
       </div>
 
       {/* Modal de Calificación */}
-      {showRatingModal && (
+      {(() => {
+        console.log("🎭 Evaluando showRatingModal:", showRatingModal);
+        return showRatingModal;
+      })() && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            {(() => {
+              console.log("🎭 Modal renderizado correctamente");
+              return null;
+            })()}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 ¡Intercambio Completado! 🎉
