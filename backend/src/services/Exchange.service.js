@@ -1,6 +1,7 @@
 import { PublishedBooks, Match, User, Book, MatchBooks } from "../db/modelIndex.js";
 import { Op } from "sequelize";
 import { sequelize } from "../config/configDb.js";
+import { populateExistingMatch, getMatchBooks } from "./MatchBooks.service.js";
 
 // Servicio para marcar un intercambio como completado
 export async function completeExchangeService(matchId, userId) {
@@ -17,104 +18,118 @@ export async function completeExchangeService(matchId, userId) {
       throw new Error("Match no encontrado o no autorizado");
     }
 
-    // Obtener los libros específicos de este match
-    const matchBooks = await MatchBooks.findAll({
-      where: { match_id: matchId },
-      include: [
-        {
-          model: PublishedBooks,
-          include: [
-            {
-              model: Book,
-              attributes: ["title", "author"]
-            }
-          ]
-        },
-        {
-          model: User,
-          attributes: ["user_id", "first_name", "last_name"]
-        }
-      ]
-    });
+    // Intentar obtener los libros específicos de este match
+    let matchBooks = await getMatchBooks(matchId);
 
+    // Si no hay libros específicos, intentar poblar automáticamente
     if (matchBooks.length === 0) {
-      console.log("⚠️ No se encontraron libros específicos para este match, usando lógica antigua");
-      // Fallback a la lógica anterior si no hay libros específicos
-      return await completeExchangeServiceFallback(matchId, userId);
-    }
-
-    // Actualizar status solo de los libros específicos del intercambio
-    const bookIds = matchBooks.map(mb => mb.published_book_id);
-    
-    try {
-      const [updatedCount] = await sequelize.query(`
-        UPDATE "PublishedBooks" 
-        SET status = 'sold' 
-        WHERE published_book_id IN (${bookIds.map(() => '?').join(',')})
-      `, {
-        replacements: bookIds
-      });
+      console.log("⚠️ No se encontraron libros específicos para este match, intentando poblar automáticamente...");
       
-      console.log(`✅ Status actualizado a 'sold' para ${updatedCount} libros específicos del intercambio`);
-    } catch (statusError) {
-      console.log("⚠️ Error al actualizar status:", statusError.message);
+      try {
+        await populateExistingMatch(matchId);
+        matchBooks = await getMatchBooks(matchId);
+        console.log(`✅ Se poblaron ${matchBooks.length} libros para el match ${matchId}`);
+      } catch (populateError) {
+        console.log("⚠️ Error al poblar match automáticamente:", populateError.message);
+      }
     }
 
-    // Agrupar libros por usuario para la respuesta
-    const user1Books = matchBooks.filter(mb => mb.user_id === match.user_id_1);
-    const user2Books = matchBooks.filter(mb => mb.user_id === match.user_id_2);
+    if (matchBooks.length > 0) {
+      // Lógica con libros específicos
+      console.log(`🎯 Completando intercambio con ${matchBooks.length} libros específicos`);
 
-    return {
-      success: true,
-      message: "Intercambio completado exitosamente",
-      match: {
-        match_id: match.match_id,
-        users: [
-          {
-            user_id: match.user_id_1,
-            name: user1Books[0]?.User ? `${user1Books[0].User.first_name} ${user1Books[0].User.last_name}` : "Usuario 1",
-            books_exchanged: user1Books.length,
-            books: user1Books.map(mb => ({
-              published_book_id: mb.published_book_id,
-              title: mb.PublishedBooks?.Book?.title || 'Título no disponible',
-              author: mb.PublishedBooks?.Book?.author || 'Autor desconocido'
-            }))
-          },
-          {
-            user_id: match.user_id_2,
-            name: user2Books[0]?.User ? `${user2Books[0].User.first_name} ${user2Books[0].User.last_name}` : "Usuario 2",
-            books_exchanged: user2Books.length,
-            books: user2Books.map(mb => ({
-              published_book_id: mb.published_book_id,
-              title: mb.PublishedBooks?.Book?.title || 'Título no disponible',
-              author: mb.PublishedBooks?.Book?.author || 'Autor desconocido'
-            }))
-          }
-        ],
-        completed_at: new Date(),
-        books_updated: bookIds.length
+      // Actualizar status solo de los libros específicos del intercambio
+      const bookIds = matchBooks.map(mb => mb.published_book_id);
+      
+      try {
+        const [updatedRows] = await sequelize.query(`
+          UPDATE "PublishedBooks" 
+          SET status = 'sold' 
+          WHERE published_book_id = ANY($1)
+        `, {
+          bind: [bookIds]
+        });
+        
+        console.log(`✅ Status actualizado a 'sold' para ${bookIds.length} libros específicos del intercambio`);
+      } catch (statusError) {
+        console.log("⚠️ Error al actualizar status:", statusError.message);
       }
-    };
+
+      // Agrupar libros por usuario para la respuesta
+      const user1Books = matchBooks.filter(mb => mb.user_id === match.user_id_1);
+      const user2Books = matchBooks.filter(mb => mb.user_id === match.user_id_2);
+
+      return {
+        success: true,
+        message: "Intercambio completado exitosamente",
+        match: {
+          match_id: match.match_id,
+          users: [
+            {
+              user_id: match.user_id_1,
+              name: user1Books[0]?.User ? `${user1Books[0].User.first_name} ${user1Books[0].User.last_name}` : "Usuario 1",
+              books_exchanged: user1Books.length,
+              books: user1Books.map(mb => ({
+                published_book_id: mb.published_book_id,
+                title: mb.PublishedBooks?.Book?.title || 'Título no disponible',
+                author: mb.PublishedBooks?.Book?.author || 'Autor desconocido'
+              }))
+            },
+            {
+              user_id: match.user_id_2,
+              name: user2Books[0]?.User ? `${user2Books[0].User.first_name} ${user2Books[0].User.last_name}` : "Usuario 2",
+              books_exchanged: user2Books.length,
+              books: user2Books.map(mb => ({
+                published_book_id: mb.published_book_id,
+                title: mb.PublishedBooks?.Book?.title || 'Título no disponible',
+                author: mb.PublishedBooks?.Book?.author || 'Autor desconocido'
+              }))
+            }
+          ],
+          completed_at: new Date(),
+          books_updated: bookIds.length,
+          method: "specific_books"
+        }
+      };
+
+    } else {
+      // Fallback a la lógica anterior si no se pudieron obtener libros específicos
+      console.log("🔄 Usando lógica de fallback para match sin libros específicos");
+      
+      // Obtener información básica de los usuarios
+      const [user1, user2] = await Promise.all([
+        User.findByPk(match.user_id_1),
+        User.findByPk(match.user_id_2),
+      ]);
+
+      return {
+        success: true,
+        message: "Intercambio completado (modo compatibilidad)",
+        match: {
+          match_id: match.match_id,
+          users: [
+            {
+              user_id: user1.user_id,
+              name: `${user1.first_name} ${user1.last_name}`,
+              books_exchanged: 0
+            },
+            {
+              user_id: user2.user_id,
+              name: `${user2.first_name} ${user2.last_name}`,
+              books_exchanged: 0
+            }
+          ],
+          completed_at: new Date(),
+          books_updated: 0,
+          method: "fallback"
+        }
+      };
+    }
 
   } catch (error) {
     console.error("Error en completeExchangeService:", error);
     throw error;
   }
-}
-
-// Función de fallback para matches sin libros específicos
-async function completeExchangeServiceFallback(matchId, userId) {
-  // La lógica anterior como fallback
-  console.log("🔄 Usando lógica de fallback para match sin libros específicos");
-  return {
-    success: true,
-    message: "Intercambio completado (modo compatibilidad)",
-    match: {
-      match_id: matchId,
-      completed_at: new Date(),
-      note: "Completado sin especificar libros específicos"
-    }
-  };
 }
 
 // Servicio para obtener información del intercambio (actualizado)
@@ -132,28 +147,13 @@ export async function getExchangeInfoService(matchId, userId) {
       throw new Error("Match no encontrado o no autorizado");
     }
 
-    // Primero intentar obtener libros específicos del match
-    const matchBooks = await MatchBooks.findAll({
-      where: { match_id: matchId },
-      include: [
-        {
-          model: PublishedBooks,
-          include: [
-            {
-              model: Book,
-              attributes: ["title", "author"]
-            }
-          ]
-        },
-        {
-          model: User,
-          attributes: ["user_id", "first_name", "last_name", "location_id"]
-        }
-      ]
-    });
+    // Intentar obtener libros específicos del match
+    let matchBooks = await getMatchBooks(matchId);
 
     if (matchBooks.length > 0) {
       // Usar libros específicos del match
+      console.log(`📚 Intercambio con ${matchBooks.length} libros específicos`);
+      
       const user1Books = matchBooks.filter(mb => mb.user_id === match.user_id_1);
       const user2Books = matchBooks.filter(mb => mb.user_id === match.user_id_2);
 
@@ -205,20 +205,7 @@ export async function getExchangeInfoService(matchId, userId) {
 
 // Función de fallback para matches sin libros específicos
 async function getExchangeInfoServiceFallback(matchId, userId, match) {
-  // La lógica anterior como fallback
   try {
-    // Verificar acceso
-    const match = await Match.findOne({
-      where: {
-        match_id: matchId,
-        [Op.or]: [{ user_id_1: userId }, { user_id_2: userId }],
-      },
-    });
-
-    if (!match) {
-      throw new Error("Match no encontrado o no autorizado");
-    }
-
     // Obtener información de los dos usuarios del match
     const [user1, user2] = await Promise.all([
       User.findByPk(match.user_id_1, {
@@ -229,65 +216,28 @@ async function getExchangeInfoServiceFallback(matchId, userId, match) {
       })
     ]);
 
-    // Usar SQL directo para obtener los libros con status (sin description que no existe)
-    const [user1BooksResult, user2BooksResult] = await Promise.all([
-      sequelize.query(`
-        SELECT pb.*, b.title, b.author, pb.status
-        FROM "PublishedBooks" pb
-        LEFT JOIN "Books" b ON pb.book_id = b.book_id
-        WHERE pb.user_id = :userId
-      `, {
-        replacements: { userId: match.user_id_1 },
-        type: sequelize.QueryTypes.SELECT
-      }),
-      sequelize.query(`
-        SELECT pb.*, b.title, b.author, pb.status
-        FROM "PublishedBooks" pb
-        LEFT JOIN "Books" b ON pb.book_id = b.book_id
-        WHERE pb.user_id = :userId
-      `, {
-        replacements: { userId: match.user_id_2 },
-        type: sequelize.QueryTypes.SELECT
-      })
-    ]);
-
-    // Determinar si el intercambio está completado
-    const isCompleted = false;
-
     return {
       match_id: match.match_id,
       date_match: match.date_match,
-      is_completed: isCompleted,
+      is_completed: false,
+      has_specific_books: false,
       users: [
         {
           user_id: user1.user_id,
           name: `${user1.first_name} ${user1.last_name}`,
           location: user1.location_id,
-          books: user1BooksResult.map(book => ({
-            published_book_id: book.published_book_id,
-            title: book.title || 'Título no disponible',
-            author: book.author || 'Autor desconocido',
-            description: book.description || 'Sin descripción', // Usar la description de PublishedBooks
-            status: book.status || 'available'
-          }))
+          books: []
         },
         {
           user_id: user2.user_id,
           name: `${user2.first_name} ${user2.last_name}`,
           location: user2.location_id,
-          books: user2BooksResult.map(book => ({
-            published_book_id: book.published_book_id,
-            title: book.title || 'Título no disponible',
-            author: book.author || 'Autor desconocido',
-            description: book.description || 'Sin descripción', // Usar la description de PublishedBooks
-            status: book.status || 'available'
-          }))
+          books: []
         }
       ],
       can_complete: true,
-      total_books: user1BooksResult.length + user2BooksResult.length
+      total_books: 0
     };
-
   } catch (error) {
     console.error("Error en getExchangeInfoServiceFallback:", error);
     throw error;

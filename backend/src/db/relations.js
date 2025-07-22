@@ -22,6 +22,7 @@ export default ({
   UserPublishedBookInteraction,
   Payment,
   Transaction,
+  MatchBooks, // AGREGAR ESTA LÍNEA
 }) => {
   //  UserType 1:N User
   UserType.hasMany(User, { foreignKey: "user_type_id" });
