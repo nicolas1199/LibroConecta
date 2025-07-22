@@ -15,6 +15,20 @@ const Match = sequelize.define(
     user_id_2: {
       type: DataTypes.UUID,
     },
+    user_1_book_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'PublishedBooks',
+        key: 'published_book_id'
+      }
+    },
+    user_2_book_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'PublishedBooks',
+        key: 'published_book_id'
+      }
+    },
     date_match: {
       type: DataTypes.DATE,
     },

@@ -167,27 +167,25 @@ export default function EnhancedMessages() {
   };
 
   const handleCompleteExchange = async () => {
-    if (!selectedConversation) return;
-
-    if (!window.confirm('¿Estás seguro de que quieres marcar este intercambio como completado? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
     try {
-      const response = await completeExchange(selectedConversation.match_id);
-      console.log("✅ Intercambio completado:", response.data);
+      console.log("🎯 Iniciando completar intercambio...");
+      
+      await completeExchange(selectedConversation.match_id);
+      console.log("✅ Intercambio completado exitosamente");
       
       setShowExchangeActions(false);
       setExchangeInfo(prev => ({ ...prev, is_completed: true }));
       setExchangeCompleted(true);
       
+      console.log("🔔 Configurando timer para mostrar modal...");
       // Mostrar modal de calificación después de completar
       setTimeout(() => {
+        console.log("🎭 Mostrando modal de calificación");
         setShowRatingModal(true);
       }, 1000); // Mostrar después de 1 segundo
       
       // Recargar información del intercambio
-      loadExchangeInfo(selectedConversation.match_id);
+      loadExchangeInfo(selectedConversation.matchId);
     } catch (error) {
       console.error("Error completing exchange:", error);
       setError("Error al completar el intercambio");
