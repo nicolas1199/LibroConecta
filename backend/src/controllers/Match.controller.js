@@ -10,6 +10,7 @@ import {
   sequelize,
 } from "../db/modelIndex.js";
 import { createResponse } from "../utils/responses.util.js";
+import { getUserSpecificMatchesService, migrateExistingMatchesToSpecificService } from "../services/SpecificMatch.service.js";
 
 export const getMatches = async (req, res) => {
   try {
@@ -358,5 +359,38 @@ export const deleteMatch = async (req, res) => {
       .json(
         createResponse(500, "Error interno del servidor", null, error.message)
       );
+  }
+};
+
+// Nuevo endpoint para obtener matches específicos
+export const getSpecificMatches = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const matches = await getUserSpecificMatchesService(userId);
+    
+    res.status(200).json({
+      success: true,
+      data: matches
+    });
+  } catch (error) {
+    console.error("Error fetching specific matches:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener matches específicos"
+    });
+  }
+};
+
+// Endpoint para migrar matches existentes
+export const migrateMatches = async (req, res) => {
+  try {
+    const result = await migrateExistingMatchesToSpecificService();
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error migrating matches:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error en la migración"
+    });
   }
 };

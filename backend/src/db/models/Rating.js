@@ -25,6 +25,11 @@ const Rating = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    transaction_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "ID de la transacción (Payment) asociada a esta calificación"
+    },
     rating: {
       type: DataTypes.INTEGER,
       allowNull: false,

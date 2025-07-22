@@ -1,133 +1,148 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getPublishedBooks } from "../api/publishedBooks";
-import MapPin from "../components/icons/MapPin";
-import Star from "../components/icons/Star";
-import MessageCircle from "../components/icons/MessageCircle";
-import ArrowLeft from "../components/icons/ArrowLeft";
-import BookOpen from "../components/icons/BookOpen";
-import PaymentButton from '../components/PaymentButton';
+import { useState, useEffect } from "react"
+import { useParams, useNavigate } from "react-router-dom"
+import { getPublishedBooks } from "../api/publishedBooks"
+import MapPin from "../components/icons/MapPin"
+import Star from "../components/icons/Star"
+import MessageCircle from "../components/icons/MessageCircle"
+import BookOpen from "../components/icons/BookOpen"
+import PaymentButton from "../components/PaymentButton"
+import DashboardLayout from "../layouts/DashboardLayout"
 
 export default function BookDetails() {
-  const { bookId } = useParams();
-  const navigate = useNavigate();
-  const [book, setBook] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { bookId } = useParams()
+  const navigate = useNavigate()
+  const [book, setBook] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
     const loadBook = async () => {
       try {
-        setLoading(true);
+        setLoading(true)
         // Obtener el libro específico
         const response = await getPublishedBooks({
           published_book_id: bookId,
-        });
+        })
 
         if (response.publishedBooks && response.publishedBooks.length > 0) {
-          setBook(response.publishedBooks[0]);
+          console.log("Libro cargado:", response.publishedBooks[0])
+          setBook(response.publishedBooks[0])
         } else {
-          setError("Libro no encontrado");
+          setError("Libro no encontrado")
         }
       } catch (error) {
-        console.error("Error loading book:", error);
-        setError("Error al cargar el libro");
+        console.error("Error loading book:", error)
+        setError("Error al cargar el libro")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
     if (bookId) {
-      loadBook();
+      loadBook()
     }
-  }, [bookId]);
+  }, [bookId])
 
   const handleStartChat = () => {
     if (book?.User?.user_id) {
-      navigate(
-        `/dashboard/messages/new?user=${book.User.user_id}&book=${bookId}`,
-      );
+      navigate(`/dashboard/messages/new?user=${book.User.user_id}&book=${bookId}`)
     }
-  };
+  }
 
   const renderStars = (rating = 4) => {
     return Array.from({ length: 5 }, (_, index) => (
-      <Star
-        key={index}
-        className={`h-4 w-4 ${index < rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
-      />
-    ));
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="spinner border-gray-300 border-t-blue-600"></div>
-      </div>
-    );
+      <Star key={index} className={`h-4 w-4 ${index < rating ? "text-yellow-400 fill-current" : "text-gray-300"}`} />
+    ))
   }
 
-  if (error || !book) {
+  // Función para obtener la URL de la imagen, similar a BookCard.jsx
+  const getImageUrl = (images) => {
+    if (!images || images.length === 0) {
+      return "/placeholder.svg?height=400&width=400&text=Libro"
+    }
+
+    const primaryImage = images.find((img) => img.is_primary) || images[0]
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            {error || "Libro no encontrado"}
-          </h2>
-          <button onClick={() => navigate(-1)} className="btn btn-primary">
-            Volver
-          </button>
+      primaryImage?.src ||
+      primaryImage?.image_url ||
+      primaryImage?.image_data ||
+      "/placeholder.svg?height=400&width=400&text=Libro"
+    )
+  }
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-full min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </div>
-    );
-  }
+      )
+    }
 
-  const {
-    Book: bookInfo,
-    User: user,
-    TransactionType: transactionType,
-    BookCondition: condition,
-    LocationBook: location,
-    PublishedBookImages: images = [],
-    description,
-    price,
-    date_published,
-    published_book_id: publishedBookId,
-  } = book;
+    if (error || !book) {
+      return (
+        <div className="flex items-center justify-center h-full min-h-[60vh]">
+          <div className="text-center">
+            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">{error || "Libro no encontrado"}</h2>
+            <button onClick={() => navigate(-1)} className="btn btn-primary">
+              Volver
+            </button>
+          </div>
+        </div>
+      )
+    }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+    const {
+      Book: bookInfo,
+      User: user,
+      TransactionType: transactionType,
+      BookCondition: condition,
+      LocationBook: location,
+      PublishedBookImages: images = [],
+      description,
+      price,
+      date_published,
+      published_book_id: publishedBookId,
+    } = book
+
+    return (
+      <div className="container mx-auto px-4 py-6">
+        {/* Header con breadcrumb */}
         <div className="mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Volver</span>
-          </button>
+          <div className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
+            <button onClick={() => navigate("/dashboard")} className="hover:text-blue-600 transition-colors">
+              Dashboard
+            </button>
+            <span>/</span>
+            <button onClick={() => navigate("/dashboard/explore")} className="hover:text-blue-600 transition-colors">
+              Explorar
+            </button>
+            <span>/</span>
+            <span className="text-gray-900 font-medium">{bookInfo?.title || "Detalles del libro"}</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Imágenes */}
           <div className="space-y-4">
             {/* Imagen principal */}
-            <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+            <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden shadow-md">
               <img
-                src={
-                  images[currentImageIndex]?.image_url ||
-                  "/placeholder.svg?height=400&width=400&text=Libro"
-                }
+                src={imageError ? "/placeholder.svg?height=400&width=400&text=Libro" : getImageUrl(images)}
                 alt={bookInfo?.title || "Libro"}
                 className="w-full h-full object-cover image-render-crisp"
                 style={{
-                  imageRendering: 'optimize-contrast',
-                  msInterpolationMode: 'nearest-neighbor'
+                  imageRendering: "optimize-contrast",
+                  msInterpolationMode: "nearest-neighbor",
+                }}
+                onError={() => {
+                  console.error("Error al cargar la imagen")
+                  setImageError(true)
                 }}
               />
             </div>
@@ -140,18 +155,26 @@ export default function BookDetails() {
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
                     className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                      index === currentImageIndex
-                        ? "border-blue-500"
-                        : "border-gray-200"
+                      index === currentImageIndex ? "border-blue-500" : "border-gray-200"
                     }`}
                   >
                     <img
-                      src={image.image_url}
+                      src={
+                        image.src ||
+                        image.image_url ||
+                        image.image_data ||
+                        "/placeholder.svg?height=100&width=100&text=Libro" ||
+                        "/placeholder.svg"
+                      }
                       alt={`${bookInfo?.title} - ${index + 1}`}
                       className="w-full h-full object-cover image-render-crisp"
                       style={{
-                        imageRendering: 'optimize-contrast',
-                        msInterpolationMode: 'nearest-neighbor'
+                        imageRendering: "optimize-contrast",
+                        msInterpolationMode: "nearest-neighbor",
+                      }}
+                      onError={(e) => {
+                        console.error("Error al cargar miniatura")
+                        e.target.src = "/placeholder.svg?height=100&width=100&text=Libro"
                       }}
                     />
                   </button>
@@ -164,12 +187,8 @@ export default function BookDetails() {
           <div className="space-y-6">
             {/* Título y autor */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {bookInfo?.title}
-              </h1>
-              <p className="text-xl text-gray-600 mb-4">
-                por {bookInfo?.author}
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{bookInfo?.title}</h1>
+              <p className="text-xl text-gray-600 mb-4">por {bookInfo?.author}</p>
 
               {/* Badge del tipo de transacción */}
               <div className="flex items-center space-x-2 mb-4">
@@ -188,22 +207,18 @@ export default function BookDetails() {
                 </span>
 
                 {transactionType?.description === "Venta" && price && (
-                  <span className="text-2xl font-bold text-green-600">
-                    ${Number(price).toLocaleString()}
-                  </span>
+                  <span className="text-2xl font-bold text-green-600">${Number(price).toLocaleString()}</span>
                 )}
               </div>
             </div>
 
             {/* Precio y acciones */}
             {transactionType?.description === "Venta" && price && (
-              <div className="bg-green-50 rounded-lg p-6">
+              <div className="bg-green-50 rounded-lg p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-sm text-green-600 font-medium">Precio</p>
-                    <p className="text-3xl font-bold text-green-900">
-                      ${Number(price).toLocaleString()}
-                    </p>
+                    <p className="text-3xl font-bold text-green-900">${Number(price).toLocaleString()}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Estado</p>
@@ -212,24 +227,24 @@ export default function BookDetails() {
                     </span>
                   </div>
                 </div>
-                
+
                 <PaymentButton
                   publishedBookId={publishedBookId}
                   bookTitle={bookInfo?.title}
                   bookAuthor={bookInfo?.author}
                   price={Number(price)}
                   className="w-full"
-                  onPaymentStart={() => console.log('Pago iniciado para libro:', publishedBookId)}
+                  onPaymentStart={() => console.log("Pago iniciado para libro:", publishedBookId)}
                   onPaymentError={(error) => {
-                    console.error('Error de pago:', error);
-                    alert(`Error en el pago: ${error}`);
+                    console.error("Error de pago:", error)
+                    alert(`Error en el pago: ${error}`)
                   }}
                 />
               </div>
             )}
 
             {/* Información del usuario */}
-            <div className="bg-white p-4 rounded-lg border">
+            <div className="bg-white p-4 rounded-lg border shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">Propietario</h3>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -247,10 +262,7 @@ export default function BookDetails() {
                   </div>
                 </div>
 
-                <button
-                  onClick={handleStartChat}
-                  className="btn btn-primary flex items-center space-x-2"
-                >
+                <button onClick={handleStartChat} className="btn btn-primary flex items-center space-x-2">
                   <MessageCircle className="h-4 w-4" />
                   <span>Contactar</span>
                 </button>
@@ -259,7 +271,7 @@ export default function BookDetails() {
 
             {/* Ubicación */}
             {location && (
-              <div className="bg-white p-4 rounded-lg border">
+              <div className="bg-white p-4 rounded-lg border shadow-sm">
                 <h3 className="font-semibold text-gray-900 mb-2">Ubicación</h3>
                 <div className="flex items-center text-gray-600">
                   <MapPin className="h-4 w-4 mr-2" />
@@ -271,15 +283,13 @@ export default function BookDetails() {
             )}
 
             {/* Descripción */}
-            <div className="bg-white p-4 rounded-lg border">
+            <div className="bg-white p-4 rounded-lg border shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-2">Descripción</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {description || "Sin descripción disponible"}
-              </p>
+              <p className="text-gray-700 whitespace-pre-wrap">{description || "Sin descripción disponible"}</p>
             </div>
 
             {/* Detalles adicionales */}
-            <div className="bg-white p-4 rounded-lg border">
+            <div className="bg-white p-4 rounded-lg border shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">Detalles</h3>
               <div className="space-y-2">
                 {condition && (
@@ -292,9 +302,7 @@ export default function BookDetails() {
                 {date_published && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Publicado:</span>
-                    <span className="font-medium">
-                      {new Date(date_published).toLocaleDateString()}
-                    </span>
+                    <span className="font-medium">{new Date(date_published).toLocaleDateString()}</span>
                   </div>
                 )}
 
@@ -315,9 +323,7 @@ export default function BookDetails() {
                 {bookInfo?.publication_year && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Año:</span>
-                    <span className="font-medium">
-                      {bookInfo.publication_year}
-                    </span>
+                    <span className="font-medium">{bookInfo.publication_year}</span>
                   </div>
                 )}
               </div>
@@ -325,6 +331,9 @@ export default function BookDetails() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    )
+  }
+
+  // Envolver todo el contenido en el DashboardLayout
+  return <DashboardLayout>{renderContent()}</DashboardLayout>
 }

@@ -1,6 +1,13 @@
 import "./config/configEnv.js";
 import express from "express";
 
+console.log('🚀 SERVIDOR INICIANDO...');
+console.log('🚀 PUERTO:', process.env.PORT);
+console.log('🚀 NODE_ENV:', process.env.NODE_ENV);
+console.log('🚀 MODO:', process.env.NODE_ENV || 'development');
+
+// Remover la modificación de console.log que está causando el error
+
 import corsMiddleware from "./middlewares/cors.middleware.js";
 import jsonParserMiddleware from "./middlewares/jsonParser.middleware.js";
 import cookieParserMiddleware from "./middlewares/cookieParser.middleware.js";

@@ -1,3 +1,5 @@
+import MatchBooks from "./models/MatchBooks.js";
+
 export default ({
   Book,
   User,
@@ -20,6 +22,7 @@ export default ({
   UserPublishedBookInteraction,
   Payment,
   Transaction,
+  MatchBooks, // AGREGAR ESTA LÍNEA
 }) => {
   //  UserType 1:N User
   UserType.hasMany(User, { foreignKey: "user_type_id" });
@@ -80,6 +83,12 @@ export default ({
   User.hasMany(Match, { as: "MatchesReceived", foreignKey: "user_id_2" });
   Match.belongsTo(User, { as: "User1", foreignKey: "user_id_1" });
   Match.belongsTo(User, { as: "User2", foreignKey: "user_id_2" });
+
+  // Nuevas relaciones para libros específicos en matches
+  PublishedBooks.hasMany(Match, { as: "MatchesAsBook1", foreignKey: "user_1_book_id" });
+  PublishedBooks.hasMany(Match, { as: "MatchesAsBook2", foreignKey: "user_2_book_id" });
+  Match.belongsTo(PublishedBooks, { as: "User1Book", foreignKey: "user_1_book_id" });
+  Match.belongsTo(PublishedBooks, { as: "User2Book", foreignKey: "user_2_book_id" });
 
   // Agregar las nuevas relaciones al final de la función, antes del cierre
   // TransactionType 1:N PublishedBooks
@@ -248,4 +257,14 @@ export default ({
   Transaction.belongsTo(Payment, { 
     foreignKey: "payment_id" 
   });
+
+  // Nuevas relaciones para MatchBooks
+  Match.hasMany(MatchBooks, { foreignKey: "match_id" });
+  MatchBooks.belongsTo(Match, { foreignKey: "match_id" });
+
+  PublishedBooks.hasMany(MatchBooks, { foreignKey: "published_book_id" });
+  MatchBooks.belongsTo(PublishedBooks, { foreignKey: "published_book_id" });
+
+  User.hasMany(MatchBooks, { foreignKey: "user_id" });
+  MatchBooks.belongsTo(User, { foreignKey: "user_id" });
 };

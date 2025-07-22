@@ -438,7 +438,7 @@ export default function Dashboard() {
                         {conversation.other_user.last_name}
                       </p>
                       <p className="text-xs text-gray-500 truncate">
-                        {conversation.last_message || "No hay mensajes"}
+                        {conversation.last_message?.message_text || "No hay mensajes"}
                       </p>
                     </div>
                     {conversation.unread_count > 0 && (

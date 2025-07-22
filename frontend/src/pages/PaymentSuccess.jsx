@@ -20,6 +20,15 @@ export default function PaymentSuccess() {
   const collectionStatus = searchParams.get('collection_status');
   const preference_id = searchParams.get('preference_id');
 
+  // Log de debug para ver todos los parámetros
+  useEffect(() => {
+    const allParams = {};
+    for (const [key, value] of searchParams.entries()) {
+      allParams[key] = value;
+    }
+    console.log('🔍 PaymentSuccess - Parámetros URL:', allParams);
+  }, [searchParams]);
+
   useEffect(() => {
     const fetchPaymentData = async () => {
       if (!paymentId) {
@@ -29,13 +38,33 @@ export default function PaymentSuccess() {
       }
 
       try {
+        console.log('🔍 Obteniendo estado del pago:', paymentId);
         const { data: payment } = await getPaymentStatus(paymentId);
+        console.log('💳 Datos del pago recibidos:', payment);
         setPaymentData(payment);
+        
+        // Si el pago aún está pendiente, intentar refrescar en unos segundos
+        if (payment.status === 'pending') {
+          console.log('⏳ Pago pendiente, reintentando en 3 segundos...');
+          setTimeout(() => {
+            fetchPaymentData();
+          }, 3000);
+        } else {
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Error obteniendo datos del pago:', err);
-        setError('Error al obtener información del pago');
-      } finally {
-        setLoading(false);
+        
+        // Si es 404, es posible que el pago aún no se haya sincronizado
+        if (err.response?.status === 404) {
+          console.log('⏳ Pago no encontrado, reintentando en 2 segundos...');
+          setTimeout(() => {
+            fetchPaymentData();
+          }, 2000);
+        } else {
+          setError('Error al obtener información del pago');
+          setLoading(false);
+        }
       }
     };
 
@@ -197,6 +226,18 @@ export default function PaymentSuccess() {
               Ver Historial
             </Link>
           </div>
+
+          {/* Debug info - solo en desarrollo */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="border-t pt-4">
+              <Link
+                to={`/payment/debug?${searchParams.toString()}`}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                🐛 Ver información de debug
+              </Link>
+            </div>
+          )}
 
           <Link
             to="/dashboard"

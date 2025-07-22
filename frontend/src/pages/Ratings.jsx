@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { 
   getMyRatings, 
   getPendingRatings, 
@@ -13,6 +14,8 @@ import Edit from "../components/icons/Edit";
 import Trash from "../components/icons/Trash";
 
 export default function Ratings() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("pending");
   const [ratings, setRatings] = useState([]);
   const [pendingRatings, setPendingRatings] = useState([]);
@@ -25,6 +28,40 @@ export default function Ratings() {
     rating: 5,
     comment: "",
   });
+
+  // Obtener parámetros de URL para calificación desde chat
+  const reviewUserId = searchParams.get('review_user');
+  const matchId = searchParams.get('match_id');
+
+  useEffect(() => {
+    loadData();
+    
+    // Si viene de un chat, abrir directamente el modal de calificación
+    if (reviewUserId && matchId) {
+      // Buscar la calificación pendiente correspondiente
+      setTimeout(() => {
+        const pendingForUser = pendingRatings.find(p => 
+          p.other_user_id === reviewUserId || 
+          (p.match_id && p.match_id.toString() === matchId)
+        );
+        
+        if (pendingForUser) {
+          handleOpenRatingModal(pendingForUser);
+        } else {
+          // Crear una calificación pendiente artificial para el intercambio
+          const artificialPending = {
+            other_user_id: reviewUserId,
+            match_id: parseInt(matchId),
+            transaction_type: 'exchange',
+            other_user_first_name: 'Usuario',
+            other_user_last_name: '',
+            transaction_date: new Date().toISOString(),
+          };
+          handleOpenRatingModal(artificialPending);
+        }
+      }, 1000); // Esperar a que carguen los datos
+    }
+  }, [reviewUserId, matchId]);
 
   useEffect(() => {
     loadData();
@@ -79,6 +116,16 @@ export default function Ratings() {
     setShowRatingModal(true);
   };
 
+  const handleCloseModal = () => {
+    setShowRatingModal(false);
+    setSelectedPending(null);
+    
+    // Si venía del chat, regresar al chat
+    if (matchId) {
+      navigate(`/dashboard/messages/${matchId}`);
+    }
+  };
+
   const handleSubmitRating = async (e) => {
     e.preventDefault();
     if (!selectedPending) return;
@@ -110,6 +157,11 @@ export default function Ratings() {
       
       setShowRatingModal(false);
       setSelectedPending(null);
+      
+      // Si venía del chat, regresar al chat
+      if (matchId) {
+        navigate(`/dashboard/messages/${matchId}`);
+      }
     } catch (error) {
       console.error("Error submitting rating:", error);
     } finally {
@@ -302,7 +354,7 @@ export default function Ratings() {
           <div className="flex space-x-3">
             <button
               type="button"
-              onClick={() => setShowRatingModal(false)}
+              onClick={handleCloseModal}
               className="btn btn-secondary flex-1"
             >
               Cancelar

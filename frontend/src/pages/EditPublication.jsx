@@ -208,22 +208,20 @@ export default function EditPublication() {
 
     setIsLoading(true)
     try {
-      // Preparar datos para actualizar
+      // Preparar datos para actualizar - SOLO datos de la publicación
       const updateData = {
-        // Datos del libro
-        book: {
-          title: formData.title,
-          author: formData.author,
-          date_of_pub: formData.date_of_pub || null,
-          category_ids: formData.category_ids,
-        },
-        // Datos de la publicación
         transaction_type_id: Number.parseInt(formData.transaction_type_id),
         price: formData.price ? Number.parseFloat(formData.price) : null,
         look_for: formData.look_for || null,
         condition_id: Number.parseInt(formData.condition_id),
         location_id: Number.parseInt(formData.location_id),
         description: formData.description,
+        // Incluir datos del libro para actualización
+        book: {
+          title: formData.title,
+          author: formData.author,
+          date_of_pub: formData.date_of_pub || null,
+        },
       }
 
       // Actualizar la publicación - CORREGIDO: ahora sí llama a la API

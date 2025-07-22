@@ -22,6 +22,7 @@ import Rating from "./models/Rating.js";
 import UserPublishedBookInteraction from "./models/UserPublishedBookInteraction.js";
 import Payment from "./models/Payment.js";
 import Transaction from "./models/Transaction.js";
+import MatchBooks from "./models/MatchBooks.js";
 
 // Configurar relaciones una sola vez
 setupRelations({
@@ -46,6 +47,7 @@ setupRelations({
   UserPublishedBookInteraction,
   Payment,
   Transaction,
+  MatchBooks,
 });
 
 // Exportar todos los modelos + conexión
@@ -71,5 +73,6 @@ export {
   UserPublishedBookInteraction,
   Payment,
   Transaction,
+  MatchBooks,
   sequelize,
 };

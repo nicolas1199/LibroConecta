@@ -14,12 +14,13 @@ import EditLibraryBook from "../pages/EditLibraryBook";
 import LibraryInsights from "../pages/LibraryInsights";
 import Matches from "../pages/Matches";
 import Messages from "../pages/Messages";
+import EnhancedMessages from "../pages/EnhancedMessages";
 import Ratings from "../pages/Ratings";
+import ReviewsPage from "../pages/ReviewsPage";
 import Favorites from "../pages/Favorites";
 import Wishlist from "../pages/Wishlist";
 import Drafts from "../pages/Drafts";
 import History from "../pages/History";
-import MyBooks from "../pages/MyBooks";
 import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
@@ -31,6 +32,8 @@ import EditPublication from "../pages/EditPublication";
 import PaymentSuccess from "../pages/PaymentSuccess";
 import PaymentFailure from "../pages/PaymentFailure";
 import PaymentPending from "../pages/PaymentPending";
+import PaymentProcessing from "../pages/PaymentProcessing";
+import PaymentDebug from "../pages/PaymentDebug";
 
 export default function AppRouter() {
   return (
@@ -119,16 +122,7 @@ export default function AppRouter() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/dashboard/my-books"
-          element={
-            <PrivateRoute>
-              <DashboardLayout>
-                <MyBooks />
-              </DashboardLayout>
-            </PrivateRoute>
-          }
-        />
+        
         <Route
           path="/dashboard/library/add"
           element={
@@ -172,13 +166,13 @@ export default function AppRouter() {
           }
         />
 
-        {/* Messages routes */}
+        {/* Enhanced Messages routes */}
         <Route
           path="/dashboard/messages"
           element={
             <PrivateRoute>
               <DashboardLayout>
-                <Messages />
+                <EnhancedMessages />
               </DashboardLayout>
             </PrivateRoute>
           }
@@ -188,7 +182,7 @@ export default function AppRouter() {
           element={
             <PrivateRoute>
               <DashboardLayout>
-                <Messages />
+                <EnhancedMessages />
               </DashboardLayout>
             </PrivateRoute>
           }
@@ -198,7 +192,7 @@ export default function AppRouter() {
           element={
             <PrivateRoute>
               <DashboardLayout>
-                <Messages />
+                <EnhancedMessages />
               </DashboardLayout>
             </PrivateRoute>
           }
@@ -212,6 +206,16 @@ export default function AppRouter() {
               <DashboardLayout>
                 <Ratings />
               </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Reviews routes */}
+        <Route
+          path="/dashboard/reviews"
+          element={
+            <PrivateRoute>
+              <ReviewsPage />
             </PrivateRoute>
           }
         />
@@ -328,6 +332,8 @@ export default function AppRouter() {
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />
+        <Route path="/payment/processing" element={<PaymentProcessing />} />
+        <Route path="/payment/debug" element={<PaymentDebug />} />
       </Routes>
     </Router>
   );
