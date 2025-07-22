@@ -37,8 +37,6 @@ export async function validateUserLibraryOwnership(req, res, next) {
 // Validar datos de entrada para la biblioteca
 export function validateLibraryData(req, res, next) {
   try {
-    console.log("Validando datos de biblioteca middleware");
-
     const { rating, reading_status } = req.body;
 
     // Validar rating si está presente

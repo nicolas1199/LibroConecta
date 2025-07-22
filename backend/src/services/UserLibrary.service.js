@@ -237,7 +237,10 @@ export async function updateReadingStatusService(userLibrary, updateData) {
   // Validaciones de negocio
   if (rating !== undefined && rating !== null) {
     validateRatingService(rating);
-    validateRatingConsistency(rating, reading_status);
+    // Solo validar consistencia si también se está actualizando el estado de lectura
+    if (reading_status !== undefined) {
+      validateRatingConsistency(rating, reading_status);
+    }
   }
 
   if (date_started && date_finished) {
@@ -383,8 +386,14 @@ export function validateDatesService(dateStarted, dateFinished) {
 
 // Validar que el rating sea consistente con el estado
 export function validateRatingConsistency(rating, readingStatus) {
-  if (rating && readingStatus !== READING_STATUSES.READ) {
-    throw new Error("Solo puedes calificar libros que hayas terminado de leer");
+  if (
+    rating &&
+    readingStatus !== READING_STATUSES.READ &&
+    readingStatus !== READING_STATUSES.ABANDONED
+  ) {
+    throw new Error(
+      "Solo puedes calificar libros que hayas terminado de leer o abandonado"
+    );
   }
   return true;
 }
