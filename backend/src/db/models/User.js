@@ -49,6 +49,14 @@ const User = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    profile_image_base64: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    biography: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     tableName: "Users",

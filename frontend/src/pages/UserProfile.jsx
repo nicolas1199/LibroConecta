@@ -9,6 +9,7 @@ import MapPin from "../components/icons/MapPin"
 import Users from "../components/icons/Users"
 import BookOpen from "../components/icons/BookOpen"
 import MessageCircle from "../components/icons/MessageCircle"
+import ProfileImage from "../components/ProfileImage"
 
 export default function UserProfile() {
   const navigate = useNavigate()
@@ -238,9 +239,12 @@ export default function UserProfile() {
               {/* Avatar y información básica */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="text-center">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
-                    {getInitials()}
-                  </div>
+                  <ProfileImage
+                    user={user}
+                    size="3xl"
+                    showBorder={true}
+                    className="mx-auto mb-4"
+                  />
                   
                   <h3 className="text-xl font-semibold text-gray-900 mb-1">
                     {user?.first_name || ""} {user?.last_name || ""}
@@ -252,6 +256,14 @@ export default function UserProfile() {
                     <div className="flex items-center justify-center text-gray-500 text-sm mb-4">
                       <MapPin className="h-4 w-4 mr-1" />
                       <span>{formatLocation(user.location)}</span>
+                    </div>
+                  )}
+                  
+                  {user?.biography && (
+                    <div className="text-left mb-4">
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                        {user.biography}
+                      </p>
                     </div>
                   )}
                   

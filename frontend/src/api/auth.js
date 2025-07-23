@@ -42,6 +42,23 @@ export const updateUserProfile = async (profileData) => {
   }
 };
 
+// Función para actualizar la imagen de perfil del usuario
+export const updateProfileImage = async (imageFile) => {
+  try {
+    const formData = new FormData();
+    formData.append('profile_image', imageFile);
+    
+    const response = await api.put("/auth/profile/image", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 // Función para obtener el perfil de cualquier usuario por ID
 export const getUserProfileById = async (userId) => {
   try {

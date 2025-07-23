@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { getUserProfile, updateUserProfile } from "../api/auth"
+import { getUserProfile, updateUserProfile, updateProfileImage } from "../api/auth"
 import { getLocations } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
 import Users from "../components/icons/Users"
-import LocationSelect from "../components/LocationSelect";
-
+import LocationSelect from "../components/LocationSelect"
+import ProfileImage from "../components/ProfileImage"
 
 export default function EditProfile() {
   const navigate = useNavigate()
@@ -18,14 +18,15 @@ export default function EditProfile() {
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState("")
   const [locations, setLocations] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
   
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
     email: "",
     username: "",
-    location_id: "", // Cambiar de location a location_id
-    bio: "",
+    location_id: "",
+    biography: "",
     profile_image: null,
     profile_image_preview: null
   })
@@ -41,15 +42,16 @@ export default function EditProfile() {
           getLocations()
         ])
 
+        setCurrentUser(profileData.data)
         setFormData({
           first_name: profileData.data.first_name || "",
           last_name: profileData.data.last_name || "",
           email: profileData.data.email || "",
           username: profileData.data.username || "",
           location_id: profileData.data.location_id || "",
-          bio: profileData.data.bio || "",
+          biography: profileData.data.biography || "",
           profile_image: null,
-          profile_image_preview: profileData.data.profile_image || null
+          profile_image_preview: profileData.data.profile_image_base64 || null
         })
 
         // Asegurar que locations sea siempre un array válido
@@ -100,26 +102,33 @@ export default function EditProfile() {
         return
       }
 
-      // Validar tamaño (máximo 5MB)
+      // Validar tamaño (5MB máximo)
       if (file.size > 5 * 1024 * 1024) {
         setErrors(prev => ({
           ...prev,
-          profile_image: "La imagen no puede ser mayor a 5MB"
+          profile_image: "La imagen debe ser menor a 5MB"
         }))
         return
       }
 
-      setFormData(prev => ({
-        ...prev,
-        profile_image: file,
-        profile_image_preview: URL.createObjectURL(file)
-      }))
+      // Crear preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setFormData(prev => ({
+          ...prev,
+          profile_image: file,
+          profile_image_preview: e.target.result
+        }))
+      }
+      reader.readAsDataURL(file)
 
       // Limpiar error
-      setErrors(prev => ({
-        ...prev,
-        profile_image: ""
-      }))
+      if (errors.profile_image) {
+        setErrors(prev => ({
+          ...prev,
+          profile_image: ""
+        }))
+      }
     }
   }
 
@@ -154,8 +163,8 @@ export default function EditProfile() {
       newErrors.username = "El nombre de usuario debe tener al menos 3 caracteres"
     }
 
-    if (formData.bio && formData.bio.length > 500) {
-      newErrors.bio = "La biografía no puede exceder los 500 caracteres"
+    if (formData.biography && formData.biography.length > 500) {
+      newErrors.biography = "La biografía no puede exceder los 500 caracteres"
     }
 
     setErrors(newErrors)
@@ -178,26 +187,20 @@ export default function EditProfile() {
         email: formData.email,
         username: formData.username,
         location_id: formData.location_id,
-        location: formData.location_id ? locations.find(l => l.location_id === Number.parseInt(formData.location_id))?.comuna || "" : "",
-        bio: formData.bio
+        biography: formData.biography
       }
 
-      // Si hay imagen, convertir a base64
-      if (formData.profile_image) {
-        const base64Image = await new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result)
-          reader.onerror = reject
-          reader.readAsDataURL(formData.profile_image)
-        })
-        updateData.profile_image = base64Image
-      }
-
-      await updateUserProfile(updateData)
+      // Actualizar datos del perfil
+      const profileResponse = await updateUserProfile(updateData)
       
-      // Actualizar datos en localStorage
+      // Si hay imagen nueva, subirla
+      if (formData.profile_image) {
+        await updateProfileImage(formData.profile_image)
+      }
+      
+      // Actualizar datos en localStorage con la respuesta del servidor
       const updatedUser = JSON.parse(localStorage.getItem("user") || "{}")
-      Object.assign(updatedUser, updateData)
+      Object.assign(updatedUser, profileResponse.data)
       localStorage.setItem("user", JSON.stringify(updatedUser))
 
       setMessage("¡Perfil actualizado exitosamente!")
@@ -285,26 +288,27 @@ export default function EditProfile() {
               </label>
               
               <div className="flex flex-col items-center">
-                {formData.profile_image_preview ? (
-                  <div className="relative">
-                    <img
-                      src={formData.profile_image_preview}
-                      alt="Profile preview"
-                      className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                    />
+                <div className="relative">
+                  <ProfileImage
+                    user={{
+                      ...currentUser,
+                      profile_image_base64: formData.profile_image_preview
+                    }}
+                    size="3xl"
+                    showBorder={true}
+                  />
+                  
+                  {formData.profile_image_preview && (
                     <button
                       type="button"
                       onClick={removeImage}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      title="Eliminar imagen"
                     >
                       <X className="h-4 w-4" />
                     </button>
-                  </div>
-                ) : (
-                  <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-                    <Users className="h-12 w-12 text-gray-400" />
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <input
                   type="file"
@@ -401,17 +405,17 @@ export default function EditProfile() {
             <div>
               <label className="form-label">Biografía</label>
               <textarea
-                value={formData.bio}
-                onChange={(e) => handleInputChange("bio", e.target.value)}
-                className={`form-control ${errors.bio ? "border-red-500" : ""}`}
+                value={formData.biography}
+                onChange={(e) => handleInputChange("biography", e.target.value)}
+                className={`form-control ${errors.biography ? "border-red-500" : ""}`}
                 rows="4"
                 placeholder="Cuéntanos algo sobre ti, tus gustos literarios, etc."
                 maxLength="500"
               />
               <div className="flex justify-between items-center mt-1">
-                {errors.bio && <p className="form-error">{errors.bio}</p>}
+                {errors.biography && <p className="form-error">{errors.biography}</p>}
                 <span className="text-sm text-gray-500">
-                  {formData.bio.length}/500 caracteres
+                  {formData.biography.length}/500 caracteres
                 </span>
               </div>
             </div>

@@ -1,25 +1,26 @@
 "use client";
 
-import { Link } from "react-router-dom";
-import Home from "../icons/Home";
-import Search from "../icons/Search";
-import Users from "../icons/Users";
-import MessageCircle from "../icons/MessageCircle";
-import BookOpen from "../icons/BookOpen";
-import Plus from "../icons/Plus";
-import FileText from "../icons/FileText";
-import Heart from "../icons/Heart";
-import List from "../icons/List";
-import Clock from "../icons/Clock";
-import Star from "../icons/Star";
-import BarChart from "../icons/BarChart";
-import Settings from "../icons/Settings";
-import LogOut from "../icons/LogOut";
-import ChevronDown from "../icons/ChevronDown";
-import ArrowLeftRight from "../icons/ArrowLeftRight";
-import Edit from "../icons/Edit";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Home,
+  BookOpen,
+  Heart,
+  MessageCircle,
+  Users,
+  Settings,
+  LogOut,
+  ChevronDown,
+  Star,
+  Edit,
+  TrendingUp,
+  BarChart,
+  FileText,
+  Calendar,
+  Clock,
+} from "../icons/index.js";
 import { getPendingChatRequestsCount } from "../../api/chatRequests";
+import ProfileImage from "../ProfileImage";
 
 export default function DashboardSidebar({
   user,
@@ -69,13 +70,13 @@ export default function DashboardSidebar({
     principal: [
       { icon: Home, label: "Inicio", path: "/dashboard" },
       {
-        icon: Search,
+        icon: TrendingUp,
         label: "Explorar",
         path: "/dashboard/explore",
         badge: "Nuevo",
       },
       {
-        icon: ArrowLeftRight,
+        icon: ChevronDown,
         label: "Swipe",
         path: "/dashboard/swipe",
         badge: "Hot",
@@ -90,7 +91,7 @@ export default function DashboardSidebar({
     ],
     misLibros: [
       { icon: BookOpen, label: "Mi biblioteca", path: "/dashboard/library" },
-      { icon: Plus, label: "Publicar libro", path: "/dashboard/publish" },
+      { icon: ChevronDown, label: "Publicar libro", path: "/dashboard/publish" },
       { icon: Edit, label: "Mis publicaciones", path: "/my-publications" },
       {
         icon: FileText,
@@ -99,7 +100,7 @@ export default function DashboardSidebar({
         count: 0,
       },
       { icon: Heart, label: "Favoritos", path: "/dashboard/favorites" },
-      { icon: List, label: "Lista de deseos", path: "/dashboard/wishlist" },
+      { icon: ChevronDown, label: "Lista de deseos", path: "/dashboard/wishlist" },
       { icon: Clock, label: "Historial", path: "/dashboard/history" },
     ],
     actividad: [
@@ -132,9 +133,7 @@ export default function DashboardSidebar({
                 className="flex items-center space-x-3 w-full hover:bg-gray-50 p-2 rounded-lg transition-colors"
                 onClick={() => window.innerWidth < 1024 && onClose && onClose()}
               >
-                <div className="user-avatar">
-                  {user?.first_name?.charAt(0) || user?.username?.charAt(0) || "U"}
-                </div>
+                <ProfileImage user={user} />
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 text-sm">
                     {user?.first_name || ""} {user?.last_name || ""}
