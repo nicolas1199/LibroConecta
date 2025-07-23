@@ -9,6 +9,7 @@ import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
 import Users from "../components/icons/Users"
+import LocationSelect from "../components/LocationSelect";
 
 
 export default function EditProfile() {
@@ -384,26 +385,14 @@ export default function EditProfile() {
             </div>
 
             <div>
-              <label className="form-label">
-                Ubicación <span className="text-red-500">*</span>
-              </label>
-              <select
+              {/* Selector de ubicación reutilizable */}
+              <LocationSelect
+                locations={locations}
                 value={formData.location_id}
-                onChange={(e) => handleInputChange("location_id", e.target.value)}
-                className={`form-control ${errors.location_id ? "border-red-500" : ""}`}
-              >
-                <option value="">Selecciona tu ubicación</option>
-                {Object.entries(groupedLocations).map(([region, locations]) => (
-                  <optgroup key={region} label={region}>
-                    {locations.map((location) => (
-                      <option key={location.location_id} value={location.location_id}>
-                        {location.comuna}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              {errors.location_id && <p className="form-error">{errors.location_id}</p>}
+                onChange={e => handleInputChange("location_id", e.target.value)}
+                error={errors.location_id}
+                required
+              />
             </div>
 
             <div>

@@ -10,6 +10,7 @@ import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
 import Search from "../components/icons/Search"
 import Plus from "../components/icons/Plus"
+import LocationSelect from "../components/LocationSelect";
 import {
   getTransactionTypes,
   getBookConditions,
@@ -878,14 +879,6 @@ function Step2({ formData, handleInputChange, errors, bookConditions, transactio
 }
 
 function Step3({ formData, handleInputChange, errors, locations }) {
-  const groupedLocations = locations.reduce((acc, location) => {
-    if (!acc[location.region]) {
-      acc[location.region] = []
-    }
-    acc[location.region].push(location)
-    return acc
-  }, {})
-
   return (
     <div className="space-y-6">
       <div>
@@ -906,28 +899,13 @@ function Step3({ formData, handleInputChange, errors, locations }) {
         </div>
       </div>
 
-      <div>
-        <label className="form-label">
-          Ubicación <span className="text-red-500">*</span>
-        </label>
-        <select
-          value={formData.location_id}
-          onChange={(e) => handleInputChange("location_id", e.target.value)}
-          className={`form-control ${errors.location_id ? "border-red-500" : ""}`}
-        >
-          <option value="">Selecciona tu ubicación</option>
-          {Object.entries(groupedLocations).map(([region, locations]) => (
-            <optgroup key={region} label={region}>
-              {locations.map((location) => (
-                <option key={location.location_id} value={location.location_id}>
-                  {location.comuna}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        {errors.location_id && <p className="form-error">{errors.location_id}</p>}
-      </div>
+      <LocationSelect
+        locations={locations}
+        value={formData.location_id}
+        onChange={e => handleInputChange("location_id", e.target.value)}
+        error={errors.location_id}
+        required
+      />
     </div>
   )
 }
