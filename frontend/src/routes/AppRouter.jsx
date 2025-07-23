@@ -34,6 +34,7 @@ import PaymentFailure from "../pages/PaymentFailure";
 import PaymentPending from "../pages/PaymentPending";
 import PaymentProcessing from "../pages/PaymentProcessing";
 import PaymentDebug from "../pages/PaymentDebug";
+import ChatRequests from "../pages/ChatRequests";
 
 export default function AppRouter() {
   return (
@@ -334,6 +335,16 @@ export default function AppRouter() {
         <Route path="/payment/pending" element={<PaymentPending />} />
         <Route path="/payment/processing" element={<PaymentProcessing />} />
         <Route path="/payment/debug" element={<PaymentDebug />} />
+
+        {/* Chat requests route */}
+        <Route
+          path="/chat-requests"
+          element={
+            <PrivateRoute>
+              <ChatRequests />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   );

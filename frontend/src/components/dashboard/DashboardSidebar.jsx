@@ -18,7 +18,8 @@ import LogOut from "../icons/LogOut";
 import ChevronDown from "../icons/ChevronDown";
 import ArrowLeftRight from "../icons/ArrowLeftRight";
 import Edit from "../icons/Edit";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getPendingChatRequestsCount } from "../../api/chatRequests";
 
 export default function DashboardSidebar({
   user,
@@ -33,6 +34,24 @@ export default function DashboardSidebar({
     actividad: false,
     configuracion: false,
   });
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    const loadPendingRequestsCount = async () => {
+      try {
+        const response = await getPendingChatRequestsCount();
+        setPendingRequestsCount(response.data?.count || 0);
+      } catch (error) {
+        console.error("Error loading pending requests count:", error);
+      }
+    };
+
+    loadPendingRequestsCount();
+    
+    // Recargar cada 30 segundos
+    const interval = setInterval(loadPendingRequestsCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -265,6 +284,22 @@ export default function DashboardSidebar({
                 <div className="sidebar-nav-content">
                   <Settings className="h-4 w-4" />
                   <span>Configuración</span>
+                </div>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/chat-requests"
+                className={`sidebar-nav-item ${currentPath === "/chat-requests" ? "active" : ""}`}
+              >
+                <div className="sidebar-nav-content">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Solicitudes de Chat</span>
+                  {pendingRequestsCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                      {pendingRequestsCount > 99 ? "99+" : pendingRequestsCount}
+                    </span>
+                  )}
                 </div>
               </Link>
             </li>

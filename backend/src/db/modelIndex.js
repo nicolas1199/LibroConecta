@@ -23,6 +23,7 @@ import UserPublishedBookInteraction from "./models/UserPublishedBookInteraction.
 import Payment from "./models/Payment.js";
 import Transaction from "./models/Transaction.js";
 import MatchBooks from "./models/MatchBooks.js";
+import ChatRequest from "./models/ChatRequest.js";
 
 // Configurar relaciones una sola vez
 setupRelations({
@@ -48,6 +49,7 @@ setupRelations({
   Payment,
   Transaction,
   MatchBooks,
+  ChatRequest,
 });
 
 // Exportar todos los modelos + conexión
@@ -74,5 +76,6 @@ export {
   Payment,
   Transaction,
   MatchBooks,
+  ChatRequest,
   sequelize,
 };
