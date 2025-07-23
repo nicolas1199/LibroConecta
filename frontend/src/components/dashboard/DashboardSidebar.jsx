@@ -2,25 +2,27 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  Home,
-  BookOpen,
-  Heart,
-  MessageCircle,
-  Users,
-  Settings,
-  LogOut,
-  ChevronDown,
-  Star,
-  Edit,
-  TrendingUp,
-  BarChart,
-  FileText,
-  Calendar,
-  Clock,
-} from "../icons/index.js";
+import Home from "../icons/Home";
+import BookOpen from "../icons/BookOpen";
+import Heart from "../icons/Heart";
+import MessageCircle from "../icons/MessageCircle";
+import Users from "../icons/Users";
+import Settings from "../icons/Settings";
+import LogOut from "../icons/LogOut";
+import ChevronDown from "../icons/ChevronDown";
+import Star from "../icons/Star";
+import Edit from "../icons/Edit";
+import TrendingUp from "../icons/TrendingUp";
+import BarChart from "../icons/BarChart";
+import FileText from "../icons/FileText";
+import Calendar from "../icons/Calendar";
+import Clock from "../icons/Clock";
 import { getPendingChatRequestsCount } from "../../api/chatRequests";
 import ProfileImage from "../ProfileImage";
+import Search from "../icons/Search";
+import ArrowLeftRight from "../icons/ArrowLeftRight";
+import Plus from "../icons/Plus";
+import List from "../icons/List";
 
 export default function DashboardSidebar({
   user,
@@ -70,13 +72,13 @@ export default function DashboardSidebar({
     principal: [
       { icon: Home, label: "Inicio", path: "/dashboard" },
       {
-        icon: TrendingUp,
+        icon: Search,
         label: "Explorar",
         path: "/dashboard/explore",
         badge: "Nuevo",
       },
       {
-        icon: ChevronDown,
+        icon: ArrowLeftRight,
         label: "Swipe",
         path: "/dashboard/swipe",
         badge: "Hot",
@@ -91,7 +93,7 @@ export default function DashboardSidebar({
     ],
     misLibros: [
       { icon: BookOpen, label: "Mi biblioteca", path: "/dashboard/library" },
-      { icon: ChevronDown, label: "Publicar libro", path: "/dashboard/publish" },
+      { icon: Plus, label: "Publicar libro", path: "/dashboard/publish" },
       { icon: Edit, label: "Mis publicaciones", path: "/my-publications" },
       {
         icon: FileText,
@@ -100,7 +102,7 @@ export default function DashboardSidebar({
         count: 0,
       },
       { icon: Heart, label: "Favoritos", path: "/dashboard/favorites" },
-      { icon: ChevronDown, label: "Lista de deseos", path: "/dashboard/wishlist" },
+      { icon: List, label: "Lista de deseos", path: "/dashboard/wishlist" },
       { icon: Clock, label: "Historial", path: "/dashboard/history" },
     ],
     actividad: [
