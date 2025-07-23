@@ -11,6 +11,7 @@ import Users from "../components/icons/Users"
 import BookOpen from "../components/icons/BookOpen"
 import Settings from "../components/icons/Settings"
 import MessageCircle from "../components/icons/MessageCircle"
+import LocationSelect from "../components/LocationSelect"
 
 export default function UserProfile() {
   const navigate = useNavigate()
@@ -32,14 +33,13 @@ export default function UserProfile() {
     email: "",
     username: "",
     location: "",
-    region: "",
-    comuna: ""
+    location_id: ""
   })
 
-  // Regiones y comunas disponibles
-  const [regions, setRegions] = useState([])
-  const [comunas, setComunas] = useState([])
-  const [selectedRegion, setSelectedRegion] = useState("")
+  // Eliminar estas variables que ya no se usan
+  // const [regions, setRegions] = useState([])
+  // const [comunas, setComunas] = useState([])
+  // const [selectedRegion, setSelectedRegion] = useState("")
 
   useEffect(() => {
     const loadData = async () => {
@@ -74,10 +74,6 @@ export default function UserProfile() {
             const locationsResponse = await getLocations()
             setLocations(locationsResponse.data || [])
             
-            // Procesar regiones únicas
-            const uniqueRegions = [...new Set(locationsResponse.data?.map(loc => loc.region) || [])]
-            setRegions(uniqueRegions)
-            
             // Configurar datos del formulario
             setFormData({
               first_name: profileUser.first_name || "",
@@ -85,24 +81,23 @@ export default function UserProfile() {
               email: profileUser.email || "",
               username: profileUser.username || "",
               location: profileUser.location || "",
-              region: "",
-              comuna: ""
+              location_id: profileUser.location_id || ""
             })
             
             // Si el usuario tiene ubicación, parsearlo
             if (profileUser.location) {
               const [region, comuna] = profileUser.location.split(" - ")
               if (region && comuna) {
-                setSelectedRegion(region)
+                // Buscar la ubicación en el array de locations para obtener el location_id
+                const foundLocation = locationsResponse.data?.find(loc => 
+                  loc.region === region && loc.comuna === comuna
+                )
+                
                 setFormData(prev => ({
                   ...prev,
-                  region: region,
-                  comuna: comuna
+                  location_id: foundLocation?.location_id?.toString() || "",
+                  location: profileUser.location
                 }))
-                
-                // Cargar comunas de esa región
-                const regionComunas = locationsResponse.data?.filter(loc => loc.region === region) || []
-                setComunas(regionComunas)
               }
             }
           }
@@ -118,18 +113,19 @@ export default function UserProfile() {
     loadData()
   }, [userId])
 
-  const handleRegionChange = (region) => {
-    setSelectedRegion(region)
-    setFormData(prev => ({
-      ...prev,
-      region: region,
-      comuna: ""
-    }))
+  // Eliminar esta función que ya no se usa
+  // const handleRegionChange = (region) => {
+  //   setSelectedRegion(region)
+  //   setFormData(prev => ({
+  //     ...prev,
+  //     region: region,
+  //     comuna: ""
+  //   }))
     
-    // Filtrar comunas de la región seleccionada
-    const regionComunas = locations.filter(loc => loc.region === region)
-    setComunas(regionComunas)
-  }
+  //   // Filtrar comunas de la región seleccionada
+  //   const regionComunas = locations.filter(loc => loc.region === region)
+  //   setComunas(regionComunas)
+  // }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -148,16 +144,15 @@ export default function UserProfile() {
       setSuccess(null)
 
       // Construir ubicación completa
-      const location = formData.region && formData.comuna ? 
-        `${formData.region} - ${formData.comuna}` : 
-        formData.location
+      const location = formData.location
 
       const updateData = {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
         username: formData.username,
-        location: location
+        location: location,
+        location_id: formData.location_id // Incluir location_id en los datos de actualización
       }
 
       await updateUserProfile(updateData)
@@ -183,21 +178,14 @@ export default function UserProfile() {
 
   const handleCancel = () => {
     if (user) {
-      const [region, comuna] = user.location ? user.location.split(" - ") : ["", ""]
       setFormData({
         first_name: user.first_name || "",
         last_name: user.last_name || "",
         email: user.email || "",
         username: user.username || "",
         location: user.location || "",
-        region: region || "",
-        comuna: comuna || ""
+        location_id: user.location_id || ""
       })
-      setSelectedRegion(region || "")
-      if (region) {
-        const regionComunas = locations.filter(loc => loc.region === region)
-        setComunas(regionComunas)
-      }
     }
     setEditing(false)
     setError(null)
@@ -389,47 +377,21 @@ export default function UserProfile() {
                   
                   {isOwnProfile ? (
                     editing ? (
-                      <div className="space-y-4">
-                        {/* Selector de Región */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-600 mb-1">
-                            Región
-                          </label>
-                          <select
-                            value={selectedRegion}
-                            onChange={(e) => handleRegionChange(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value="">Seleccionar región</option>
-                            {regions.map((region) => (
-                              <option key={region} value={region}>
-                                {region}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Selector de Comuna */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-600 mb-1">
-                            Comuna
-                          </label>
-                          <select
-                            name="comuna"
-                            value={formData.comuna}
-                            onChange={handleInputChange}
-                            disabled={!selectedRegion}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                          >
-                            <option value="">Seleccionar comuna</option>
-                            {comunas.map((location) => (
-                              <option key={location.location_id} value={location.comuna}>
-                                {location.comuna}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
+                      <LocationSelect
+                        locations={locations}
+                        value={formData.location_id}
+                        onChange={(e) => {
+                          const locationId = e.target.value;
+                          const selectedLocation = locations.find(loc => loc.location_id === parseInt(locationId));
+                          setFormData(prev => ({
+                            ...prev,
+                            location_id: locationId,
+                            location: selectedLocation ? `${selectedLocation.region} - ${selectedLocation.comuna}` : ""
+                          }));
+                        }}
+                        error=""
+                        required
+                      />
                     ) : (
                       <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
                         {user?.location || "No especificada"}

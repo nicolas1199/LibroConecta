@@ -452,7 +452,6 @@ export default function EditProfile() {
           </form>
         </div>
       </div>
-        return <DashboardLayout>{renderContent()}</DashboardLayout>
     </div>
   )
 }
