@@ -284,7 +284,9 @@ export default function AppRouter() {
           path="/profile"
           element={
             <PrivateRoute>
-              <UserProfile />
+              <DashboardLayout>
+                <UserProfile />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -294,7 +296,9 @@ export default function AppRouter() {
           path="/edit-profile"
           element={
             <PrivateRoute>
-              <EditProfile />
+              <DashboardLayout>
+                <EditProfile />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -304,7 +308,9 @@ export default function AppRouter() {
           path="/my-publications"
           element={
             <PrivateRoute>
-              <MyPublications />
+              <DashboardLayout>
+                <MyPublications />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -314,7 +320,9 @@ export default function AppRouter() {
           path="/edit-publication/:id"
           element={
             <PrivateRoute>
-              <EditPublication />
+              <DashboardLayout>
+                <EditPublication />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -324,7 +332,9 @@ export default function AppRouter() {
           path="/profile/:userId"
           element={
             <PrivateRoute>
-              <UserProfile />
+              <DashboardLayout>
+                <UserProfile />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -341,7 +351,9 @@ export default function AppRouter() {
           path="/chat-requests"
           element={
             <PrivateRoute>
-              <ChatRequests />
+              <DashboardLayout>
+                <ChatRequests />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />

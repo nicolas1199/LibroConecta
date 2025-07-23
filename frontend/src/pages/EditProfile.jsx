@@ -53,7 +53,11 @@ export default function EditProfile() {
           profile_image_preview: profileData.data.profile_image || null
         })
 
-        setLocations(locationsData)
+        // Asegurar que locations sea siempre un array válido
+        const locationsArray = Array.isArray(locationsData) ? locationsData : 
+                              Array.isArray(locationsData.data) ? locationsData.data : 
+                              [];
+        setLocations(locationsArray)
         
       } catch (error) {
         console.error("Error loading data:", error)
@@ -387,7 +391,7 @@ export default function EditProfile() {
             <div>
               {/* Selector de ubicación reutilizable */}
               <LocationSelect
-                locations={locations}
+                locations={Array.isArray(locations) ? locations : []}
                 value={formData.location_id}
                 onChange={e => handleInputChange("location_id", e.target.value)}
                 error={errors.location_id}

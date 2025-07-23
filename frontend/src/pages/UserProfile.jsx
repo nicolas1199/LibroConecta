@@ -22,33 +22,45 @@ export default function UserProfile() {
     const loadData = async () => {
       try {
         setLoading(true)
+        console.log("🔄 Cargando datos del perfil...")
         
         // Obtener usuario actual del localStorage
         const currentUserData = localStorage.getItem("user")
+        console.log("📦 Datos del localStorage:", currentUserData)
+        
         if (currentUserData) {
           const parsedCurrentUser = JSON.parse(currentUserData)
+          console.log("👤 Usuario actual parseado:", parsedCurrentUser)
           setCurrentUser(parsedCurrentUser)
           
           // Determinar si es perfil propio o de otro usuario
           const isOwn = !userId || userId === parsedCurrentUser.user_id.toString()
+          console.log("🔍 ¿Es perfil propio?", isOwn, "userId:", userId, "currentUserId:", parsedCurrentUser.user_id)
           setIsOwnProfile(isOwn)
           
           let profileUser
           if (isOwn) {
             // Es el perfil propio
             profileUser = parsedCurrentUser
+            console.log("✅ Usando perfil propio:", profileUser)
           } else {
             // Es perfil de otro usuario - cargar por API
+            console.log("🌐 Cargando perfil de otro usuario...")
             const response = await getUserProfileById(userId)
             profileUser = response.data
+            console.log("📥 Perfil cargado de API:", profileUser)
           }
           
           setUser(profileUser)
+          console.log("✅ Usuario establecido en estado:", profileUser)
+        } else {
+          console.error("❌ No hay datos de usuario en localStorage")
         }
       } catch (error) {
-        console.error("Error loading user profile:", error)
+        console.error("❌ Error loading user profile:", error)
       } finally {
         setLoading(false)
+        console.log("🏁 Carga completada")
       }
     }
 

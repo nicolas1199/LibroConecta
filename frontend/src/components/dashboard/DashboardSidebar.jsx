@@ -43,15 +43,20 @@ export default function DashboardSidebar({
         setPendingRequestsCount(response.data?.count || 0);
       } catch (error) {
         console.error("Error loading pending requests count:", error);
+        // Si hay error, establecer en 0 para evitar problemas
+        setPendingRequestsCount(0);
       }
     };
 
-    loadPendingRequestsCount();
-    
-    // Recargar cada 30 segundos
-    const interval = setInterval(loadPendingRequestsCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    // Solo cargar si el usuario está autenticado
+    if (user && user.user_id) {
+      loadPendingRequestsCount();
+      
+      // Recargar cada 30 segundos
+      const interval = setInterval(loadPendingRequestsCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
