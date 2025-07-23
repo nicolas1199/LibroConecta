@@ -5,7 +5,6 @@ import {
   getSentChatRequests, 
   respondToChatRequest 
 } from "../api/chatRequests";
-import DashboardLayout from "../layouts/DashboardLayout";
 import ArrowLeft from "../components/icons/ArrowLeft";
 import MessageCircle from "../components/icons/MessageCircle";
 import CheckCircle from "../components/icons/CheckCircle";
@@ -221,116 +220,112 @@ export default function ChatRequests() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando solicitudes...</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando solicitudes...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8">
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver al Dashboard
-            </button>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al Dashboard
+          </button>
 
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Solicitudes de Chat
-              </h1>
-              <p className="text-gray-600">
-                Gestiona las solicitudes de chat que has enviado y recibido
-              </p>
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700">{error}</p>
-            </div>
-          )}
-
-          {/* Tabs */}
-          <div className="mb-6">
-            <div className="border-b border-gray-200">
-              <nav className="-mb-px flex space-x-8">
-                <button
-                  onClick={() => setActiveTab("received")}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === "received"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4" />
-                    <span>Recibidas ({receivedRequests.length})</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActiveTab("sent")}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === "sent"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Enviadas ({sentRequests.length})</span>
-                  </div>
-                </button>
-              </nav>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="space-y-6">
-            {activeTab === "received" ? (
-              receivedRequests.length > 0 ? (
-                receivedRequests.map(renderReceivedRequest)
-              ) : (
-                <div className="text-center py-12">
-                  <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No hay solicitudes recibidas
-                  </h3>
-                  <p className="text-gray-600">
-                    Cuando alguien te envíe una solicitud de chat, aparecerá aquí.
-                  </p>
-                </div>
-              )
-            ) : (
-              sentRequests.length > 0 ? (
-                sentRequests.map(renderSentRequest)
-              ) : (
-                <div className="text-center py-12">
-                  <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No hay solicitudes enviadas
-                  </h3>
-                  <p className="text-gray-600">
-                    Las solicitudes de chat que envíes aparecerán aquí.
-                  </p>
-                </div>
-              )
-            )}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Solicitudes de Chat
+            </h1>
+            <p className="text-gray-600">
+              Gestiona las solicitudes de chat que has enviado y recibido
+            </p>
           </div>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab("received")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "received"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Users className="h-4 w-4" />
+                  <span>Recibidas ({receivedRequests.length})</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab("sent")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "sent"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Enviadas ({sentRequests.length})</span>
+                </div>
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="space-y-6">
+          {activeTab === "received" ? (
+            receivedRequests.length > 0 ? (
+              receivedRequests.map(renderReceivedRequest)
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No hay solicitudes recibidas
+                </h3>
+                <p className="text-gray-600">
+                  Cuando alguien te envíe una solicitud de chat, aparecerá aquí.
+                </p>
+              </div>
+            )
+          ) : (
+            sentRequests.length > 0 ? (
+              sentRequests.map(renderSentRequest)
+            ) : (
+              <div className="text-center py-12">
+                <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No hay solicitudes enviadas
+                </h3>
+                <p className="text-gray-600">
+                  Las solicitudes de chat que envíes aparecerán aquí.
+                </p>
+              </div>
+            )
+          )}
+        </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 } 

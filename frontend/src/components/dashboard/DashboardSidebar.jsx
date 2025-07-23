@@ -117,215 +117,224 @@ export default function DashboardSidebar({
         transform: window.innerWidth >= 1024 ? 'translateX(0)' : undefined 
       }}
     >
-      <div className="sidebar-section">
-        {/* User Profile */}
-        <div className="sidebar-user-profile">
-          <Link
-            to="/profile"
-            className="flex items-center space-x-3 w-full hover:bg-gray-50 p-2 rounded-lg transition-colors"
-            onClick={() => window.innerWidth < 1024 && onClose && onClose()}
-          >
-            <div className="user-avatar">
-              {user.first_name?.charAt(0) || "U"}
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 text-sm">
-                {user.first_name} {user.last_name}
-              </h3>
-              <div className="user-rating">
-                <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                <span className="text-xs text-gray-600">4.8</span>
-                <span className="user-badge">Pro</span>
-              </div>
-            </div>
-          </Link>
+      {/* Validación adicional para evitar errores */}
+      {!user || !user.user_id ? (
+        <div className="p-4 text-center text-gray-500">
+          <p>Cargando usuario...</p>
         </div>
-
-        {/* Navigation */}
-        <nav className="space-y-6">
-          {/* Principal */}
-          <div className="sidebar-nav-section">
-            <h4 className="sidebar-nav-title">Principal</h4>
-            <ul className="space-y-1">
-              {menuItems.principal.map((item) => (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
-                    onClick={() =>
-                      window.innerWidth < 1024 && onClose && onClose()
-                    }
-                  >
-                    <div className="sidebar-nav-content">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span className="sidebar-badge sidebar-badge-new">
-                        {item.badge}
-                      </span>
-                    )}
-                    {item.count !== undefined && item.count > 0 && (
-                      <span className="sidebar-badge sidebar-badge-count">
-                        {item.count}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Mis Libros */}
-          <div className="sidebar-nav-section">
-            <button
-              onClick={() => toggleSection("misLibros")}
-              className="sidebar-section-toggle sidebar-nav-title"
-            >
-              <span>Mis Libros</span>
-              <ChevronDown
-                className={`h-3 w-3 transition-transform ${expandedSections.misLibros ? "rotate-180" : ""}`}
-              />
-            </button>
-            {expandedSections.misLibros && (
-              <ul className="space-y-1">
-                {menuItems.misLibros.map((item) => (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
-                      onClick={() =>
-                        window.innerWidth < 1024 && onClose && onClose()
-                      }
-                    >
-                      <div className="sidebar-nav-content">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </div>
-                      {item.count !== undefined && item.count > 0 && (
-                        <span className="sidebar-badge sidebar-badge-count">
-                          {item.count}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Actividad */}
-          <div className="sidebar-nav-section">
-            <button
-              onClick={() => toggleSection("actividad")}
-              className="sidebar-section-toggle sidebar-nav-title"
-            >
-              <span>Actividad</span>
-              <ChevronDown
-                className={`h-3 w-3 transition-transform ${expandedSections.actividad ? "rotate-180" : ""}`}
-              />
-            </button>
-            {expandedSections.actividad && (
-              <ul className="space-y-1">
-                {menuItems.actividad.map((item) => (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
-                    >
-                      <div className="sidebar-nav-content">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </nav>
-      </div>
-
-      {/* Configuration & Logout */}
-      <div className="sidebar-section">
-        <button
-          onClick={() => toggleSection("configuracion")}
-          className="sidebar-section-toggle sidebar-nav-title"
-        >
-          <span>Configuración rápida</span>
-          <ChevronDown
-            className={`h-3 w-3 transition-transform ${expandedSections.configuracion ? "rotate-180" : ""}`}
-          />
-        </button>
-        {expandedSections.configuracion && (
-          <ul className="space-y-1 mb-4">
-            <li>
+      ) : (
+        <>
+          <div className="sidebar-section">
+            {/* User Profile */}
+            <div className="sidebar-user-profile">
               <Link
                 to="/profile"
-                className={`sidebar-nav-item ${currentPath === "/profile" ? "active" : ""}`}
+                className="flex items-center space-x-3 w-full hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                onClick={() => window.innerWidth < 1024 && onClose && onClose()}
               >
-                <div className="sidebar-nav-content">
-                  <Users className="h-4 w-4" />
-                  <span>Mi Perfil</span>
+                <div className="user-avatar">
+                  {user?.first_name?.charAt(0) || user?.username?.charAt(0) || "U"}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 text-sm">
+                    {user?.first_name || ""} {user?.last_name || ""}
+                  </h3>
+                  <div className="user-rating">
+                    <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                    <span className="text-xs text-gray-600">4.8</span>
+                    <span className="user-badge">Pro</span>
+                  </div>
                 </div>
               </Link>
-            </li>
-            <li>
-              <Link
-                to="/edit-profile"
-                className={`sidebar-nav-item ${currentPath === "/edit-profile" ? "active" : ""}`}
-              >
-                <div className="sidebar-nav-content">
-                  <Edit className="h-4 w-4" />
-                  <span>Editar Perfil</span>
-                </div>
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/dashboard/settings"
-                className={`sidebar-nav-item ${currentPath === "/dashboard/settings" ? "active" : ""}`}
-              >
-                <div className="sidebar-nav-content">
-                  <Settings className="h-4 w-4" />
-                  <span>Configuración</span>
-                </div>
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/chat-requests"
-                className={`sidebar-nav-item ${currentPath === "/chat-requests" ? "active" : ""}`}
-              >
-                <div className="sidebar-nav-content">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>Solicitudes de Chat</span>
-                  {pendingRequestsCount > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                      {pendingRequestsCount > 99 ? "99+" : pendingRequestsCount}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            </li>
-          </ul>
-        )}
+            </div>
 
-        <button
-          onClick={onLogout}
-          disabled={isLoggingOut}
-          className="sidebar-nav-item text-red-600 hover:bg-red-50 w-full disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <div className="sidebar-nav-content">
-            {isLoggingOut ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-            ) : (
-              <LogOut className="h-4 w-4" />
-            )}
-            <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
+            {/* Navigation */}
+            <nav className="space-y-6">
+              {/* Principal */}
+              <div className="sidebar-nav-section">
+                <h4 className="sidebar-nav-title">Principal</h4>
+                <ul className="space-y-1">
+                  {menuItems.principal.map((item) => (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                        onClick={() =>
+                          window.innerWidth < 1024 && onClose && onClose()
+                        }
+                      >
+                        <div className="sidebar-nav-content">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </div>
+                        {item.badge && (
+                          <span className="sidebar-badge sidebar-badge-new">
+                            {item.badge}
+                          </span>
+                        )}
+                        {item.count !== undefined && item.count > 0 && (
+                          <span className="sidebar-badge sidebar-badge-count">
+                            {item.count}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Mis Libros */}
+              <div className="sidebar-nav-section">
+                <button
+                  onClick={() => toggleSection("misLibros")}
+                  className="sidebar-section-toggle sidebar-nav-title"
+                >
+                  <span>Mis Libros</span>
+                  <ChevronDown
+                    className={`h-3 w-3 transition-transform ${expandedSections.misLibros ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {expandedSections.misLibros && (
+                  <ul className="space-y-1">
+                    {menuItems.misLibros.map((item) => (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                          onClick={() =>
+                            window.innerWidth < 1024 && onClose && onClose()
+                          }
+                        >
+                          <div className="sidebar-nav-content">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </div>
+                          {item.count !== undefined && item.count > 0 && (
+                            <span className="sidebar-badge sidebar-badge-count">
+                              {item.count}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Actividad */}
+              <div className="sidebar-nav-section">
+                <button
+                  onClick={() => toggleSection("actividad")}
+                  className="sidebar-section-toggle sidebar-nav-title"
+                >
+                  <span>Actividad</span>
+                  <ChevronDown
+                    className={`h-3 w-3 transition-transform ${expandedSections.actividad ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {expandedSections.actividad && (
+                  <ul className="space-y-1">
+                    {menuItems.actividad.map((item) => (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className={`sidebar-nav-item ${currentPath === item.path ? "active" : ""}`}
+                        >
+                          <div className="sidebar-nav-content">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </nav>
           </div>
-        </button>
-      </div>
+
+          {/* Configuration & Logout */}
+          <div className="sidebar-section">
+            <button
+              onClick={() => toggleSection("configuracion")}
+              className="sidebar-section-toggle sidebar-nav-title"
+            >
+              <span>Configuración rápida</span>
+              <ChevronDown
+                className={`h-3 w-3 transition-transform ${expandedSections.configuracion ? "rotate-180" : ""}`}
+              />
+            </button>
+            {expandedSections.configuracion && (
+              <ul className="space-y-1 mb-4">
+                <li>
+                  <Link
+                    to="/profile"
+                    className={`sidebar-nav-item ${currentPath === "/profile" ? "active" : ""}`}
+                  >
+                    <div className="sidebar-nav-content">
+                      <Users className="h-4 w-4" />
+                      <span>Mi Perfil</span>
+                    </div>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/edit-profile"
+                    className={`sidebar-nav-item ${currentPath === "/edit-profile" ? "active" : ""}`}
+                  >
+                    <div className="sidebar-nav-content">
+                      <Edit className="h-4 w-4" />
+                      <span>Editar Perfil</span>
+                    </div>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/dashboard/settings"
+                    className={`sidebar-nav-item ${currentPath === "/dashboard/settings" ? "active" : ""}`}
+                  >
+                    <div className="sidebar-nav-content">
+                      <Settings className="h-4 w-4" />
+                      <span>Configuración</span>
+                    </div>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/chat-requests"
+                    className={`sidebar-nav-item ${currentPath === "/chat-requests" ? "active" : ""}`}
+                  >
+                    <div className="sidebar-nav-content">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Solicitudes de Chat</span>
+                      {pendingRequestsCount > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                          {pendingRequestsCount > 99 ? "99+" : pendingRequestsCount}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              </ul>
+            )}
+
+            <button
+              onClick={onLogout}
+              disabled={isLoggingOut}
+              className="sidebar-nav-item text-red-600 hover:bg-red-50 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="sidebar-nav-content">
+                {isLoggingOut ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                ) : (
+                  <LogOut className="h-4 w-4" />
+                )}
+                <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
     </aside>
   );
 }

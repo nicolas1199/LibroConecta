@@ -69,9 +69,11 @@ export default function UserProfile() {
           }
         } else {
           console.error("❌ No hay datos de usuario en localStorage")
+          setUser(null)
         }
       } catch (error) {
         console.error("❌ Error loading user profile:", error)
+        setUser(null)
       } finally {
         setLoading(false)
         console.log("🏁 Carga completada")
@@ -86,6 +88,28 @@ export default function UserProfile() {
     const firstName = user.first_name || ""
     const lastName = user.last_name || ""
     return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "U"
+  }
+
+  // Función helper para formatear la ubicación de manera segura
+  const formatLocation = (location) => {
+    if (!location) return "No especificada"
+    
+    try {
+      // Si es un objeto con region y comuna
+      if (typeof location === 'object' && location.region && location.comuna) {
+        return `${location.comuna}, ${location.region}`
+      }
+      
+      // Si es un string
+      if (typeof location === 'string') {
+        return location
+      }
+      
+      return "No especificada"
+    } catch (error) {
+      console.error("❌ Error formateando ubicación:", error)
+      return "No especificada"
+    }
   }
 
   if (loading) {
@@ -109,162 +133,179 @@ export default function UserProfile() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver al dashboard
-          </button>
-          
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isOwnProfile ? "Mi Perfil" : `Perfil de ${user?.first_name} ${user?.last_name}`}
-            </h1>
+  // Debug temporal - mostrar datos del usuario
+  console.log("🔍 Renderizando UserProfile con usuario:", user)
+  console.log("🔍 Tipo de location:", typeof user.location)
+  console.log("🔍 Location completo:", user.location)
+
+  try {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4">
+          {/* Header */}
+          <div className="mb-8">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Volver al dashboard
+            </button>
             
-            {isOwnProfile && (
-              <button
-                onClick={() => navigate("/edit-profile")}
-                className="btn btn-primary flex items-center space-x-2"
-              >
-                <Edit className="h-4 w-4" />
-                <span>Editar Perfil</span>
-              </button>
-            )}
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-gray-900">
+                {isOwnProfile ? "Mi Perfil" : `Perfil de ${user?.first_name || ""} ${user?.last_name || ""}`}
+              </h1>
+              
+              {isOwnProfile && (
+                <button
+                  onClick={() => navigate("/edit-profile")}
+                  className="btn btn-primary flex items-center space-x-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Editar Perfil</span>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Información del Usuario */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Información Personal
-              </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Información del Usuario */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  Información Personal
+                </h2>
 
-              <div className="space-y-6">
-                {/* Nombres */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre
-                    </label>
-                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                      {user?.first_name || "No especificado"}
+                <div className="space-y-6">
+                  {/* Nombres */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre
+                      </label>
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        {user?.first_name || "No especificado"}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Apellido
+                      </label>
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        {user?.last_name || "No especificado"}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Apellido
-                    </label>
-                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                      {user?.last_name || "No especificado"}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Email y Username */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                      {user?.email || "No especificado"}
+                  {/* Email y Username */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email
+                      </label>
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        {user?.email || "No especificado"}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Usuario
+                      </label>
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                        @{user?.username || "No especificado"}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Usuario
-                    </label>
-                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                      @{user?.username || "No especificado"}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Ubicación */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ubicación
-                  </label>
-                  <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                    {user?.location || "No especificada"}
+                  {/* Ubicación */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ubicación
+                    </label>
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                      {formatLocation(user?.location)}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Tarjeta de Perfil */}
-          <div className="space-y-6">
-            {/* Avatar y información básica */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
-                  {getInitials()}
+            {/* Tarjeta de Perfil */}
+            <div className="space-y-6">
+              {/* Avatar y información básica */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="text-center">
+                  <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+                    {getInitials()}
+                  </div>
+                  
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                    {user?.first_name || ""} {user?.last_name || ""}
+                  </h3>
+                  
+                  <p className="text-gray-500 mb-2">@{user?.username || ""}</p>
+                  
+                  {user?.location && (
+                    <div className="flex items-center justify-center text-gray-500 text-sm mb-4">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span>{formatLocation(user.location)}</span>
+                    </div>
+                  )}
+                  
+                  {/* Botón de chat para perfiles de otros usuarios */}
+                  {!isOwnProfile && (
+                    <button
+                      onClick={() => navigate(`/dashboard/messages/new?user=${user?.user_id}`)}
+                      className="w-full btn btn-primary flex items-center justify-center space-x-2"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Enviar Mensaje</span>
+                    </button>
+                  )}
                 </div>
-                
-                <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                  {user.first_name} {user.last_name}
+              </div>
+
+              {/* Estadísticas del usuario */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Estadísticas
                 </h3>
                 
-                <p className="text-gray-500 mb-2">@{user.username}</p>
-                
-                {user.location && (
-                  <div className="flex items-center justify-center text-gray-500 text-sm mb-4">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>{user.location}</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <BookOpen className="h-4 w-4 text-blue-600" />
+                      <span className="text-gray-600">Libros publicados</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">0</span>
                   </div>
-                )}
-                
-                {/* Botón de chat para perfiles de otros usuarios */}
-                {!isOwnProfile && (
-                  <button
-                    onClick={() => navigate(`/dashboard/messages/new?user=${user.user_id}`)}
-                    className="w-full btn btn-primary flex items-center justify-center space-x-2"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Enviar Mensaje</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Estadísticas del usuario */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Estadísticas
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <BookOpen className="h-4 w-4 text-blue-600" />
-                    <span className="text-gray-600">Libros publicados</span>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-purple-600" />
+                      <span className="text-gray-600">Matches</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">0</span>
                   </div>
-                  <span className="font-semibold text-gray-900">0</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-purple-600" />
-                    <span className="text-gray-600">Matches</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">0</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  } catch (error) {
+    console.error("❌ Error renderizando UserProfile:", error)
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Error al cargar el perfil</p>
+          <p className="text-sm text-gray-500 mt-2">Detalles: {error.message}</p>
+        </div>
+      </div>
+    )
+  }
 } 
