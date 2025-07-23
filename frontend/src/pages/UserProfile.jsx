@@ -2,44 +2,21 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { getUserProfile, updateUserProfile, getUserProfileById } from "../api/auth"
-import { getLocations } from "../api/publishedBooks"
+import { getUserProfileById } from "../api/auth"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Edit from "../components/icons/Edit"
 import MapPin from "../components/icons/MapPin"
 import Users from "../components/icons/Users"
 import BookOpen from "../components/icons/BookOpen"
-import Settings from "../components/icons/Settings"
 import MessageCircle from "../components/icons/MessageCircle"
-import LocationSelect from "../components/LocationSelect"
 
 export default function UserProfile() {
   const navigate = useNavigate()
   const { userId } = useParams()
   const [user, setUser] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
-  const [locations, setLocations] = useState([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
   const [isOwnProfile, setIsOwnProfile] = useState(true)
-
-  // Estados para el formulario
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    username: "",
-    location: "",
-    location_id: ""
-  })
-
-  // Eliminar estas variables que ya no se usan
-  // const [regions, setRegions] = useState([])
-  // const [comunas, setComunas] = useState([])
-  // const [selectedRegion, setSelectedRegion] = useState("")
 
   useEffect(() => {
     const loadData = async () => {
@@ -67,44 +44,9 @@ export default function UserProfile() {
           }
           
           setUser(profileUser)
-          
-          // Solo cargar ubicaciones y configurar formulario si es perfil propio
-          if (isOwn) {
-            // Cargar ubicaciones
-            const locationsResponse = await getLocations()
-            setLocations(locationsResponse.data || [])
-            
-            // Configurar datos del formulario
-            setFormData({
-              first_name: profileUser.first_name || "",
-              last_name: profileUser.last_name || "",
-              email: profileUser.email || "",
-              username: profileUser.username || "",
-              location: profileUser.location || "",
-              location_id: profileUser.location_id || ""
-            })
-            
-            // Si el usuario tiene ubicación, parsearlo
-            if (profileUser.location) {
-              const [region, comuna] = profileUser.location.split(" - ")
-              if (region && comuna) {
-                // Buscar la ubicación en el array de locations para obtener el location_id
-                const foundLocation = locationsResponse.data?.find(loc => 
-                  loc.region === region && loc.comuna === comuna
-                )
-                
-                setFormData(prev => ({
-                  ...prev,
-                  location_id: foundLocation?.location_id?.toString() || "",
-                  location: profileUser.location
-                }))
-              }
-            }
-          }
         }
       } catch (error) {
-        console.error("Error loading profile:", error)
-        setError("Error al cargar el perfil")
+        console.error("Error loading user profile:", error)
       } finally {
         setLoading(false)
       }
@@ -113,96 +55,20 @@ export default function UserProfile() {
     loadData()
   }, [userId])
 
-  // Eliminar esta función que ya no se usa
-  // const handleRegionChange = (region) => {
-  //   setSelectedRegion(region)
-  //   setFormData(prev => ({
-  //     ...prev,
-  //     region: region,
-  //     comuna: ""
-  //   }))
-    
-  //   // Filtrar comunas de la región seleccionada
-  //   const regionComunas = locations.filter(loc => loc.region === region)
-  //   setComunas(regionComunas)
-  // }
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    try {
-      setSaving(true)
-      setError(null)
-      setSuccess(null)
-
-      // Construir ubicación completa
-      const location = formData.location
-
-      const updateData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        username: formData.username,
-        location: location,
-        location_id: formData.location_id // Incluir location_id en los datos de actualización
-      }
-
-      await updateUserProfile(updateData)
-      
-      // Actualizar usuario en localStorage
-      const updatedUser = { ...user, ...updateData }
-      localStorage.setItem("user", JSON.stringify(updatedUser))
-      setUser(updatedUser)
-      
-      setSuccess("Perfil actualizado exitosamente")
-      setEditing(false)
-      
-      // Limpiar mensaje de éxito después de 3 segundos
-      setTimeout(() => setSuccess(null), 3000)
-      
-    } catch (error) {
-      console.error("Error updating profile:", error)
-      setError("Error al actualizar el perfil")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCancel = () => {
-    if (user) {
-      setFormData({
-        first_name: user.first_name || "",
-        last_name: user.last_name || "",
-        email: user.email || "",
-        username: user.username || "",
-        location: user.location || "",
-        location_id: user.location_id || ""
-      })
-    }
-    setEditing(false)
-    setError(null)
-    setSuccess(null)
-  }
-
   const getInitials = () => {
     if (!user) return "U"
-    const first = user.first_name?.charAt(0) || ""
-    const last = user.last_name?.charAt(0) || ""
-    return `${first}${last}`.toUpperCase()
+    const firstName = user.first_name || ""
+    const lastName = user.last_name || ""
+    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "U"
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="spinner border-gray-300 border-t-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando perfil...</p>
+        </div>
       </div>
     )
   }
@@ -211,32 +77,23 @@ export default function UserProfile() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            No se pudo cargar el perfil
-          </h2>
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="btn btn-primary"
-          >
-            Volver al Dashboard
-          </button>
+          <p className="text-red-600">Usuario no encontrado</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors"
           >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Volver al Dashboard</span>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al dashboard
           </button>
           
           <div className="flex items-center justify-between">
@@ -244,9 +101,9 @@ export default function UserProfile() {
               {isOwnProfile ? "Mi Perfil" : `Perfil de ${user?.first_name} ${user?.last_name}`}
             </h1>
             
-            {isOwnProfile && !editing && (
+            {isOwnProfile && (
               <button
-                onClick={() => setEditing(true)}
+                onClick={() => navigate("/edit-profile")}
                 className="btn btn-primary flex items-center space-x-2"
               >
                 <Edit className="h-4 w-4" />
@@ -264,62 +121,25 @@ export default function UserProfile() {
                 Información Personal
               </h2>
 
-              {/* Mensajes de éxito/error */}
-              {success && (
-                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800">{success}</p>
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-800">{error}</p>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-6">
                 {/* Nombres */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Nombre
                     </label>
-                    {isOwnProfile ? (
-                      <input
-                        type="text"
-                        name="first_name"
-                        value={formData.first_name}
-                        onChange={handleInputChange}
-                        disabled={!editing}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                        required
-                      />
-                    ) : (
-                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                        {user?.first_name || "No especificado"}
-                      </div>
-                    )}
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                      {user?.first_name || "No especificado"}
+                    </div>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Apellido
                     </label>
-                    {isOwnProfile ? (
-                      <input
-                        type="text"
-                        name="last_name"
-                        value={formData.last_name}
-                        onChange={handleInputChange}
-                        disabled={!editing}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                        required
-                      />
-                    ) : (
-                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                        {user?.last_name || "No especificado"}
-                      </div>
-                    )}
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                      {user?.last_name || "No especificado"}
+                    </div>
                   </div>
                 </div>
 
@@ -329,113 +149,31 @@ export default function UserProfile() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email
                     </label>
-                    {isOwnProfile ? (
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        disabled={!editing}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                        required
-                      />
-                    ) : (
-                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                        {user?.email || "No especificado"}
-                      </div>
-                    )}
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                      {user?.email || "No especificado"}
+                    </div>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre de Usuario
+                      Usuario
                     </label>
-                    {isOwnProfile ? (
-                      <input
-                        type="text"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleInputChange}
-                        disabled={!editing}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                        required
-                      />
-                    ) : (
-                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                        @{user?.username || "No especificado"}
-                      </div>
-                    )}
+                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                      @{user?.username || "No especificado"}
+                    </div>
                   </div>
                 </div>
 
                 {/* Ubicación */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <MapPin className="inline h-4 w-4 mr-1" />
                     Ubicación
                   </label>
-                  
-                  {isOwnProfile ? (
-                    editing ? (
-                      <LocationSelect
-                        locations={locations}
-                        value={formData.location_id}
-                        onChange={(e) => {
-                          const locationId = e.target.value;
-                          const selectedLocation = locations.find(loc => loc.location_id === parseInt(locationId));
-                          setFormData(prev => ({
-                            ...prev,
-                            location_id: locationId,
-                            location: selectedLocation ? `${selectedLocation.region} - ${selectedLocation.comuna}` : ""
-                          }));
-                        }}
-                        error=""
-                        required
-                      />
-                    ) : (
-                      <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                        {user?.location || "No especificada"}
-                      </div>
-                    )
-                  ) : (
-                    <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                      {user?.location || "No especificada"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Botones */}
-                {isOwnProfile && editing && (
-                  <div className="flex space-x-4 pt-4">
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="btn btn-primary flex items-center space-x-2"
-                    >
-                      {saving ? (
-                        <>
-                          <div className="spinner border-white border-t-transparent w-4 h-4"></div>
-                          <span>Guardando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Settings className="h-4 w-4" />
-                          <span>Guardar Cambios</span>
-                        </>
-                      )}
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      disabled={saving}
-                      className="btn btn-secondary"
-                    >
-                      Cancelar
-                    </button>
+                  <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                    {user?.location || "No especificada"}
                   </div>
-                )}
-              </form>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -454,23 +192,23 @@ export default function UserProfile() {
                 
                 <p className="text-gray-500 mb-2">@{user.username}</p>
                 
-                                 {user.location && (
-                   <div className="flex items-center justify-center text-gray-500 text-sm mb-4">
-                     <MapPin className="h-4 w-4 mr-1" />
-                     <span>{user.location}</span>
-                   </div>
-                 )}
-                 
-                 {/* Botón de chat para perfiles de otros usuarios */}
-                 {!isOwnProfile && (
-                   <button
-                     onClick={() => navigate(`/dashboard/messages/new?user=${user.user_id}`)}
-                     className="w-full btn btn-primary flex items-center justify-center space-x-2"
-                   >
-                     <MessageCircle className="h-4 w-4" />
-                     <span>Enviar Mensaje</span>
-                   </button>
-                 )}
+                {user.location && (
+                  <div className="flex items-center justify-center text-gray-500 text-sm mb-4">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    <span>{user.location}</span>
+                  </div>
+                )}
+                
+                {/* Botón de chat para perfiles de otros usuarios */}
+                {!isOwnProfile && (
+                  <button
+                    onClick={() => navigate(`/dashboard/messages/new?user=${user.user_id}`)}
+                    className="w-full btn btn-primary flex items-center justify-center space-x-2"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>Enviar Mensaje</span>
+                  </button>
+                )}
               </div>
             </div>
 
