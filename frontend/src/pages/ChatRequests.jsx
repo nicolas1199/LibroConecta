@@ -10,8 +10,8 @@ import ArrowLeft from "../components/icons/ArrowLeft";
 import MessageCircle from "../components/icons/MessageCircle";
 import CheckCircle from "../components/icons/CheckCircle";
 import X from "../components/icons/X";
-import Clock from "./icons/Clock";
-import Users from "./icons/Users";
+import Clock from "../components/icons/Clock";
+import Users from "../components/icons/Users";
 
 export default function ChatRequests() {
   const navigate = useNavigate();
