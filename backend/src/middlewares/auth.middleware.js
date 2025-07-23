@@ -2,13 +2,10 @@ import jwt from "jsonwebtoken";
 import { JWT } from "../config/configEnv.js";
 
 export const authenticateToken = (req, res, next) => {
-  console.log('🔐 AUTH MIDDLEWARE - URL:', req.url, 'METHOD:', req.method);
-  
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    console.log('🔐 AUTH MIDDLEWARE - No token provided');
     return res.status(401).json({
       error: "Token de acceso requerido",
       message: "Debe proporcionar un token de autenticación válido",
