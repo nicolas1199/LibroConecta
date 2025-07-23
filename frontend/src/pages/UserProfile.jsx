@@ -29,35 +29,51 @@ export default function UserProfile() {
         console.log("📦 Datos del localStorage:", currentUserData)
         
         if (currentUserData) {
-          const parsedCurrentUser = JSON.parse(currentUserData)
-          console.log("👤 Usuario actual parseado:", parsedCurrentUser)
-          setCurrentUser(parsedCurrentUser)
-          
-          // Determinar si es perfil propio o de otro usuario
-          const isOwn = !userId || userId === parsedCurrentUser.user_id.toString()
-          console.log("🔍 ¿Es perfil propio?", isOwn, "userId:", userId, "currentUserId:", parsedCurrentUser.user_id)
-          setIsOwnProfile(isOwn)
-          
-          let profileUser
-          if (isOwn) {
-            // Es el perfil propio
-            profileUser = parsedCurrentUser
-            console.log("✅ Usando perfil propio:", profileUser)
-          } else {
-            // Es perfil de otro usuario - cargar por API
-            console.log("🌐 Cargando perfil de otro usuario...")
-            const response = await getUserProfileById(userId)
-            profileUser = response.data
-            console.log("📥 Perfil cargado de API:", profileUser)
+          try {
+            const parsedCurrentUser = JSON.parse(currentUserData)
+            console.log("👤 Usuario actual parseado:", parsedCurrentUser)
+            
+            // Validar que el usuario tenga los datos mínimos necesarios
+            if (!parsedCurrentUser || !parsedCurrentUser.user_id) {
+              console.error("❌ Usuario inválido en localStorage")
+              setUser(null)
+              setLoading(false)
+              return
+            }
+            
+            setCurrentUser(parsedCurrentUser)
+            
+            // Determinar si es perfil propio o de otro usuario
+            const isOwn = !userId || userId === parsedCurrentUser.user_id.toString()
+            console.log("🔍 ¿Es perfil propio?", isOwn, "userId:", userId, "currentUserId:", parsedCurrentUser.user_id)
+            setIsOwnProfile(isOwn)
+            
+            let profileUser
+            if (isOwn) {
+              // Es el perfil propio
+              profileUser = parsedCurrentUser
+              console.log("✅ Usando perfil propio:", profileUser)
+            } else {
+              // Es perfil de otro usuario - cargar por API
+              console.log("🌐 Cargando perfil de otro usuario...")
+              const response = await getUserProfileById(userId)
+              profileUser = response.data
+              console.log("📥 Perfil cargado de API:", profileUser)
+            }
+            
+            setUser(profileUser)
+            console.log("✅ Usuario establecido en estado:", profileUser)
+          } catch (parseError) {
+            console.error("❌ Error parseando datos del usuario:", parseError)
+            setUser(null)
           }
-          
-          setUser(profileUser)
-          console.log("✅ Usuario establecido en estado:", profileUser)
         } else {
           console.error("❌ No hay datos de usuario en localStorage")
+          setUser(null)
         }
       } catch (error) {
         console.error("❌ Error loading user profile:", error)
+        setUser(null)
       } finally {
         setLoading(false)
         console.log("🏁 Carga completada")

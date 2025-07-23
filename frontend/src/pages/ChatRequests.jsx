@@ -221,40 +221,37 @@ export default function ChatRequests() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando solicitudes...</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando solicitudes...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8">
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver al Dashboard
-            </button>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al Dashboard
+          </button>
 
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Solicitudes de Chat
-              </h1>
-              <p className="text-gray-600">
-                Gestiona las solicitudes de chat que has enviado y recibido
-              </p>
-            </div>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Solicitudes de Chat
+            </h1>
+            <p className="text-gray-600">
+              Gestiona las solicitudes de chat que has enviado y recibido
+            </p>
           </div>
+        </div>
 
           {/* Error */}
           {error && (
@@ -331,6 +328,6 @@ export default function ChatRequests() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 } 
