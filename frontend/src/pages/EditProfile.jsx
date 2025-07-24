@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { getUserProfile, updateUserProfile, updateProfileImage } from "../api/auth"
 import { getLocations } from "../api/publishedBooks"
+import { useAuth } from "../hooks/useAuth"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
@@ -13,6 +14,7 @@ import ProfileImage from "../components/ProfileImage"
 
 export default function EditProfile() {
   const navigate = useNavigate()
+  const { updateUser } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [errors, setErrors] = useState({})
@@ -193,15 +195,24 @@ export default function EditProfile() {
       // Actualizar datos del perfil
       const profileResponse = await updateUserProfile(updateData)
       
-      // Si hay imagen nueva, subirla
+      // Si hay imagen nueva, subirla y obtener la respuesta actualizada
+      let imageResponse = null
       if (formData.profile_image) {
-        await updateProfileImage(formData.profile_image)
+        imageResponse = await updateProfileImage(formData.profile_image)
       }
       
       // Actualizar datos en localStorage con la respuesta del servidor
       const updatedUser = JSON.parse(localStorage.getItem("user") || "{}")
       Object.assign(updatedUser, profileResponse.data)
+      
+      // Si se subió una imagen, incluir los datos actualizados de la imagen
+      if (imageResponse && imageResponse.data) {
+        Object.assign(updatedUser, imageResponse.data)
+      }
+      
+      // Actualizar tanto localStorage como el estado del hook useAuth
       localStorage.setItem("user", JSON.stringify(updatedUser))
+      updateUser(updatedUser)
 
       setMessage("¡Perfil actualizado exitosamente!")
       
