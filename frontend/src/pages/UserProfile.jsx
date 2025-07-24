@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { getUserProfileById } from "../api/auth"
+import { getUserProfileById, getUserProfile } from "../api/auth"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Edit from "../components/icons/Edit"
 import MapPin from "../components/icons/MapPin"
@@ -51,9 +51,16 @@ export default function UserProfile() {
             
             let profileUser
             if (isOwn) {
-              // Es el perfil propio
-              profileUser = parsedCurrentUser
-              console.log("✅ Usando perfil propio:", profileUser)
+              // SIEMPRE obtener datos actualizados desde la API
+              try {
+                const response = await getUserProfile()
+                profileUser = response.data
+                // Actualizar localStorage y estado global si es necesario
+                localStorage.setItem("user", JSON.stringify(profileUser))
+              } catch (apiError) {
+                // Si la API falla, usar localStorage como fallback
+                profileUser = parsedCurrentUser
+              }
             } else {
               // Es perfil de otro usuario - cargar por API
               console.log("🌐 Cargando perfil de otro usuario...")

@@ -18,10 +18,11 @@ import { getPublishedBooks } from "../api/publishedBooks";
 import { getMatches, getSuggestedMatches } from "../api/matches";
 import { getConversations } from "../api/messages";
 import { getPendingRatings, getMyRatings } from "../api/ratings";
+import { getUserProfile } from "../api/auth";
 import { useAuth } from "../hooks/useAuth";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState("recientes");
   const [publishedBooks, setPublishedBooks] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -111,6 +112,22 @@ export default function Dashboard() {
     };
 
     loadData();
+  }, []);
+
+  useEffect(() => {
+    // Al montar, obtener SIEMPRE el usuario actualizado desde la API
+    const syncUser = async () => {
+      try {
+        const response = await getUserProfile();
+        if (response && response.data) {
+          localStorage.setItem("user", JSON.stringify(response.data));
+          if (updateUser) updateUser(response.data);
+        }
+      } catch (error) {
+        // Si la API falla, no hacer nada (se usará el user de localStorage)
+      }
+    };
+    syncUser();
   }, []);
 
   const tabs = [
