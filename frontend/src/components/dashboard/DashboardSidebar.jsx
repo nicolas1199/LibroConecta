@@ -17,6 +17,7 @@ import BarChart from "../icons/BarChart";
 import FileText from "../icons/FileText";
 import Calendar from "../icons/Calendar";
 import Clock from "../icons/Clock";
+import Bell from "../icons/Bell";
 import { getPendingChatRequestsCount } from "../../api/chatRequests";
 import ProfileImage from "../ProfileImage";
 import Search from "../icons/Search";
@@ -89,6 +90,12 @@ export default function DashboardSidebar({
         label: "Mensajes",
         path: "/dashboard/messages",
         count: 0,
+      },
+      {
+        icon: Bell,
+        label: "Solicitudes de Chat",
+        path: "/chat-requests",
+        count: pendingRequestsCount,
       },
     ],
     misLibros: [
@@ -297,22 +304,6 @@ export default function DashboardSidebar({
                     <div className="sidebar-nav-content">
                       <Settings className="h-4 w-4" />
                       <span>Configuración</span>
-                    </div>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/chat-requests"
-                    className={`sidebar-nav-item ${currentPath === "/chat-requests" ? "active" : ""}`}
-                  >
-                    <div className="sidebar-nav-content">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Solicitudes de Chat</span>
-                      {pendingRequestsCount > 0 && (
-                        <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                          {pendingRequestsCount > 99 ? "99+" : pendingRequestsCount}
-                        </span>
-                      )}
                     </div>
                   </Link>
                 </li>
