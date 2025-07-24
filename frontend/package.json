@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@mercadopago/sdk-js": "^0.0.3",
+    "@mercadopago/sdk-react": "^1.0.3",
     "@tanstack/react-query": "^5.83.0",
     "@tanstack/react-query-devtools": "^5.83.0",
     "axios": "^1.10.0",
