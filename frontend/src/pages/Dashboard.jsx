@@ -18,9 +18,10 @@ import { getPublishedBooks } from "../api/publishedBooks";
 import { getMatches, getSuggestedMatches } from "../api/matches";
 import { getConversations } from "../api/messages";
 import { getPendingRatings, getMyRatings } from "../api/ratings";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("recientes");
   const [publishedBooks, setPublishedBooks] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -31,12 +32,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
+
 
   useEffect(() => {
     const loadData = async () => {

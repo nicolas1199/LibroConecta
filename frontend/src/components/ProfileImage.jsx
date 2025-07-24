@@ -7,6 +7,14 @@ export default function ProfileImage({
   showBorder = false,
   onClick = null 
 }) {
+  // Debug temporal para verificar datos del usuario
+  console.log("🔍 ProfileImage recibió usuario:", {
+    user_id: user?.user_id,
+    first_name: user?.first_name,
+    last_name: user?.last_name,
+    has_profile_image: !!user?.profile_image_base64,
+    profile_image_length: user?.profile_image_base64?.length || 0
+  });
   const getInitials = () => {
     if (!user) return "U";
     const firstName = user.first_name || "";
