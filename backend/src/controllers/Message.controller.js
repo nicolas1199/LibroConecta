@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { User, Message, Match, sequelize } from "../db/modelIndex.js";
 import { createResponse } from "../utils/responses.util.js";
+import { io } from "../index.js";
 
 export const getMessages = async (req, res) => {
   try {
@@ -235,6 +236,10 @@ export const sendMessage = async (req, res) => {
         full_name: `${messageWithSender.Receiver?.first_name || ""} ${messageWithSender.Receiver?.last_name || ""}`.trim(),
       },
     };
+
+    // Emitir evento de nuevo mensaje por socket.io SOLO a los usuarios involucrados
+    io.to(`user_${formattedMessage.sender_id}`).emit("new_message", formattedMessage);
+    io.to(`user_${formattedMessage.receiver_id}`).emit("new_message", formattedMessage);
 
     return res.status(201).json(
       createResponse(

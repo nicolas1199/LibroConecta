@@ -11,6 +11,8 @@ import Star from "../components/icons/Star";
 import CheckCircle from "../components/icons/CheckCircle";
 import ProfileImage from "../components/ProfileImage";
 import { Link } from "react-router-dom";
+import socket from "../api/socket";
+import { useNotifications } from "../hooks/useNotifications";
 
 export default function EnhancedMessages() {
   const { matchId } = useParams();
@@ -27,6 +29,7 @@ export default function EnhancedMessages() {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const { refreshNotifications } = useNotifications();
 
   useEffect(() => {
     loadConversations();
@@ -42,6 +45,21 @@ export default function EnhancedMessages() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Unirse a la room de usuario al montar si está autenticado
+    if (currentUser && currentUser.user_id) {
+      socket.emit("join_user_room", currentUser.user_id);
+    }
+    // Escuchar evento de nuevo mensaje por socket.io
+    socket.on("new_message", (data) => {
+      refreshNotifications();
+      // Opcional: puedes actualizar el estado de mensajes aquí si quieres
+    });
+    return () => {
+      socket.off("new_message");
+    };
+  }, [currentUser?.user_id]);
 
   const loadConversations = async () => {
     try {
