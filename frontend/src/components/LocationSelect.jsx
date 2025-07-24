@@ -9,16 +9,22 @@ export default function LocationSelect({
   required = false,
   className = "",
 }) {
+  // Validar que locations sea un array válido
+  const validLocations = Array.isArray(locations) ? locations : [];
+  
   // Agrupar ubicaciones por región
   const groupedLocations = React.useMemo(() => {
-    return locations.reduce((acc, location) => {
-      if (!acc[location.region]) {
-        acc[location.region] = [];
+    return validLocations.reduce((acc, location) => {
+      // Validar que location tenga las propiedades necesarias
+      if (location && location.region && location.comuna && location.location_id) {
+        if (!acc[location.region]) {
+          acc[location.region] = [];
+        }
+        acc[location.region].push(location);
       }
-      acc[location.region].push(location);
       return acc;
     }, {});
-  }, [locations]);
+  }, [validLocations]);
 
   return (
     <div>

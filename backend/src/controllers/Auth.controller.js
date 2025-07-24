@@ -1,11 +1,9 @@
-import User from "../db/models/User.js";
-import UserType from "../db/models/UserType.js";
-import LocationBook from "../db/models/LocationBook.js";
 import { Op } from "sequelize";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { JWT } from "../config/configEnv.js";
+import bcrypt from "bcrypt";
+import { User, LocationBook, UserType } from "../db/modelIndex.js";
 import { generateTokens, verifyRefreshToken } from "../utils/jwt.util.js";
+import { createResponse } from "../utils/responses.util.js";
+import { convertImageToBase64 } from "../middlewares/profileImage.middleware.js";
 
 export const register = async (req, res) => {
   const { fullname, email, username, password } = req.body;
@@ -187,6 +185,13 @@ export const getUserProfile = async (req, res) => {
     const { user_id } = req.user;
 
     const user = await User.findByPk(user_id, {
+      include: [
+        {
+          model: LocationBook,
+          as: "userLocation",
+          attributes: ["location_id", "comuna", "region"],
+        },
+      ],
       attributes: [
         "user_id",
         "first_name",
@@ -195,13 +200,8 @@ export const getUserProfile = async (req, res) => {
         "username",
         "location_id",
         "user_type_id",
-      ],
-      include: [
-        {
-          model: LocationBook,
-          as: "userLocation",
-          attributes: ["location_id", "comuna", "region"],
-        },
+        "profile_image_base64",
+        "biography",
       ],
     });
 
@@ -220,6 +220,8 @@ export const getUserProfile = async (req, res) => {
         location_id: user.get("location_id"),
         location: user.userLocation,
         user_type_id: user.get("user_type_id"),
+        profile_image_base64: user.get("profile_image_base64"),
+        biography: user.get("biography"),
       },
     });
   } catch (error) {
@@ -234,7 +236,7 @@ export const getUserProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const { user_id } = req.user;
-    const { first_name, last_name, email, username, location_id } = req.body;
+    const { first_name, last_name, email, username, location_id, biography } = req.body;
 
     // Validar datos obligatorios
     if (!first_name || !last_name || !email || !username) {
@@ -286,6 +288,7 @@ export const updateUserProfile = async (req, res) => {
       email,
       username,
       location_id: location_id || null,
+      biography: biography || null,
     });
 
     // Obtener el usuario actualizado con la información de ubicación
@@ -309,6 +312,8 @@ export const updateUserProfile = async (req, res) => {
       location_id: updatedUser.get("location_id"),
       location: updatedUser.userLocation,
       user_type_id: updatedUser.get("user_type_id"),
+      profile_image_base64: updatedUser.get("profile_image_base64"),
+      biography: updatedUser.get("biography"),
     };
 
     return res.status(200).json({
@@ -320,6 +325,69 @@ export const updateUserProfile = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Error interno del servidor", error: error.message });
+  }
+};
+
+// Actualizar imagen de perfil del usuario
+export const updateProfileImage = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+
+    // Verificar si se subió una imagen
+    if (!req.file) {
+      return res.status(400).json(
+        createResponse(400, "No se ha subido ninguna imagen", null, null)
+      );
+    }
+
+    // Verificar que el usuario existe
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      return res.status(404).json(
+        createResponse(404, "Usuario no encontrado", null, null)
+      );
+    }
+
+    // Convertir imagen a base64
+    const base64Image = convertImageToBase64(req.file.buffer, req.file.mimetype);
+
+    // Actualizar la imagen en base64
+    await user.update({
+      profile_image_base64: base64Image
+    });
+
+    // Obtener el usuario actualizado
+    const updatedUser = await User.findByPk(user_id, {
+      include: [
+        {
+          model: LocationBook,
+          as: "userLocation",
+          attributes: ["location_id", "comuna", "region"],
+        },
+      ],
+    });
+
+    const userResponse = {
+      user_id: updatedUser.get("user_id"),
+      first_name: updatedUser.get("first_name"),
+      last_name: updatedUser.get("last_name"),
+      email: updatedUser.get("email"),
+      username: updatedUser.get("username"),
+      location_id: updatedUser.get("location_id"),
+      location: updatedUser.userLocation,
+      user_type_id: updatedUser.get("user_type_id"),
+      profile_image_base64: updatedUser.get("profile_image_base64"),
+      biography: updatedUser.get("biography"),
+    };
+
+    return res.status(200).json(
+      createResponse(200, "Imagen de perfil actualizada exitosamente", userResponse, null)
+    );
+  } catch (error) {
+    console.error("Error al actualizar imagen de perfil:", error);
+    return res.status(500).json(
+      createResponse(500, "Error interno del servidor", null, error.message)
+    );
   }
 };
 

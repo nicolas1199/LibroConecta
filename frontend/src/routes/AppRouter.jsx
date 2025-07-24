@@ -34,6 +34,7 @@ import PaymentFailure from "../pages/PaymentFailure";
 import PaymentPending from "../pages/PaymentPending";
 import PaymentProcessing from "../pages/PaymentProcessing";
 import PaymentDebug from "../pages/PaymentDebug";
+import ChatRequests from "../pages/ChatRequests";
 
 export default function AppRouter() {
   return (
@@ -283,7 +284,9 @@ export default function AppRouter() {
           path="/profile"
           element={
             <PrivateRoute>
-              <UserProfile />
+              <DashboardLayout>
+                <UserProfile />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -293,7 +296,9 @@ export default function AppRouter() {
           path="/edit-profile"
           element={
             <PrivateRoute>
-              <EditProfile />
+              <DashboardLayout>
+                <EditProfile />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -303,7 +308,9 @@ export default function AppRouter() {
           path="/my-publications"
           element={
             <PrivateRoute>
-              <MyPublications />
+              <DashboardLayout>
+                <MyPublications />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -313,7 +320,9 @@ export default function AppRouter() {
           path="/edit-publication/:id"
           element={
             <PrivateRoute>
-              <EditPublication />
+              <DashboardLayout>
+                <EditPublication />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -323,7 +332,9 @@ export default function AppRouter() {
           path="/profile/:userId"
           element={
             <PrivateRoute>
-              <UserProfile />
+              <DashboardLayout>
+                <UserProfile />
+              </DashboardLayout>
             </PrivateRoute>
           }
         />
@@ -334,6 +345,18 @@ export default function AppRouter() {
         <Route path="/payment/pending" element={<PaymentPending />} />
         <Route path="/payment/processing" element={<PaymentProcessing />} />
         <Route path="/payment/debug" element={<PaymentDebug />} />
+
+        {/* Chat requests route */}
+        <Route
+          path="/chat-requests"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <ChatRequests />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   );
