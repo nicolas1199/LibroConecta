@@ -1,7 +1,5 @@
 import "./config/configEnv.js";
 import express from "express";
-import http from "http";
-import { Server as SocketIOServer } from "socket.io";
 
 console.log('🚀 SERVIDOR INICIANDO...');
 console.log('🚀 PUERTO:', process.env.PORT);
@@ -36,8 +34,6 @@ import UserLibraryRoutes from "./routes/UserLibrary.routes.js";
 import UserBookRoutes from "./routes/UserBook.routes.js";
 import PaymentRoutes from "./routes/Payment.routes.js";
 import ChatRequestRoutes from "./routes/ChatRequest.routes.js";
-
-let io; // Instancia global de Socket.io
 
 async function setupServer() {
   const app = express();
@@ -91,32 +87,10 @@ async function setupServer() {
   // Error handler middleware (debe ir después de todas las rutas)
   app.use(errorHandler);
 
-  // Cambiar app.listen por http.createServer
-  const server = http.createServer(app);
-  io = new SocketIOServer(server, {
-    cors: { origin: "*" },
-  });
-
-  io.on("connection", (socket) => {
-    console.log("Usuario conectado:", socket.id);
-    // Esperar a que el frontend envíe su user_id para unirse a una room
-    socket.on("join_user_room", (userId) => {
-      if (userId) {
-        socket.join(`user_${userId}`);
-        console.log(`Socket ${socket.id} unido a room user_${userId}`);
-      }
-    });
-    socket.on("disconnect", () => {
-      console.log("Usuario desconectado:", socket.id);
-    });
-  });
-
-  server.listen(PORT, () => {
+  app.listen(PORT, () => {
     console.log(`=> Servidor corriendo en puerto ${PORT}`);
   });
 }
-
-export { io };
 
 async function setupAPI() {
   try {
