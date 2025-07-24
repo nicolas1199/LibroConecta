@@ -342,6 +342,13 @@ export const updateProfileImage = async (req, res) => {
 
     console.log(`📸 Procesando imagen de perfil para usuario ${user_id}: ${req.file.originalname} (${req.file.size} bytes)`);
 
+    // Validar tamaño de la imagen (igual que PublishedBooks)
+    if (req.file.size > 8 * 1024 * 1024) { // 8MB
+      return res.status(400).json(
+        createResponse(400, "La imagen es demasiado grande. Máximo 8MB.", null, null)
+      );
+    }
+
     // Verificar que el usuario existe
     const user = await User.findByPk(user_id);
     if (!user) {

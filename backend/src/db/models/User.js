@@ -50,8 +50,9 @@ const User = sequelize.define(
       allowNull: true,
     },
     profile_image_base64: {
-      type: DataTypes.TEXT,
+      type: DataTypes.TEXT('long'),
       allowNull: true,
+      comment: "Imagen de perfil codificada en base64 (LONGTEXT para imágenes grandes)",
     },
     biography: {
       type: DataTypes.TEXT,
