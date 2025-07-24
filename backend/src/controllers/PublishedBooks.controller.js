@@ -45,7 +45,7 @@ export async function getAllPublishedBooks(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "location_id"],
+          attributes: ["user_id", "first_name", "last_name", "location_id", "profile_image_base64"],
           include: [
             {
               model: LocationBook,
@@ -109,7 +109,7 @@ export async function getPublishedBookById(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "location_id"],
+          attributes: ["user_id", "first_name", "last_name", "location_id", "profile_image_base64"],
           include: [
             {
               model: LocationBook,

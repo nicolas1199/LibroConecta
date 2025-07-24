@@ -26,12 +26,12 @@ export const getMatches = async (req, res) => {
         {
           model: User,
           as: "User1",
-          attributes: ["user_id", "first_name", "last_name", "email"],
+          attributes: ["user_id", "first_name", "last_name", "email", "profile_image_base64"],
         },
         {
           model: User,
           as: "User2",
-          attributes: ["user_id", "first_name", "last_name", "email"],
+          attributes: ["user_id", "first_name", "last_name", "email", "profile_image_base64"],
         },
       ],
       limit: parseInt(limit),
@@ -163,7 +163,7 @@ export const getSuggestedMatches = async (req, res) => {
           ],
         },
       ],
-      attributes: ["user_id", "first_name", "last_name", "email"],
+      attributes: ["user_id", "first_name", "last_name", "email", "profile_image_base64"],
     });
 
     // Calcular compatibilidad
@@ -199,6 +199,7 @@ export const getSuggestedMatches = async (req, res) => {
           first_name: user.get("first_name"),
           last_name: user.get("last_name"),
           email: user.get("email"),
+          profile_image_base64: user.get("profile_image_base64"),
         },
         score,
         commonCategories,

@@ -6,6 +6,7 @@ import MessageCircle from "./icons/MessageCircle"
 import Star from "./icons/Star"
 import BookOpen from "./icons/BookOpen"
 import Heart from "./icons/Heart"
+import ProfileImage from "./ProfileImage"
 
 export default function MatchCard({ match }) {
   const navigate = useNavigate()
@@ -60,9 +61,7 @@ export default function MatchCard({ match }) {
       <div className="relative p-6 bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="flex items-center justify-between mb-4">
           {/* Avatar */}
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
-            {getInitials()}
-          </div>
+          <ProfileImage user={match} size="lg" />
 
           {/* Score de compatibilidad */}
           <div className="text-center">

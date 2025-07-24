@@ -8,6 +8,7 @@ import MessageCircle from "./icons/MessageCircle";
 import Star from "./icons/Star";
 import PaymentButton from './PaymentButton';
 import ChatRequestModal from './ChatRequestModal';
+import ProfileImage from './ProfileImage';
 import { getMatches } from '../api/matches';
 
 export default function BookCard({ book }) {
@@ -224,9 +225,7 @@ export default function BookCard({ book }) {
           {/* Usuario y calificación */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                {user?.first_name?.charAt(0) || "U"}
-              </div>
+              <ProfileImage user={user} size="sm" />
               <span className="text-sm font-medium text-gray-900">
                 {user?.first_name} {user?.last_name?.charAt(0)}.
               </span>

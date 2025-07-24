@@ -34,12 +34,12 @@ export const getMessages = async (req, res) => {
         {
           model: User,
           as: "Sender",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "profile_image_base64"],
         },
         {
           model: User,
           as: "Receiver",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "profile_image_base64"],
         },
       ],
       order: [["sent_at", "ASC"]],
@@ -78,12 +78,14 @@ export const getMessages = async (req, res) => {
         user_id: msg.Sender?.user_id,
         first_name: msg.Sender?.first_name,
         last_name: msg.Sender?.last_name,
+        profile_image_base64: msg.Sender?.profile_image_base64,
         full_name: `${msg.Sender?.first_name || ""} ${msg.Sender?.last_name || ""}`.trim(),
       },
       receiver: {
         user_id: msg.Receiver?.user_id,
         first_name: msg.Receiver?.first_name,
         last_name: msg.Receiver?.last_name,
+        profile_image_base64: msg.Receiver?.profile_image_base64,
         full_name: `${msg.Receiver?.first_name || ""} ${msg.Receiver?.last_name || ""}`.trim(),
       },
     }));
@@ -318,12 +320,12 @@ export const getConversations = async (req, res) => {
         {
           model: User,
           as: "User1",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "profile_image_base64"],
         },
         {
           model: User,
           as: "User2",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "profile_image_base64"],
         },
       ],
       order: [["date_match", "DESC"]],
