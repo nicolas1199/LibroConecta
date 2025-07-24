@@ -340,6 +340,8 @@ export const updateProfileImage = async (req, res) => {
       );
     }
 
+    console.log(`📸 Procesando imagen de perfil para usuario ${user_id}: ${req.file.originalname} (${req.file.size} bytes)`);
+
     // Verificar que el usuario existe
     const user = await User.findByPk(user_id);
     if (!user) {
@@ -350,11 +352,14 @@ export const updateProfileImage = async (req, res) => {
 
     // Convertir imagen a base64
     const base64Image = convertImageToBase64(req.file.buffer, req.file.mimetype);
+    console.log(`✅ Imagen convertida a base64 (${base64Image.length} caracteres)`);
 
     // Actualizar la imagen en base64
     await user.update({
       profile_image_base64: base64Image
     });
+
+    console.log(`💾 Imagen de perfil guardada en base de datos`);
 
     // Obtener el usuario actualizado
     const updatedUser = await User.findByPk(user_id, {
@@ -380,11 +385,13 @@ export const updateProfileImage = async (req, res) => {
       biography: updatedUser.get("biography"),
     };
 
+    console.log(`🎉 Imagen de perfil actualizada exitosamente para usuario ${user_id}`);
+
     return res.status(200).json(
       createResponse(200, "Imagen de perfil actualizada exitosamente", userResponse, null)
     );
   } catch (error) {
-    console.error("Error al actualizar imagen de perfil:", error);
+    console.error("Error al actualizar imagen de perfil:", error.message);
     return res.status(500).json(
       createResponse(500, "Error interno del servidor", null, error.message)
     );

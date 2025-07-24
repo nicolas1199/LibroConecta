@@ -13,6 +13,7 @@ import jsonParserMiddleware from "./middlewares/jsonParser.middleware.js";
 import cookieParserMiddleware from "./middlewares/cookieParser.middleware.js";
 import sessionMiddleware from "./middlewares/session.middleware.js";
 import morganMiddleware from "./middlewares/morgan.middleware.js";
+import errorHandler from "./middlewares/errorhandler.middleware.js";
 
 import { PORT } from "./config/configEnv.js";
 import { connectDB, syncDB } from "./config/configDb.js";
@@ -82,6 +83,9 @@ async function setupServer() {
   app.use("/api/user-books", UserBookRoutes);
   app.use("/api/payments", PaymentRoutes);
   app.use("/api/chat-requests", ChatRequestRoutes);
+
+  // Error handler middleware (debe ir después de todas las rutas)
+  app.use(errorHandler);
 
   app.listen(PORT, () => {
     console.log(`=> Servidor corriendo en puerto ${PORT}`);

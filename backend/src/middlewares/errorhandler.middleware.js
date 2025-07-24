@@ -1,7 +1,14 @@
 import { error } from "../utils/responses.util.js";
 
 export default function errorHandler(err, req, res, next) {
-  console.error("Error capturado por middleware:", err);
+  // Log error details without sensitive data
+  console.error("Error capturado por middleware:", {
+    name: err.name,
+    message: err.message,
+    stack: err.stack?.split('\n')[0], // Only first line of stack trace
+    code: err.code,
+    status: err.status
+  });
 
   // Aquí podrías personalizar mensajes para ciertos tipos de error
   if (err.name === "SequelizeValidationError") {
