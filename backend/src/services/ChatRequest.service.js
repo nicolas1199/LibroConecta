@@ -117,7 +117,7 @@ export async function getReceivedChatRequestsService(userId, options = {}) {
         {
           model: User,
           as: "Requester",
-          attributes: ["user_id", "first_name", "last_name", "username"]
+          attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"]
         },
         {
           model: PublishedBooks,
@@ -158,7 +158,7 @@ export async function getSentChatRequestsService(userId, options = {}) {
         {
           model: User,
           as: "Receiver",
-          attributes: ["user_id", "first_name", "last_name", "username"]
+          attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"]
         },
         {
           model: PublishedBooks,

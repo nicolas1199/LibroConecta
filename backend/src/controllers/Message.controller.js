@@ -371,6 +371,7 @@ export const getConversations = async (req, res) => {
             user_id: otherUser.user_id,
             first_name: otherUser.first_name,
             last_name: otherUser.last_name,
+            profile_image_base64: otherUser.profile_image_base64,
             full_name: `${otherUser.first_name} ${otherUser.last_name}`.trim(),
           },
           last_message: lastMessage
@@ -379,15 +380,18 @@ export const getConversations = async (req, res) => {
                 message_text: lastMessage.message_text,
                 message_type: lastMessage.message_type || "text",
                 sent_at: lastMessage.sent_at,
+                is_from_me: lastMessage.sender_id === user_id,
                 sender: {
                   user_id: lastMessage.Sender?.user_id,
                   first_name: lastMessage.Sender?.first_name,
                   last_name: lastMessage.Sender?.last_name,
+                  profile_image_base64: lastMessage.Sender?.profile_image_base64,
                   full_name: `${lastMessage.Sender?.first_name || ""} ${lastMessage.Sender?.last_name || ""}`.trim(),
                 },
               }
             : null,
           unread_count: unreadCount,
+          has_notifications: unreadCount > 0,
         };
       })
     );

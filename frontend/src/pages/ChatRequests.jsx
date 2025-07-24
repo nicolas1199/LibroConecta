@@ -11,6 +11,7 @@ import CheckCircle from "../components/icons/CheckCircle";
 import X from "../components/icons/X";
 import Clock from "../components/icons/Clock";
 import Users from "../components/icons/Users";
+import ProfileImage from "../components/ProfileImage";
 
 export default function ChatRequests() {
   const navigate = useNavigate();
@@ -93,9 +94,7 @@ export default function ChatRequests() {
     <div key={request.request_id} className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-            {request.Requester?.first_name?.charAt(0) || "U"}
-          </div>
+          <ProfileImage user={request.Requester} size="lg" />
           <div>
             <h3 className="font-semibold text-gray-900">
               {request.Requester?.first_name} {request.Requester?.last_name}
@@ -171,9 +170,7 @@ export default function ChatRequests() {
     <div key={request.request_id} className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-            {request.Receiver?.first_name?.charAt(0) || "U"}
-          </div>
+          <ProfileImage user={request.Receiver} size="lg" />
           <div>
             <h3 className="font-semibold text-gray-900">
               {request.Receiver?.first_name} {request.Receiver?.last_name}

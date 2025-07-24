@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createChatRequest } from "../api/chatRequests";
 import X from "./icons/X";
 import MessageCircle from "./icons/MessageCircle";
+import ProfileImage from "./ProfileImage";
 
 export default function ChatRequestModal({ 
   isOpen, 
@@ -115,15 +116,13 @@ export default function ChatRequestModal({
               Enviar solicitud a
             </h3>
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {receiverUser?.first_name?.charAt(0) || "U"}
-              </div>
+              <ProfileImage user={receiverUser} size="md" />
               <div>
                 <p className="font-medium text-blue-900">
                   {receiverUser?.first_name} {receiverUser?.last_name}
                 </p>
                 <p className="text-sm text-blue-700">
-                  @{receiverUser?.username}
+                  {receiverUser?.username ? `@${receiverUser.username}` : "Usuario"}
                 </p>
               </div>
             </div>

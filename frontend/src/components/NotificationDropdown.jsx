@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from "react";
+import { useNotifications } from "../hooks/useNotifications";
 import Clock from "./icons/Clock";
 import X from "./icons/X";
 import Star from "./icons/Star";
 import MessageCircle from "./icons/MessageCircle";
 import Heart from "./icons/Heart";
 import ArrowLeftRight from "./icons/ArrowLeftRight";
+import Users from "./icons/Users";
 
 export default function NotificationDropdown({ isOpen, onClose }) {
+  const { notifications: notificationCounts, loading } = useNotifications();
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -35,49 +38,46 @@ export default function NotificationDropdown({ isOpen, onClose }) {
 
   const fetchNotifications = async () => {
     try {
-      setLoading(true);
-      // TODO: Implementar API call para obtener notificaciones
-      // const response = await api.get('/api/notifications');
-      // setNotifications(response.data);
+      setLoadingNotifications(true);
       
-      // Datos de ejemplo mientras se implementa la API
-      const mockNotifications = [
-        {
-          id: 1,
-          type: "match",
-          title: "Nuevo match disponible",
-          message: "Tienes un nuevo match con Juan para el libro 'Cien años de soledad'",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
+      // Crear notificaciones basadas en los conteos reales
+      const realNotifications = [];
+      
+      // Notificación de solicitudes de chat pendientes
+      if (notificationCounts.chatRequests > 0) {
+        realNotifications.push({
+          id: 'chat-requests',
+          type: "chat_request",
+          title: "Solicitudes de chat pendientes",
+          message: `Tienes ${notificationCounts.chatRequests} solicitud${notificationCounts.chatRequests > 1 ? 'es' : ''} de chat pendiente${notificationCounts.chatRequests > 1 ? 's' : ''}`,
+          timestamp: new Date().toISOString(),
           read: false,
-          icon: ArrowLeftRight,
-          color: "blue"
-        },
-        {
-          id: 2,
+          icon: Users,
+          color: "purple",
+          count: notificationCounts.chatRequests
+        });
+      }
+      
+      // Notificación de mensajes no leídos
+      if (notificationCounts.unreadMessages > 0) {
+        realNotifications.push({
+          id: 'unread-messages',
           type: "message",
-          title: "Nuevo mensaje",
-          message: "María te envió un mensaje sobre el intercambio",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+          title: "Mensajes no leídos",
+          message: `Tienes ${notificationCounts.unreadMessages} mensaje${notificationCounts.unreadMessages > 1 ? 's' : ''} sin leer`,
+          timestamp: new Date().toISOString(),
           read: false,
           icon: MessageCircle,
-          color: "green"
-        },
-        {
-          id: 3,
-          type: "like",
-          title: "Libro marcado como favorito",
-          message: "A Carlos le gustó tu libro 'El principito'",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-          read: true,
-          icon: Heart,
-          color: "red"
-        }
-      ];
-      setNotifications(mockNotifications);
+          color: "blue",
+          count: notificationCounts.unreadMessages
+        });
+      }
+      
+      setNotifications(realNotifications);
     } catch (error) {
       console.error("Error al cargar notificaciones:", error);
     } finally {
-      setLoading(false);
+      setLoadingNotifications(false);
     }
   };
 
@@ -166,7 +166,7 @@ export default function NotificationDropdown({ isOpen, onClose }) {
 
       {/* Content */}
       <div className="max-h-96 overflow-y-auto">
-        {loading ? (
+        {loadingNotifications ? (
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
@@ -208,6 +208,11 @@ export default function NotificationDropdown({ isOpen, onClose }) {
                       <p className={`text-sm mt-1 ${!notification.read ? 'text-gray-700' : 'text-gray-500'}`}>
                         {notification.message}
                       </p>
+                      {notification.count && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mt-2">
+                          {notification.count}
+                        </span>
+                      )}
                       {!notification.read && (
                         <button
                           onClick={() => markAsRead(notification.id)}

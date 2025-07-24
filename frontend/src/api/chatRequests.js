@@ -38,6 +38,16 @@ export const getSentChatRequests = async (limit = 20, offset = 0) => {
   }
 };
 
+// Obtener conteo de solicitudes pendientes
+export const getPendingChatRequestsCount = async () => {
+  try {
+    const response = await api.get("/chat-requests/pending-count");
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 // Responder a una solicitud de chat
 export const respondToChatRequest = async (requestId, response) => {
   try {

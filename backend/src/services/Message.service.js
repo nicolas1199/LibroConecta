@@ -143,8 +143,10 @@ export async function getConversationsService(userId, options = {}) {
         m.date_match,
         u1.first_name AS user1_first_name,
         u1.last_name AS user1_last_name,
+        u1.profile_image_base64 AS user1_profile_image,
         u2.first_name AS user2_first_name,
         u2.last_name AS user2_last_name,
+        u2.profile_image_base64 AS user2_profile_image,
         last_msg.message_text AS last_message,
         last_msg.sent_at AS last_message_date,
         last_msg.sender_id AS last_message_sender_id,
@@ -189,11 +191,13 @@ export async function getConversationsService(userId, options = {}) {
               user_id: conv.user_id_2,
               first_name: conv.user2_first_name,
               last_name: conv.user2_last_name,
+              profile_image_base64: conv.user2_profile_image,
             }
           : {
               user_id: conv.user_id_1,
               first_name: conv.user1_first_name,
               last_name: conv.user1_last_name,
+              profile_image_base64: conv.user1_profile_image,
             };
 
       return {

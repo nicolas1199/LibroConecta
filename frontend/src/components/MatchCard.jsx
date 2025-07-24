@@ -8,7 +8,7 @@ import BookOpen from "./icons/BookOpen"
 import Heart from "./icons/Heart"
 import ProfileImage from "./ProfileImage"
 
-export default function MatchCard({ match }) {
+export default function MatchCard({ match, matchData }) {
   const navigate = useNavigate()
   const [imageError, setImageError] = useState(false)
 
@@ -20,7 +20,8 @@ export default function MatchCard({ match }) {
     email,
     score,
     commonCategories = 0,
-    booksCount = 0
+    booksCount = 0,
+    date_match
   } = match
 
   // Función para obtener las iniciales del usuario
@@ -77,13 +78,22 @@ export default function MatchCard({ match }) {
           {first_name} {last_name}
         </h3>
         
+        {/* Fecha del match */}
+        {date_match && (
+          <p className="text-xs text-gray-500 mb-2">
+            Match desde {new Date(date_match).toLocaleDateString()}
+          </p>
+        )}
+        
         {/* Calificación de compatibilidad */}
-        <div className="flex items-center space-x-1 mb-2">
-          {renderCompatibilityStars()}
-          <span className="text-sm text-gray-500 ml-2">
-            ({Math.round((score || 0) / 20)}/5)
-          </span>
-        </div>
+        {score && (
+          <div className="flex items-center space-x-1 mb-2">
+            {renderCompatibilityStars()}
+            <span className="text-sm text-gray-500 ml-2">
+              ({Math.round((score || 0) / 20)}/5)
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Contenido */}

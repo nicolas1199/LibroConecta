@@ -45,7 +45,7 @@ export async function getAllPublishedBooks(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "location_id", "profile_image_base64"],
+          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
           include: [
             {
               model: LocationBook,
@@ -109,7 +109,7 @@ export async function getPublishedBookById(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "location_id", "profile_image_base64"],
+          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
           include: [
             {
               model: LocationBook,
@@ -472,7 +472,7 @@ export async function getRecommendations(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "email"],
+          attributes: ["user_id", "first_name", "last_name", "username", "email"],
         },
         {
           model: TransactionType,
@@ -640,7 +640,7 @@ export async function getUserSwipeHistory(req, res) {
             },
             {
               model: User,
-              attributes: ["user_id", "first_name", "last_name", "email"],
+              attributes: ["user_id", "first_name", "last_name", "username", "email"],
             },
             {
               model: TransactionType,

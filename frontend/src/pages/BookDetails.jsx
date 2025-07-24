@@ -8,6 +8,7 @@ import Star from "../components/icons/Star"
 import MessageCircle from "../components/icons/MessageCircle"
 import BookOpen from "../components/icons/BookOpen"
 import PaymentButton from "../components/PaymentButton"
+import ProfileImage from "../components/ProfileImage"
 import DashboardLayout from "../layouts/DashboardLayout"
 
 export default function BookDetails() {
@@ -247,10 +248,8 @@ export default function BookDetails() {
             <div className="bg-white p-4 rounded-lg border shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">Propietario</h3>
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {user?.first_name?.charAt(0) || "U"}
-                  </div>
+                              <div className="flex items-center space-x-3">
+                <ProfileImage user={user} size="lg" />
                   <div>
                     <p className="font-medium text-gray-900">
                       {user?.first_name} {user?.last_name}

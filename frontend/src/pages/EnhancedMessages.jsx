@@ -291,17 +291,25 @@ export default function EnhancedMessages() {
                     </p>
                     <div className="flex items-center space-x-2">
                       {conversation.unread_count > 0 && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                           {conversation.unread_count}
                         </span>
                       )}
                       <span className="text-xs text-gray-500">
-                        {conversation.last_message?.date && formatDate(conversation.last_message.date)}
+                        {conversation.last_message?.sent_at && formatDate(conversation.last_message.sent_at)}
                       </span>
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 truncate">
-                    {conversation.last_message?.text || "No hay mensajes aún"}
+                    {conversation.last_message ? (
+                      conversation.last_message.is_from_me ? (
+                        <span className="text-gray-500">Tú: {conversation.last_message.message_text}</span>
+                      ) : (
+                        conversation.last_message.message_text
+                      )
+                    ) : (
+                      "No hay mensajes aún"
+                    )}
                   </p>
                 </div>
               </div>

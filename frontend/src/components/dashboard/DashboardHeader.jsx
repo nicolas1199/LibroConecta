@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { useNotifications } from "../../hooks/useNotifications";
 import BookOpen from "../icons/BookOpen";
 import Search from "../icons/Search";
 import Bell from "../icons/Bell";
@@ -9,6 +10,7 @@ import NotificationDropdown from "../NotificationDropdown";
 
 export default function DashboardHeader({ user, onToggleSidebar }) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const { notifications } = useNotifications();
 
   return (
     <header className="dashboard-header">
@@ -63,7 +65,9 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
               className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
             >
               <Bell className="h-5 w-5" />
-              <span className="notification-badge">2</span>
+              {notifications.total > 0 && (
+                <span className="notification-badge">{notifications.total}</span>
+              )}
             </button>
 
             <NotificationDropdown
