@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { User, LocationBook, UserType } from "../db/modelIndex.js";
 import { generateTokens, verifyRefreshToken } from "../utils/jwt.util.js";
 import { createResponse } from "../utils/responses.util.js";
