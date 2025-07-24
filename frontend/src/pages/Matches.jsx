@@ -6,6 +6,7 @@ import Heart from "../components/icons/Heart";
 import X from "../components/icons/X";
 import MessageCircle from "../components/icons/MessageCircle";
 import Star from "../components/icons/Star";
+import ProfileImage from "../components/ProfileImage";
 import { Link } from "react-router-dom";
 
 export default function Matches() {
@@ -80,9 +81,7 @@ export default function Matches() {
       <div className="card p-6 hover:shadow-lg transition-shadow">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Users className="h-6 w-6 text-blue-600" />
-            </div>
+            <ProfileImage user={user} size="lg" />
             <div>
               <h3 className="font-semibold text-gray-900">
                 {user.first_name} {user.last_name}
