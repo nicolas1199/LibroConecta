@@ -46,31 +46,45 @@ export default function Explore() {
     loadReferenceData()
   }, [])
 
-  // Función para cargar libros con debounce
+  // Función para cargar libros
   const loadPublishedBooks = useCallback(async (searchFilters) => {
     try {
-      setSearchLoading(true)
       setError(null)
 
-      // Limpiar parámetros vacíos antes de enviar
-      const cleanFilters = Object.entries(searchFilters).reduce((acc, [key, value]) => {
-        if (value && value.toString().trim() !== "") {
-          acc[key] = value.toString().trim()
-        }
-        return acc
-      }, {})
+      // Si hay búsqueda activa, mostrar loading específico
+      if (searchFilters.search) {
+        setSearchLoading(true)
+      }
 
-      console.log("Enviando filtros:", cleanFilters)
-
-      const response = await getPublishedBooks({
+      // Preparar parámetros para la API
+      const params = {
         limit: 20,
-        ...cleanFilters,
-      })
+      }
+
+      // Agregar filtros solo si tienen valor
+      if (searchFilters.search && searchFilters.search.trim()) {
+        params.search = searchFilters.search.trim()
+      }
+      if (searchFilters.transaction_type_id) {
+        params.transaction_type_id = searchFilters.transaction_type_id
+      }
+      if (searchFilters.condition_id) {
+        params.condition_id = searchFilters.condition_id
+      }
+      if (searchFilters.location_id) {
+        params.location_id = searchFilters.location_id
+      }
+
+      console.log("Parámetros enviados a la API:", params)
+
+      const response = await getPublishedBooks(params)
+
+      console.log("Respuesta de la API:", response)
 
       setPublishedBooks(response.publishedBooks || [])
     } catch (error) {
       console.error("Error loading published books:", error)
-      setError("Error al cargar los libros")
+      setError("Error al cargar los libros. Por favor, intenta de nuevo.")
       setPublishedBooks([])
     } finally {
       setSearchLoading(false)
@@ -78,14 +92,14 @@ export default function Explore() {
     }
   }, [])
 
-  // Debounce para la búsqueda
+  // Efecto para cargar libros con debounce
   useEffect(() => {
     const timeoutId = setTimeout(
       () => {
         loadPublishedBooks(filters)
       },
-      filters.search ? 500 : 0,
-    ) // 500ms delay solo para búsquedas de texto
+      filters.search ? 500 : 100,
+    ) // Debounce más corto para filtros normales
 
     return () => clearTimeout(timeoutId)
   }, [filters, loadPublishedBooks])
@@ -99,10 +113,7 @@ export default function Explore() {
 
   const handleSearchChange = (e) => {
     const value = e.target.value
-    setFilters((prev) => ({
-      ...prev,
-      search: value,
-    }))
+    handleFilterChange("search", value)
   }
 
   const clearFilters = () => {
@@ -115,10 +126,11 @@ export default function Explore() {
   }
 
   const clearSearch = () => {
-    setFilters((prev) => ({
-      ...prev,
-      search: "",
-    }))
+    handleFilterChange("search", "")
+  }
+
+  const removeFilter = (filterKey) => {
+    handleFilterChange(filterKey, "")
   }
 
   return (
@@ -157,7 +169,7 @@ export default function Explore() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por título, autor, año, editorial..."
+              placeholder="Buscar por título, autor..."
               value={filters.search}
               onChange={handleSearchChange}
               className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -175,7 +187,7 @@ export default function Explore() {
               </button>
             )}
             {/* Loading indicator for search */}
-            {searchLoading && filters.search && (
+            {searchLoading && (
               <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
               </div>
@@ -280,7 +292,7 @@ export default function Explore() {
                       ?.description
                   }
                   <button
-                    onClick={() => handleFilterChange("transaction_type_id", "")}
+                    onClick={() => removeFilter("transaction_type_id")}
                     className="ml-2 text-green-600 hover:text-green-800"
                   >
                     ×
@@ -292,7 +304,7 @@ export default function Explore() {
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                   {bookConditions.find((c) => c.condition_id.toString() === filters.condition_id)?.condition}
                   <button
-                    onClick={() => handleFilterChange("condition_id", "")}
+                    onClick={() => removeFilter("condition_id")}
                     className="ml-2 text-yellow-600 hover:text-yellow-800"
                   >
                     ×
@@ -304,7 +316,7 @@ export default function Explore() {
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                   {locations.find((l) => l.location_id.toString() === filters.location_id)?.comuna}
                   <button
-                    onClick={() => handleFilterChange("location_id", "")}
+                    onClick={() => removeFilter("location_id")}
                     className="ml-2 text-purple-600 hover:text-purple-800"
                   >
                     ×
