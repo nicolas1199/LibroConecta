@@ -156,3 +156,15 @@ export const getMyPublishedBooks = async (params = {}) => {
   const res = await api.get("/published-books/my-books", { params })
   return res.data
 }
+
+// Buscar libros publicados
+export const searchPublishedBooks = async (searchTerm, page = 1, limit = 20) => {
+  const res = await api.get("/published-books/search", {
+    params: {
+      q: searchTerm,
+      page,
+      limit
+    }
+  })
+  return res.data
+}
