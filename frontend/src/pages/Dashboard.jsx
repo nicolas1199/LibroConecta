@@ -1,82 +1,53 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { Link, useSearchParams } from "react-router-dom"
-import Filter from "../components/icons/Filter"
-import ArrowRight from "../components/icons/ArrowRight"
-import Search from "../components/icons/Search"
-import BookOpen from "../components/icons/BookOpen"
-import RefreshCw from "../components/icons/RefreshCw"
-import Gift from "../components/icons/Gift"
-import DollarSign from "../components/icons/DollarSign"
-import MessageCircle from "../components/icons/MessageCircle"
-import Star from "../components/icons/Star"
-import Heart from "../components/icons/Heart"
-import BookCard from "../components/BookCard"
-import MatchCard from "../components/MatchCard"
-import { getPublishedBooks } from "../api/publishedBooks"
-import { getMatches, getSuggestedMatches } from "../api/matches"
-import { getConversations } from "../api/messages"
-import { getPendingRatings, getMyRatings } from "../api/ratings"
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import Filter from "../components/icons/Filter";
+import ArrowRight from "../components/icons/ArrowRight";
+import Search from "../components/icons/Search";
+import BookOpen from "../components/icons/BookOpen";
+import RefreshCw from "../components/icons/RefreshCw";
+import Gift from "../components/icons/Gift";
+import DollarSign from "../components/icons/DollarSign";
+import MessageCircle from "../components/icons/MessageCircle";
+import Star from "../components/icons/Star";
+import Heart from "../components/icons/Heart";
+import BookCard from "../components/BookCard";
+import MatchCard from "../components/MatchCard";
+import { getPublishedBooks } from "../api/publishedBooks";
+import { getMatches, getSuggestedMatches } from "../api/matches";
+import { getConversations } from "../api/messages";
+import { getPendingRatings, getMyRatings } from "../api/ratings";
+import { getUserProfile } from "../api/auth";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Dashboard() {
-  const [searchParams] = useSearchParams()
-  const dashboardRef = useRef(null)
-  const [user, setUser] = useState(null)
-  const [activeTab, setActiveTab] = useState("recientes")
-  const [publishedBooks, setPublishedBooks] = useState([])
-  const [filteredBooks, setFilteredBooks] = useState([])
-  const [matches, setMatches] = useState([])
-  const [suggestedMatches, setSuggestedMatches] = useState([])
-  const [conversations, setConversations] = useState([])
-  const [pendingRatings, setPendingRatings] = useState([])
-  const [myRatings, setMyRatings] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [isSearching, setIsSearching] = useState(false)
+  const { user, updateUser } = useAuth();
+  const [activeTab, setActiveTab] = useState("recientes");
+  const [publishedBooks, setPublishedBooks] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [suggestedMatches, setSuggestedMatches] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [pendingRatings, setPendingRatings] = useState([]);
+  const [myRatings, setMyRatings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      setUser(JSON.parse(userData))
-    }
-  }, [])
 
-  useEffect(() => {
-    // Verificar si hay un término de búsqueda en la URL
-    const searchFromUrl = searchParams.get("search")
-    if (searchFromUrl) {
-      handleSearch(searchFromUrl)
-    }
-  }, [searchParams])
-
-  useEffect(() => {
-    // Exponer función de búsqueda globalmente si es necesario
-    if (typeof window !== "undefined") {
-      window.dashboardSearch = handleSearch
-    }
-
-    return () => {
-      if (typeof window !== "undefined") {
-        delete window.dashboardSearch
-      }
-    }
-  }, [])
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
 
         // Cargar datos solo si el usuario está logueado
-        const token = localStorage.getItem("token")
+        const token = localStorage.getItem("token");
         if (token) {
           // Si acaba de registrarse, dar un poco más de tiempo para que se establezca la sesión
-          const justRegistered = sessionStorage.getItem("justRegistered")
+          const justRegistered = sessionStorage.getItem("justRegistered");
           if (justRegistered) {
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-            sessionStorage.removeItem("justRegistered")
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            sessionStorage.removeItem("justRegistered");
           }
 
           try {
@@ -94,7 +65,7 @@ export default function Dashboard() {
               getConversations({ limit: 5 }),
               getPendingRatings(),
               getMyRatings({ type: "received", limit: 5 }),
-            ])
+            ]);
 
             // Log de datos para debug
             console.log("🔍 Datos del Dashboard:", {
@@ -102,82 +73,70 @@ export default function Dashboard() {
               matches: matchesResponse.data?.length || 0,
               matchesSugeridos: suggestedResponse.data?.length || 0,
               conversaciones: conversationsResponse.data?.length || 0,
-            })
+            });
 
-            setPublishedBooks(booksResponse.publishedBooks || [])
-            setMatches(matchesResponse.data || [])
-            setSuggestedMatches(suggestedResponse.data || [])
-            setConversations(conversationsResponse.data || [])
-            setPendingRatings(pendingRatingsResponse.data || [])
-            setMyRatings(myRatingsResponse.data || [])
+            setPublishedBooks(booksResponse.publishedBooks || []);
+            setMatches(matchesResponse.data || []);
+            setSuggestedMatches(suggestedResponse.data || []);
+            setConversations(conversationsResponse.data || []);
+            setPendingRatings(pendingRatingsResponse.data || []);
+            setMyRatings(myRatingsResponse.data || []);
           } catch (apiError) {
-            console.error("Error en las APIs del dashboard:", apiError)
+            console.error("Error en las APIs del dashboard:", apiError);
             // Si hay error de auth, no establecer error general, dejar que el interceptor lo maneje
-            if (apiError.response?.status !== 401 && apiError.response?.status !== 403) {
-              setError("Error al cargar algunos datos del dashboard")
+            if (
+              apiError.response?.status !== 401 &&
+              apiError.response?.status !== 403
+            ) {
+              setError("Error al cargar algunos datos del dashboard");
             }
             // Al menos cargar libros públicos como fallback
             try {
-              const response = await getPublishedBooks({ limit: 6 })
-              setPublishedBooks(response.publishedBooks || [])
+              const response = await getPublishedBooks({ limit: 6 });
+              setPublishedBooks(response.publishedBooks || []);
             } catch (fallbackError) {
-              console.error("Error cargando libros públicos:", fallbackError)
+              console.error("Error cargando libros públicos:", fallbackError);
             }
           }
         } else {
           // Solo cargar libros publicados si no hay usuario
-          const response = await getPublishedBooks({ limit: 6 })
-          setPublishedBooks(response.publishedBooks || [])
+          const response = await getPublishedBooks({ limit: 6 });
+          setPublishedBooks(response.publishedBooks || []);
         }
       } catch (error) {
-        console.error("Error loading data:", error)
-        setError("Error al cargar los datos")
+        console.error("Error loading data:", error);
+        setError("Error al cargar los datos");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
-  // Función para manejar la búsqueda
-  const handleSearch = async (term) => {
-    setSearchTerm(term)
-
-    if (!term.trim()) {
-      setFilteredBooks([])
-      setIsSearching(false)
-      return
-    }
-
-    setIsSearching(true)
-
-    try {
-      // Buscar en la API con el término
-      const response = await getPublishedBooks({
-        search: term,
-        limit: 20,
-      })
-
-      setFilteredBooks(response.publishedBooks || [])
-    } catch (error) {
-      console.error("Error en búsqueda:", error)
-      setFilteredBooks([])
-    }
-  }
+  useEffect(() => {
+    // Al montar, obtener SIEMPRE el usuario actualizado desde la API
+    const syncUser = async () => {
+      try {
+        const response = await getUserProfile();
+        if (response && response.data) {
+          localStorage.setItem("user", JSON.stringify(response.data));
+          if (updateUser) updateUser(response.data);
+        }
+      } catch (error) {
+        // Si la API falla, no hacer nada (se usará el user de localStorage)
+      }
+    };
+    syncUser();
+  }, []);
 
   const tabs = [
     { id: "recientes", label: "Recientes" },
     { id: "matches", label: "Matches" },
     { id: "cercanos", label: "Cercanos" },
-  ]
+  ];
 
   const getCurrentData = () => {
-    // Si hay búsqueda activa, mostrar resultados filtrados
-    if (isSearching && searchTerm.trim()) {
-      return filteredBooks
-    }
-
     switch (activeTab) {
       case "matches": {
         // TEMPORAL: Usar matches existentes con datos simulados de compatibilidad
@@ -188,15 +147,17 @@ export default function Dashboard() {
           commonCategories: Math.floor(Math.random() * 5) + 1, // 1-5 categorías
           booksCount: Math.floor(Math.random() * 10) + 1, // 1-10 libros
           type: "existing_match",
-        }))
-        return processedMatches
+        }));
+        return processedMatches;
       }
       case "cercanos":
-        return publishedBooks.filter((book) => book.LocationBook?.location_name)
+        return publishedBooks.filter(
+          (book) => book.LocationBook?.location_name,
+        );
       default:
-        return publishedBooks
+        return publishedBooks;
     }
-  }
+  };
 
   const stats = [
     {
@@ -223,14 +184,18 @@ export default function Dashboard() {
       value: myRatings.length,
       color: "cyan",
     },
-  ]
+  ];
 
   return (
-    <div className="space-y-8" data-dashboard ref={dashboardRef}>
+    <div className="space-y-8">
       {/* Welcome Section */}
       <div className="dashboard-welcome">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Bienvenido, {user?.first_name || "Lector"}</h1>
-        <p className="text-gray-600">Descubre nuevos libros y conecta con otros lectores</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Bienvenido, {user?.first_name || "Lector"}
+        </h1>
+        <p className="text-gray-600">
+          Descubre nuevos libros y conecta con otros lectores
+        </p>
       </div>
 
       {/* Quick Actions */}
@@ -241,8 +206,12 @@ export default function Dashboard() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">📚 Swipe Libros</h3>
-              <p className="text-gray-600 text-sm">Descubre tu próximo libro favorito</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                📚 Swipe Libros
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Descubre tu próximo libro favorito
+              </p>
             </div>
             <div className="bg-blue-50 p-3 rounded-lg group-hover:bg-blue-100 transition-colors">
               <ArrowRight className="h-6 w-6 text-blue-600" />
@@ -256,7 +225,9 @@ export default function Dashboard() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">🔍 Explorar</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                🔍 Explorar
+              </h3>
               <p className="text-gray-600 text-sm">Busca libros específicos</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg group-hover:bg-gray-100 transition-colors">
@@ -271,7 +242,9 @@ export default function Dashboard() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">💖 Matches</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                💖 Matches
+              </h3>
               <p className="text-gray-600 text-sm">Ve tus coincidencias</p>
             </div>
             <div className="bg-red-50 p-3 rounded-lg group-hover:bg-red-100 transition-colors">
@@ -288,15 +261,7 @@ export default function Dashboard() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id)
-                  // Limpiar búsqueda al cambiar de tab
-                  if (isSearching) {
-                    setSearchTerm("")
-                    setFilteredBooks([])
-                    setIsSearching(false)
-                  }
-                }}
+                onClick={() => setActiveTab(tab.id)}
                 className={`dashboard-tab ${activeTab === tab.id ? "active" : ""}`}
               >
                 {tab.label}
@@ -314,16 +279,18 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
-              {isSearching && searchTerm.trim()
-                ? `Resultados para "${searchTerm}"`
-                : activeTab === "matches"
-                  ? "Tus matches"
-                  : activeTab === "cercanos"
-                    ? "Libros cercanos"
-                    : "Libros recientes"}
+              {activeTab === "matches"
+                ? "Tus matches"
+                : activeTab === "cercanos"
+                  ? "Libros cercanos"
+                  : "Libros recientes"}
             </h2>
             <Link
-              to={activeTab === "matches" ? "/dashboard/matches" : "/dashboard/explore"}
+              to={
+                activeTab === "matches"
+                  ? "/dashboard/matches"
+                  : "/dashboard/explore"
+              }
               className="text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
               Ver todos
@@ -347,7 +314,7 @@ export default function Dashboard() {
           {/* Content Grid */}
           {!loading && !error && getCurrentData().length > 0 && (
             <>
-              {activeTab === "matches" && !isSearching ? (
+              {activeTab === "matches" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {getCurrentData().map((match) => (
                     <MatchCard key={match.user_id} match={match} />
@@ -367,41 +334,41 @@ export default function Dashboard() {
           {!loading && !error && getCurrentData().length === 0 && (
             <div className="dashboard-empty-state">
               <div className="dashboard-empty-icon">
-                {isSearching ? (
-                  <Search className="h-8 w-8 text-gray-400" />
-                ) : activeTab === "matches" ? (
+                {activeTab === "matches" ? (
                   <Heart className="h-8 w-8 text-gray-400" />
                 ) : (
                   <BookOpen className="h-8 w-8 text-gray-400" />
                 )}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {isSearching
-                  ? `No se encontraron resultados para "${searchTerm}"`
-                  : activeTab === "matches"
-                    ? "No tienes matches aún"
-                    : activeTab === "cercanos"
-                      ? "No hay libros cercanos"
-                      : "No hay libros publicados aún"}
+                {activeTab === "matches"
+                  ? "No tienes matches aún"
+                  : activeTab === "cercanos"
+                    ? "No hay libros cercanos"
+                    : "No hay libros publicados aún"}
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                {isSearching
-                  ? "Intenta con otros términos de búsqueda"
-                  : activeTab === "matches"
-                    ? "Conecta con otros usuarios para hacer matches"
-                    : activeTab === "cercanos"
-                      ? "No hay libros disponibles en tu área"
-                      : "Sé el primero en compartir un libro con la comunidad"}
+                {activeTab === "matches"
+                  ? "Conecta con otros usuarios para hacer matches"
+                  : activeTab === "cercanos"
+                    ? "No hay libros disponibles en tu área"
+                    : "Sé el primero en compartir un libro con la comunidad"}
               </p>
-              {!isSearching && (
-                <Link
-                  to={activeTab === "matches" ? "/dashboard/publish" : "/dashboard/publish"}
-                  className="btn btn-primary btn-lg inline-flex items-center space-x-2"
-                >
-                  <span>{activeTab === "matches" ? "Publicar libro" : "Publicar mi primer libro"}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              )}
+              <Link
+                to={
+                  activeTab === "matches"
+                    ? "/dashboard/publish"
+                    : "/dashboard/publish"
+                }
+                className="btn btn-primary btn-lg inline-flex items-center space-x-2"
+              >
+                <span>
+                  {activeTab === "matches"
+                    ? "Publicar libro"
+                    : "Publicar mi primer libro"}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           )}
         </div>
@@ -411,8 +378,12 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Actividad reciente</h3>
-          <p className="text-sm text-gray-600 mb-6">Últimos matches, mensajes y calificaciones</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Actividad reciente
+          </h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Últimos matches, mensajes y calificaciones
+          </p>
 
           <div className="space-y-4">
             {/* Pending Ratings */}
@@ -427,7 +398,10 @@ export default function Dashboard() {
                       {pendingRatings.length > 1 ? "s" : ""}
                     </span>
                   </div>
-                  <Link to="/dashboard/ratings" className="text-sm text-orange-600 hover:text-orange-700">
+                  <Link
+                    to="/dashboard/ratings"
+                    className="text-sm text-orange-600 hover:text-orange-700"
+                  >
                     Ver todas
                   </Link>
                 </div>
@@ -446,7 +420,10 @@ export default function Dashboard() {
                       {suggestedMatches.length > 1 ? "s" : ""}
                     </span>
                   </div>
-                  <Link to="/dashboard/matches" className="text-sm text-blue-600 hover:text-blue-700">
+                  <Link
+                    to="/dashboard/matches"
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
                     Ver todos
                   </Link>
                 </div>
@@ -456,7 +433,9 @@ export default function Dashboard() {
             {/* Recent Conversations */}
             {conversations.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-900">Conversaciones recientes</h4>
+                <h4 className="text-sm font-medium text-gray-900">
+                  Conversaciones recientes
+                </h4>
                 {conversations.slice(0, 3).map((conversation) => (
                   <Link
                     key={conversation.match_id}
@@ -468,9 +447,12 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {conversation.other_user.first_name} {conversation.other_user.last_name}
+                        {conversation.other_user.first_name}{" "}
+                        {conversation.other_user.last_name}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">{conversation.last_message || "No hay mensajes"}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {conversation.last_message?.message_text || "No hay mensajes"}
+                      </p>
                     </div>
                     {conversation.unread_count > 0 && (
                       <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
@@ -483,18 +465,26 @@ export default function Dashboard() {
             )}
 
             {/* Empty State */}
-            {pendingRatings.length === 0 && suggestedMatches.length === 0 && conversations.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No hay actividad reciente para mostrar.</p>
-              </div>
-            )}
+            {pendingRatings.length === 0 &&
+              suggestedMatches.length === 0 &&
+              conversations.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">
+                    No hay actividad reciente para mostrar.
+                  </p>
+                </div>
+              )}
           </div>
         </div>
 
         {/* Statistics */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Estadísticas</h3>
-          <p className="text-sm text-gray-600 mb-6">Tu actividad en LibroConecta</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Estadísticas
+          </h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Tu actividad en LibroConecta
+          </p>
 
           <div className="space-y-4">
             {stats.map((stat) => (
@@ -503,7 +493,9 @@ export default function Dashboard() {
                   <div className={`dashboard-stats-icon bg-${stat.color}-100`}>
                     <stat.icon className={`h-4 w-4 text-${stat.color}-600`} />
                   </div>
-                  <span className="text-gray-700 font-medium">{stat.label}</span>
+                  <span className="text-gray-700 font-medium">
+                    {stat.label}
+                  </span>
                 </div>
                 <span className="dashboard-stats-value">{stat.value}</span>
               </div>
@@ -512,5 +504,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }
