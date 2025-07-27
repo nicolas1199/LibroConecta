@@ -58,7 +58,7 @@ export default function Dashboard() {
               pendingRatingsResponse,
               myRatingsResponse,
             ] = await Promise.all([
-              getPublishedBooks({ limit: 6 }),
+              getPublishedBooks({ limit: 20 }),
               getMatches({ limit: 5 }),
               getSuggestedMatches({ limit: 3 }),
               getConversations({ limit: 5 }),
