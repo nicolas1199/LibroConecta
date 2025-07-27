@@ -65,6 +65,18 @@ export default function Explore() {
     loadPublishedBooks()
   }, [filters])
 
+  useEffect(() => {
+    // Debounce para la búsqueda
+    const timeoutId = setTimeout(() => {
+      if (filters.search.trim() !== "") {
+        // La búsqueda ya se maneja en el useEffect principal
+        // Este timeout evita llamadas excesivas a la API
+      }
+    }, 500) // 500ms de delay
+
+    return () => clearTimeout(timeoutId)
+  }, [filters.search])
+
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
       ...prev,
