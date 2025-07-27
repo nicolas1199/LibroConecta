@@ -774,17 +774,12 @@ export async function deleteSwipeInteraction(req, res) {
   }
 }
 
-// Búsqueda avanzada de libros publicados - CORREGIDA
+// Búsqueda simplificada de libros publicados
 export async function searchPublishedBooks(req, res) {
   try {
-    const {
-      q, // término de búsqueda general
-      page = 1,
-      limit = 20,
-      transaction_type_id,
-      condition_id,
-      location_id,
-    } = req.query
+    const { q, page = 1, limit = 20 } = req.query
+
+    console.log(`🔍 Búsqueda iniciada: "${q}"`)
 
     if (!q || q.trim().length < 2) {
       return res.status(400).json({
@@ -795,29 +790,11 @@ export async function searchPublishedBooks(req, res) {
     const searchTerm = q.trim()
     const offset = (page - 1) * limit
 
-    console.log(`🔍 Búsqueda iniciada: "${searchTerm}"`)
-
-    // Construir condiciones WHERE base para PublishedBooks
-    const whereConditions = {}
-
-    // Aplicar filtros adicionales si se proporcionan
-    if (transaction_type_id) whereConditions.transaction_type_id = transaction_type_id
-    if (condition_id) whereConditions.condition_id = condition_id
-    if (location_id) whereConditions.location_id = location_id
-
-    const { count, rows: searchResults } = await PublishedBooks.findAndCountAll({
-      where: whereConditions,
+    // Buscar primero todos los libros publicados con sus relaciones
+    const allBooks = await PublishedBooks.findAll({
       include: [
         {
           model: Book,
-          where: {
-            [Op.or]: [
-              { title: { [Op.iLike]: `%${searchTerm}%` } },
-              { author: { [Op.iLike]: `%${searchTerm}%` } },
-              { isbn: { [Op.iLike]: `%${searchTerm}%` } },
-            ],
-          },
-          required: false, // LEFT JOIN para incluir libros aunque no coincidan
           include: [
             {
               model: Category,
@@ -828,15 +805,7 @@ export async function searchPublishedBooks(req, res) {
         },
         {
           model: User,
-          where: {
-            [Op.or]: [
-              { first_name: { [Op.iLike]: `%${searchTerm}%` } },
-              { last_name: { [Op.iLike]: `%${searchTerm}%` } },
-              { username: { [Op.iLike]: `%${searchTerm}%` } },
-            ],
-          },
           attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
-          required: false, // LEFT JOIN para incluir usuarios aunque no coincidan
           include: [
             {
               model: LocationBook,
@@ -853,10 +822,6 @@ export async function searchPublishedBooks(req, res) {
         },
         {
           model: LocationBook,
-          where: {
-            [Op.or]: [{ comuna: { [Op.iLike]: `%${searchTerm}%` } }, { region: { [Op.iLike]: `%${searchTerm}%` } }],
-          },
-          required: false, // LEFT JOIN para incluir ubicaciones aunque no coincidan
         },
         {
           model: PublishedBookImage,
@@ -865,22 +830,47 @@ export async function searchPublishedBooks(req, res) {
           required: false,
         },
       ],
-      order: [["date_published", "DESC"]],
-      limit: Number.parseInt(limit),
-      offset: offset,
-      distinct: true,
     })
 
-    console.log(`✅ Búsqueda completada: ${count} resultados encontrados`)
+    // Filtrar en JavaScript para evitar problemas de SQL
+    const searchResults = allBooks.filter((book) => {
+      const bookTitle = book.Book?.title?.toLowerCase() || ""
+      const bookAuthor = book.Book?.author?.toLowerCase() || ""
+      const bookIsbn = book.Book?.isbn?.toLowerCase() || ""
+      const userFirstName = book.User?.first_name?.toLowerCase() || ""
+      const userLastName = book.User?.last_name?.toLowerCase() || ""
+      const userName = book.User?.username?.toLowerCase() || ""
+      const locationComuna = book.LocationBook?.comuna?.toLowerCase() || ""
+      const locationRegion = book.LocationBook?.region?.toLowerCase() || ""
+
+      const searchLower = searchTerm.toLowerCase()
+
+      return (
+        bookTitle.includes(searchLower) ||
+        bookAuthor.includes(searchLower) ||
+        bookIsbn.includes(searchLower) ||
+        userFirstName.includes(searchLower) ||
+        userLastName.includes(searchLower) ||
+        userName.includes(searchLower) ||
+        locationComuna.includes(searchLower) ||
+        locationRegion.includes(searchLower)
+      )
+    })
+
+    // Aplicar paginación
+    const totalResults = searchResults.length
+    const paginatedResults = searchResults.slice(offset, offset + Number.parseInt(limit))
+
+    console.log(`✅ Búsqueda completada: ${totalResults} resultados encontrados`)
 
     res.json({
-      searchResults,
+      searchResults: paginatedResults,
       searchTerm,
       pagination: {
         currentPage: Number.parseInt(page),
-        totalPages: Math.ceil(count / limit),
-        totalResults: count,
-        hasNextPage: page * limit < count,
+        totalPages: Math.ceil(totalResults / limit),
+        totalResults,
+        hasNextPage: offset + Number.parseInt(limit) < totalResults,
         hasPreviousPage: page > 1,
       },
     })

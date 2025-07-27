@@ -26,9 +26,7 @@ const router = Router();
 
 // Rutas públicas
 router.get("/", getAllPublishedBooks)
-router.get("/search", searchPublishedBooks) // Ruta de búsqueda
-router.get("/:id", getPublishedBookById)
-router.get("/user/:userId", getPublishedBooksByUser)
+router.get("/search", searchPublishedBooks)
 
 
 // Rutas protegidas (requieren autenticación) - ANTES de /:id
