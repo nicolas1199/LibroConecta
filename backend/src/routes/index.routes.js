@@ -16,29 +16,27 @@ import ratingRoutes from "./Rating.routes.js";
 import userRoutes from "./User.routes.js";
 import paymentRoutes from "./Payment.routes.js";
 import exchangeRoutes from "./Exchange.routes.js";
+import chatRequestRoutes from "./ChatRequest.routes.js";
 
 const router = Router();
-
-// Rutas de libros
-router.use("/books", bookRoutes);
-
-// Rutas de intercambio (swipe)
-router.use("/user-books", userBookRoutes);
-
-// Rutas de biblioteca personal
-router.use("/user-library", userLibraryRoutes);
 
 // Rutas de autenticación
 router.use("/auth", authRoutes);
 
+// Rutas de usuarios
+router.use("/users", userRoutes);
+
+// Rutas de libros
+router.use("/books", bookRoutes);
+
 // Rutas de categorías
 router.use("/categories", categoryRoutes);
 
-// Rutas de tipos de transacción
-router.use("/transaction-types", transactionTypeRoutes);
-
 // Rutas de condiciones de libro
 router.use("/book-conditions", bookConditionRoutes);
+
+// Rutas de tipos de transacción
+router.use("/transaction-types", transactionTypeRoutes);
 
 // Rutas de ubicaciones
 router.use("/locations", locationBookRoutes);
@@ -58,11 +56,17 @@ router.use("/messages", messageRoutes);
 // Rutas de calificaciones
 router.use("/ratings", ratingRoutes);
 
-// Rutas de usuarios
-router.use("/users", userRoutes);
+// Rutas de biblioteca personal
+router.use("/user-library", userLibraryRoutes);
+
+// Rutas de intercambio (swipe)
+router.use("/user-books", userBookRoutes);
 
 // Rutas de pagos y transacciones
 router.use("/payments", paymentRoutes);
+
+// Rutas de solicitudes de chat
+router.use("/chat-requests", chatRequestRoutes);
 
 // Rutas de intercambios
 router.use("/exchanges", exchangeRoutes);
