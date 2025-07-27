@@ -74,7 +74,15 @@ export const uploadBookImage = async (publishedBookId, imageData) => {
 
 // Obtener todos los libros publicados
 export const getPublishedBooks = async (params = {}) => {
-  const res = await api.get("/published-books", { params })
+  // Limpiar parámetros vacíos
+  const cleanParams = Object.entries(params).reduce((acc, [key, value]) => {
+    if (value !== "" && value !== null && value !== undefined) {
+      acc[key] = value
+    }
+    return acc
+  }, {})
+
+  const res = await api.get("/published-books", { params: cleanParams })
   return res.data
 }
 
@@ -129,7 +137,7 @@ export const deleteSwipeInteraction = async (interactionId) => {
 // Actualizar una publicación de libro
 export const updatePublishedBook = async (publishedBookId, updateData) => {
   try {
-    console.log("Enviando datos de actualización:", updateData)
+    console.log("Enviando datos de actualización:", JSON.stringify(updateData))
     const res = await api.put(`/published-books/${publishedBookId}`, updateData)
     console.log("Respuesta del servidor:", res.data)
     return res.data
