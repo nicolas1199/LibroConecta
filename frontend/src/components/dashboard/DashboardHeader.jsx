@@ -1,6 +1,6 @@
 "use client"
 
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useState, useEffect, useRef } from "react"
 import BookOpen from "../icons/BookOpen"
 import Search from "../icons/Search"
@@ -17,6 +17,7 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
   const [showSearchResults, setShowSearchResults] = useState(false)
   const searchTimeoutRef = useRef(null)
   const searchResultsRef = useRef(null)
+  const navigate = useNavigate()
 
   // Función para realizar la búsqueda
   const performSearch = async (query) => {
@@ -97,8 +98,9 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
   // Manejar selección de resultado
   const handleResultClick = (result) => {
     setShowSearchResults(false)
-    // Aquí podrías navegar al detalle del libro o hacer otra acción
-    console.log("Resultado seleccionado:", result)
+    // Navegar al detalle del libro
+    navigate(`/dashboard/book/${result.published_book_id}`)
+    console.log("Navegando a libro:", result.published_book_id)
   }
 
   return (
