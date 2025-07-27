@@ -15,61 +15,89 @@ import { success, error } from "../utils/responses.util.js"
 // Obtener todos los libros publicados con filtros
 export async function getAllPublishedBooks(req, res) {
   try {
-    const { page = 1, limit = 10, transaction_type_id, condition_id, location_id, min_price, max_price } = req.query
+    const {
+      page = 1,
+      limit = 10,
+      transaction_type_id,
+      condition_id,
+      location_id,
+      min_price,
+      max_price,
+      search,
+    } = req.query
 
     const offset = (page - 1) * limit
     const whereConditions = {}
+    const bookWhereConditions = {}
+    const userWhereConditions = {}
 
-    // Aplicar filtros
+    // Aplicar filtros existentes
     if (transaction_type_id) whereConditions.transaction_type_id = transaction_type_id
     if (condition_id) whereConditions.condition_id = condition_id
     if (location_id) whereConditions.location_id = location_id
     if (min_price) whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price }
     if (max_price) whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price }
-    
-    // 🚀 NUEVO: Solo mostrar libros disponibles (no vendidos)
-    whereConditions.status = { [Op.in]: ['available', 'reserved'] }
+
+    // Aplicar búsqueda si se proporciona
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim()}%`
+
+      // Buscar en título y autor del libro
+      bookWhereConditions[Op.or] = [{ title: { [Op.iLike]: searchTerm } }, { author: { [Op.iLike]: searchTerm } }]
+
+      // Buscar en nombre del usuario
+      userWhereConditions[Op.or] = [
+        { first_name: { [Op.iLike]: searchTerm } },
+        { last_name: { [Op.iLike]: searchTerm } },
+        fn("CONCAT", col("User.first_name"), " ", col("User.last_name")),
+        { [Op.iLike]: searchTerm },
+      ]
+    }
+
+    const includeOptions = [
+      {
+        model: Book,
+        where: Object.keys(bookWhereConditions).length > 0 ? bookWhereConditions : undefined,
+        include: [
+          {
+            model: Category,
+            as: "Categories",
+            through: { attributes: [] },
+          },
+        ],
+      },
+      {
+        model: User,
+        attributes: ["user_id", "first_name", "last_name", "location_id"],
+        where: Object.keys(userWhereConditions).length > 0 ? userWhereConditions : undefined,
+        include: [
+          {
+            model: LocationBook,
+            as: "userLocation",
+            attributes: ["location_id", "comuna", "region"],
+          },
+        ],
+      },
+      {
+        model: TransactionType,
+      },
+      {
+        model: BookCondition,
+      },
+      {
+        model: LocationBook,
+      },
+      {
+        model: PublishedBookImage,
+        limit: 1,
+        where: { is_primary: true },
+        required: false,
+      },
+    ]
 
     const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
       where: whereConditions,
-      include: [
-        {
-          model: Book,
-          include: [
-            {
-              model: Category,
-              as: "Categories",
-              through: { attributes: [] },
-            },
-          ],
-        },
-        {
-          model: User,
-          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
-          include: [
-            {
-              model: LocationBook,
-              as: "userLocation",
-              attributes: ["location_id", "comuna", "region"],
-            },
-          ],
-        },
-        {
-          model: TransactionType,
-        },
-        {
-          model: BookCondition,
-        },
-        {
-          model: LocationBook,
-        },
-        {
-          model: PublishedBookImage,
-          limit: 1,
-          where: { is_primary: true },
-          required: false,
-        },
-      ],
+      include: includeOptions,
       order: [["date_published", "DESC"]],
       limit: Number.parseInt(limit),
       offset: offset,
@@ -84,6 +112,7 @@ export async function getAllPublishedBooks(req, res) {
         hasNextPage: page * limit < count,
         hasPreviousPage: page > 1,
       },
+      searchTerm: search || null,
     })
   } catch (error) {
     console.error("Error en getAllPublishedBooks:", error)
@@ -109,7 +138,7 @@ export async function getPublishedBookById(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          attributes: ["user_id", "first_name", "last_name", "location_id"],
           include: [
             {
               model: LocationBook,
@@ -472,7 +501,7 @@ export async function getRecommendations(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "username", "email"],
+          attributes: ["user_id", "first_name", "last_name", "email"],
         },
         {
           model: TransactionType,
@@ -640,7 +669,7 @@ export async function getUserSwipeHistory(req, res) {
             },
             {
               model: User,
-              attributes: ["user_id", "first_name", "last_name", "username", "email"],
+              attributes: ["user_id", "first_name", "last_name", "email"],
             },
             {
               model: TransactionType,
