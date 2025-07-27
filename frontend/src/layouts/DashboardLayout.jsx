@@ -5,9 +5,10 @@ import { useLocation, useNavigate } from "react-router-dom"
 import DashboardSidebar from "../components/dashboard/DashboardSidebar"
 import DashboardHeader from "../components/dashboard/DashboardHeader"
 import { performLogout } from "../utils/auth"
+import { useAuth } from "../hooks/useAuth"
 
 export default function DashboardLayout({ children }) {
-  const [user, setUser] = useState(null)
+  const { user, isLoading } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const navigate = useNavigate()
@@ -20,23 +21,6 @@ export default function DashboardLayout({ children }) {
     // Cleanup: remover clase cuando se desmonte el componente
     return () => {
       document.body.classList.remove("dashboard")
-    }
-  }, [])
-
-  useEffect(() => {
-    // Solo cargar datos de usuario, la autenticación la maneja PrivateRoute
-    const userData = localStorage.getItem("user")
-
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData))
-      } catch (error) {
-        console.error("Error parsing user data:", error)
-        // Si hay error en los datos, limpiar y recargar
-        localStorage.removeItem("user")
-        localStorage.removeItem("token")
-        window.location.reload()
-      }
     }
   }, [])
 
@@ -59,8 +43,8 @@ export default function DashboardLayout({ children }) {
     setSidebarOpen(false)
   }
 
-  // Mostrar loading solo si no hay datos de usuario
-  if (!user) {
+  // Mostrar loading mientras se cargan los datos del usuario
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
