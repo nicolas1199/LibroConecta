@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Link, useOutletContext, useSearchParams } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import Filter from "../components/icons/Filter"
 import ArrowRight from "../components/icons/ArrowRight"
 import Search from "../components/icons/Search"
@@ -20,7 +20,6 @@ import { getConversations } from "../api/messages"
 import { getPendingRatings, getMyRatings } from "../api/ratings"
 
 export default function Dashboard() {
-  const { onSearch } = useOutletContext() || {}
   const [searchParams] = useSearchParams()
   const dashboardRef = useRef(null)
   const [user, setUser] = useState(null)
@@ -53,10 +52,15 @@ export default function Dashboard() {
   }, [searchParams])
 
   useEffect(() => {
-    // Registrar la instancia del dashboard para que el layout pueda acceder a ella
-    const dashboardElement = document.querySelector("[data-dashboard]")
-    if (dashboardElement) {
-      dashboardElement._dashboardInstance = { handleSearch }
+    // Exponer función de búsqueda globalmente si es necesario
+    if (typeof window !== "undefined") {
+      window.dashboardSearch = handleSearch
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        delete window.dashboardSearch
+      }
     }
   }, [])
 
@@ -220,9 +224,6 @@ export default function Dashboard() {
       color: "cyan",
     },
   ]
-
-  // Exponer la función de búsqueda para que el DashboardLayout pueda acceder a ella
-  Dashboard.handleSearch = handleSearch
 
   return (
     <div className="space-y-8" data-dashboard ref={dashboardRef}>
@@ -512,9 +513,4 @@ export default function Dashboard() {
       </div>
     </div>
   )
-}
-
-// Función para exponer handleSearch
-Dashboard.getSearchHandler = (dashboardRef) => {
-  return dashboardRef?.current?.handleSearch
 }
