@@ -26,9 +26,9 @@ export async function getAllPublishedBooks(req, res) {
     if (location_id) whereConditions.location_id = location_id
     if (min_price) whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price }
     if (max_price) whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price }
-
+    
     // 🚀 NUEVO: Solo mostrar libros disponibles (no vendidos)
-    whereConditions.status = { [Op.in]: ["available", "reserved"] }
+    whereConditions.status = { [Op.in]: ['available', 'reserved'] }
 
     const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
       where: whereConditions,
@@ -772,7 +772,6 @@ export async function deleteSwipeInteraction(req, res) {
     console.error("Error en deleteSwipeInteraction:", err)
     return error(res, "Error al eliminar interacción", 500)
   }
-}
 
 // Búsqueda simplificada de libros publicados
 export async function searchPublishedBooks(req, res) {
@@ -881,4 +880,5 @@ export async function searchPublishedBooks(req, res) {
       details: error.message,
     })
   }
+}
 }
