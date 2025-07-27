@@ -22,7 +22,6 @@ import Wishlist from "../pages/Wishlist";
 import Drafts from "../pages/Drafts";
 import History from "../pages/History";
 import BookDetails from "../pages/BookDetails";
-import SearchResults from "../pages/SearchResults";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
 import SwipeHistory from "../pages/SwipeHistory";
@@ -276,16 +275,6 @@ export default function AppRouter() {
           element={
             <PrivateRoute>
               <BookDetails />
-            </PrivateRoute>
-          }
-        />
-
-        {/* Search results route */}
-        <Route
-          path="/search"
-          element={
-            <PrivateRoute>
-              <SearchResults />
             </PrivateRoute>
           }
         />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import BookOpen from "../icons/BookOpen"
 import Search from "../icons/Search"
 import Bell from "../icons/Bell"
@@ -10,22 +10,6 @@ import Menu from "../icons/Menu"
 import NotificationDropdown from "../NotificationDropdown"
 
 export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onSearchChange }) {
-  const navigate = useNavigate()
-  const [localSearchTerm, setLocalSearchTerm] = useState("")
-
-  // Función para manejar la búsqueda
-  const handleSearch = (e) => {
-    if (e.key === 'Enter' && localSearchTerm.trim().length >= 2) {
-      navigate(`/search?q=${encodeURIComponent(localSearchTerm.trim())}`)
-    }
-  }
-
-  const handleInputChange = (value) => {
-    setLocalSearchTerm(value)
-    if (onSearchChange) {
-      onSearchChange(value)
-    }
-  }
   const [showNotifications, setShowNotifications] = useState(false)
 
   return (
@@ -58,9 +42,8 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
             type="text"
             placeholder="Buscar libros, autores, usuarios..."
             className="search-input"
-            value={localSearchTerm}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={handleSearch}
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
 
