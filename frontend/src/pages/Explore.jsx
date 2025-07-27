@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Filter from "../components/icons/Filter"
@@ -26,6 +26,9 @@ export default function Explore() {
   const [bookConditions, setBookConditions] = useState([])
   const [locations, setLocations] = useState([])
 
+  // Ref para el timeout del debounce
+  const debounceRef = useRef(null)
+
   useEffect(() => {
     const loadReferenceData = async () => {
       try {
@@ -47,7 +50,7 @@ export default function Explore() {
   }, [])
 
   // Función para cargar libros
-  const loadPublishedBooks = useCallback(async (searchFilters) => {
+  const loadPublishedBooks = async (searchFilters) => {
     try {
       setError(null)
 
@@ -90,19 +93,29 @@ export default function Explore() {
       setSearchLoading(false)
       setLoading(false)
     }
-  }, [])
+  }
 
-  // Efecto para cargar libros con debounce
+  // Efecto para cargar libros con debounce mejorado
   useEffect(() => {
-    const timeoutId = setTimeout(
-      () => {
-        loadPublishedBooks(filters)
-      },
-      filters.search ? 500 : 100,
-    ) // Debounce más corto para filtros normales
+    // Limpiar timeout anterior
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
 
-    return () => clearTimeout(timeoutId)
-  }, [filters, loadPublishedBooks])
+    // Determinar el delay basado en si hay búsqueda de texto
+    const delay = filters.search ? 800 : 200
+
+    debounceRef.current = setTimeout(() => {
+      loadPublishedBooks(filters)
+    }, delay)
+
+    // Cleanup function
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [filters])
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
