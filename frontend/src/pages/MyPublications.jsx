@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { getMyPublishedBooks, deletePublishedBook } from "../api/publishedBooks"
-import DashboardLayout from "../layouts/DashboardLayout"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import BookOpen from "../components/icons/BookOpen"
 import Edit from "../components/icons/Edit"
@@ -84,7 +83,7 @@ export default function MyPublications() {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex items-center justify-center py-12">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Cargando publicaciones...</p>
@@ -94,47 +93,38 @@ export default function MyPublications() {
     }
 
     return (
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver al Dashboard
-            </button>
-
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Mis Publicaciones</h1>
-                <p className="text-gray-600">Gestiona tus libros publicados</p>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-8">
+            {/* Header */}
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mis Publicaciones</h1>
+                  <p className="text-gray-600 mt-1">Gestiona tus libros publicados</p>
+                </div>
+                <button onClick={() => navigate("/dashboard/publish")} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Publicar nuevo libro
+                </button>
               </div>
+            </div>            {/* Content */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>
+            )}
 
-              <button onClick={() => navigate("/dashboard/publish")} className="btn btn-primary">
-                <Plus className="h-4 w-4 mr-2" />
-                Publicar nuevo libro
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>
-          )}
-
-          {publications.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
-              <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h2 className="text-xl font-medium text-gray-900 mb-2">No tienes publicaciones aún</h2>
-              <p className="text-gray-600 mb-6">Comienza publicando tu primer libro para compartir con la comunidad</p>
-              <button onClick={() => navigate("/dashboard/publish")} className="btn btn-primary">
-                <Plus className="h-4 w-4 mr-2" />
-                Publicar mi primer libro
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {publications.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
+                <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h2 className="text-xl font-medium text-gray-900 mb-2">No tienes publicaciones aún</h2>
+                <p className="text-gray-600 mb-6">Comienza publicando tu primer libro para compartir con la comunidad</p>
+                <button onClick={() => navigate("/dashboard/publish")} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Publicar mi primer libro
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {publications.map((publication) => (
                 <div
                   key={publication.published_book_id}
@@ -183,7 +173,7 @@ export default function MyPublications() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => navigate(`/edit-publication/${publication.published_book_id}`)}
-                        className="flex-1 btn btn-secondary text-sm"
+                        className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors text-sm"
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Editar
@@ -191,7 +181,7 @@ export default function MyPublications() {
 
                       <button
                         onClick={() => handleDelete(publication.published_book_id)}
-                        className="btn bg-red-50 text-red-600 hover:bg-red-100 border-red-200 text-sm"
+                        className="inline-flex items-center px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg transition-colors text-sm"
                       >
                         <Trash className="h-4 w-4" />
                       </button>
@@ -207,11 +197,13 @@ export default function MyPublications() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
-      )
+      </div>
+    )
   }
 
-  return <DashboardLayout>{renderContent()}</DashboardLayout>
+  return renderContent()
 }
