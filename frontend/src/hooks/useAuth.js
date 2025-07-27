@@ -1,59 +1,57 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react';
 
 /**
  * Hook personalizado para manejar la autenticación del usuario
  * Utiliza localStorage para mantener el estado de autenticación
  */
 export const useAuth = () => {
-  const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     // Cargar datos del usuario desde localStorage al inicializar
     const loadUserData = () => {
       try {
-        const token = localStorage.getItem("token")
-        const userData = localStorage.getItem("user")
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
 
         if (token && userData) {
-          const parsedUser = JSON.parse(userData)
-          setUser(parsedUser)
-          setIsAuthenticated(true)
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
         } else {
-          setUser(null)
-          setIsAuthenticated(false)
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error("Error al cargar datos del usuario:", error)
-        setUser(null)
-        setIsAuthenticated(false)
+        console.error('Error al cargar datos del usuario:', error);
+        setUser(null);
+        setIsAuthenticated(false);
         // Limpiar datos corruptos
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        localStorage.removeItem("refreshToken")
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('refreshToken');
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    loadUserData()
+    loadUserData();
 
     // Escuchar cambios en localStorage (para múltiples pestañas)
     const handleStorageChange = (e) => {
-      if (e.key === "user" || e.key === "token") {
-        loadUserData()
+      if (e.key === 'user' || e.key === 'token') {
+        loadUserData();
       }
-    }
+    };
 
-    window.addEventListener("storage", handleStorageChange)
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange)
-    }
-  }, [])
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   /**
    * Actualizar datos del usuario
@@ -61,24 +59,24 @@ export const useAuth = () => {
    */
   const updateUser = (userData) => {
     try {
-      setUser(userData)
-      localStorage.setItem("user", JSON.stringify(userData))
-      setIsAuthenticated(true)
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setIsAuthenticated(true);
     } catch (error) {
-      console.error("Error al actualizar datos del usuario:", error)
+      console.error('Error al actualizar datos del usuario:', error);
     }
-  }
+  };
 
   /**
    * Limpiar datos de autenticación
    */
   const logout = () => {
-    setUser(null)
-    setIsAuthenticated(false)
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    localStorage.removeItem("refreshToken")
-  }
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('refreshToken');
+  };
 
   /**
    * Verificar si el usuario tiene un rol específico
@@ -86,24 +84,24 @@ export const useAuth = () => {
    * @returns {boolean}
    */
   const hasRole = (userTypeId) => {
-    return user?.user_type_id === userTypeId
-  }
+    return user?.user_type_id === userTypeId;
+  };
 
   /**
    * Verificar si el usuario es administrador
    * @returns {boolean}
    */
   const isAdmin = () => {
-    return hasRole(1) // Asumiendo que 1 es el ID para administrador
-  }
+    return hasRole(1); // Asumiendo que 1 es el ID para administrador
+  };
 
   /**
    * Obtener token de autenticación
    * @returns {string|null}
    */
   const getToken = () => {
-    return localStorage.getItem("token")
-  }
+    return localStorage.getItem('token');
+  };
 
   return {
     user,
@@ -113,8 +111,8 @@ export const useAuth = () => {
     logout,
     hasRole,
     isAdmin,
-    getToken,
-  }
-}
+    getToken
+  };
+};
 
-export default useAuth
+export default useAuth;

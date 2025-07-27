@@ -9,28 +9,8 @@ import Plus from "../icons/Plus"
 import Menu from "../icons/Menu"
 import NotificationDropdown from "../NotificationDropdown"
 
-export default function DashboardHeader({ user, onToggleSidebar, onSearch }) {
+export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onSearchChange }) {
   const [showNotifications, setShowNotifications] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value
-    setSearchTerm(value)
-    // Llamar a la función de búsqueda con un pequeño delay para evitar demasiadas llamadas
-    if (onSearch) {
-      clearTimeout(window.searchTimeout)
-      window.searchTimeout = setTimeout(() => {
-        onSearch(value)
-      }, 300)
-    }
-  }
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault()
-    if (onSearch) {
-      onSearch(searchTerm)
-    }
-  }
 
   return (
     <header className="dashboard-header">
@@ -57,16 +37,14 @@ export default function DashboardHeader({ user, onToggleSidebar, onSearch }) {
 
         {/* Search Bar */}
         <div className="search-container mx-8">
-          <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <Search className="search-icon h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Buscar libros, autores, usuarios..."
-              className="search-input"
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
-          </form>
+          <Search className="search-icon h-4 w-4" />
+          <input
+            type="text"
+            placeholder="Buscar libros, autores, usuarios..."
+            className="search-input"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
         </div>
 
         {/* Actions */}
