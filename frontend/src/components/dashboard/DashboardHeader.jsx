@@ -37,6 +37,20 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
       })
 
       console.log(`✅ Resultados obtenidos:`, response.searchResults?.length || 0)
+
+      // Log detallado de los resultados para debug
+      if (response.searchResults && response.searchResults.length > 0) {
+        response.searchResults.forEach((result, index) => {
+          console.log(`📖 Resultado ${index + 1}:`, {
+            title: result.Book?.title,
+            hasImages: !!result.PublishedBookImages,
+            imagesLength: result.PublishedBookImages?.length || 0,
+            firstImageHasBase64: result.PublishedBookImages?.[0]?.image_base64 ? "SÍ" : "NO",
+            fullResult: result,
+          })
+        })
+      }
+
       setSearchResults(response.searchResults || [])
       setShowSearchResults(true)
 
@@ -153,62 +167,98 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
                   {searchResults.length} resultado{searchResults.length !== 1 ? "s" : ""} encontrado
                   {searchResults.length !== 1 ? "s" : ""}
                 </div>
-                {searchResults.map((result) => (
-                  <div
-                    key={result.published_book_id}
-                    onClick={() => handleResultClick(result)}
-                    className="flex items-center p-3 hover:bg-gray-50 cursor-pointer rounded-lg border-b border-gray-100 last:border-b-0"
-                  >
-                    {/* Imagen del libro - CORREGIDO: usar la estructura correcta */}
-                    <div className="w-12 h-16 bg-gray-200 rounded flex-shrink-0 mr-3 overflow-hidden">
-                      {result.PublishedBookImages &&
-                      result.PublishedBookImages.length > 0 &&
-                      result.PublishedBookImages[0].image_base64 ? (
-                        <img
-                          src={`data:image/jpeg;base64,${result.PublishedBookImages[0].image_base64}`}
-                          alt={result.Book?.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <BookOpen className="h-6 w-6" />
+                {searchResults.map((result) => {
+                  // Log para debug de cada resultado individual
+                  console.log(`🔍 Renderizando resultado:`, {
+                    id: result.published_book_id,
+                    title: result.Book?.title,
+                    hasPublishedBookImages: !!result.PublishedBookImages,
+                    imagesArray: result.PublishedBookImages,
+                    firstImage: result.PublishedBookImages?.[0],
+                    hasBase64: !!result.PublishedBookImages?.[0]?.image_base64,
+                  })
+
+                  return (
+                    <div
+                      key={result.published_book_id}
+                      onClick={() => handleResultClick(result)}
+                      className="flex items-center p-3 hover:bg-gray-50 cursor-pointer rounded-lg border-b border-gray-100 last:border-b-0"
+                    >
+                      {/* Imagen del libro - MEJORADO: más verificaciones y logs */}
+                      <div className="w-12 h-16 bg-gray-200 rounded flex-shrink-0 mr-3 overflow-hidden">
+                        {(() => {
+                          const hasImages =
+                            result.PublishedBookImages &&
+                            Array.isArray(result.PublishedBookImages) &&
+                            result.PublishedBookImages.length > 0
+                          const firstImage = hasImages ? result.PublishedBookImages[0] : null
+                          const hasBase64 = firstImage && firstImage.image_base64
+
+                          console.log(`🖼️ Imagen para ${result.Book?.title}:`, {
+                            hasImages,
+                            firstImage: firstImage ? "existe" : "no existe",
+                            hasBase64: hasBase64 ? "SÍ" : "NO",
+                            base64Length: hasBase64 ? firstImage.image_base64.length : 0,
+                          })
+
+                          if (hasBase64) {
+                            return (
+                              <img
+                                src={`data:image/jpeg;base64,${firstImage.image_base64}`}
+                                alt={result.Book?.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.error(`❌ Error cargando imagen para ${result.Book?.title}:`, e)
+                                }}
+                                onLoad={() => {
+                                  console.log(`✅ Imagen cargada correctamente para ${result.Book?.title}`)
+                                }}
+                              />
+                            )
+                          } else {
+                            return (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <BookOpen className="h-6 w-6" />
+                              </div>
+                            )
+                          }
+                        })()}
+                      </div>
+
+                      {/* Información del libro */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 truncate">{result.Book?.title}</h4>
+                        <p className="text-sm text-gray-600 truncate">por {result.Book?.author}</p>
+                        <div className="flex items-center text-xs text-gray-500 mt-1">
+                          <span>
+                            {result.User?.first_name} {result.User?.last_name}
+                          </span>
+                          {result.LocationBook && (
+                            <>
+                              <span className="mx-1">•</span>
+                              <span>{result.LocationBook.comuna}</span>
+                            </>
+                          )}
+                          {result.TransactionType && (
+                            <>
+                              <span className="mx-1">•</span>
+                              <span className="capitalize">{result.TransactionType.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Precio si es venta */}
+                      {result.price && (
+                        <div className="text-right">
+                          <span className="text-lg font-semibold text-green-600">
+                            ${Number(result.price).toLocaleString()}
+                          </span>
                         </div>
                       )}
                     </div>
-
-                    {/* Información del libro */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate">{result.Book?.title}</h4>
-                      <p className="text-sm text-gray-600 truncate">por {result.Book?.author}</p>
-                      <div className="flex items-center text-xs text-gray-500 mt-1">
-                        <span>
-                          {result.User?.first_name} {result.User?.last_name}
-                        </span>
-                        {result.LocationBook && (
-                          <>
-                            <span className="mx-1">•</span>
-                            <span>{result.LocationBook.comuna}</span>
-                          </>
-                        )}
-                        {result.TransactionType && (
-                          <>
-                            <span className="mx-1">•</span>
-                            <span className="capitalize">{result.TransactionType.name}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Precio si es venta */}
-                    {result.price && (
-                      <div className="text-right">
-                        <span className="text-lg font-semibold text-green-600">
-                          ${Number(result.price).toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
