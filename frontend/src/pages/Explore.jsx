@@ -17,7 +17,7 @@ export default function Explore() {
     condition_id: "",
     location_id: "",
   })
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(true)
 
   // Datos de referencia para filtros
   const [transactionTypes, setTransactionTypes] = useState([])

@@ -84,7 +84,7 @@ export default function MyPublications() {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Cargando publicaciones...</p>
@@ -94,10 +94,9 @@ export default function MyPublications() {
     }
 
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="mb-8">
             <button
               onClick={() => navigate("/dashboard")}
               className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
@@ -211,8 +210,7 @@ export default function MyPublications() {
             </div>
           )}
         </div>
-      </div>
-    )
+      )
   }
 
   return <DashboardLayout>{renderContent()}</DashboardLayout>

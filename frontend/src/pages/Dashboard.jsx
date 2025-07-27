@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import Filter from "../components/icons/Filter";
 import ArrowRight from "../components/icons/ArrowRight";
 import Search from "../components/icons/Search";
 import BookOpen from "../components/icons/BookOpen";
@@ -268,11 +267,6 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
-
-          <button className="btn btn-secondary flex items-center space-x-2">
-            <Filter className="h-4 w-4" />
-            <span>Filtrar</span>
-          </button>
         </div>
 
         {/* Content Section */}
