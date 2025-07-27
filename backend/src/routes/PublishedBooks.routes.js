@@ -12,6 +12,7 @@ import {
   getUserSwipeHistory,
   updateSwipeInteraction,
   deleteSwipeInteraction,
+  searchPublishedBooks,
 } from "../controllers/PublishedBooks.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import {
@@ -25,6 +26,7 @@ const router = Router();
 
 // Rutas públicas
 router.get("/", getAllPublishedBooks);
+router.get("/search", searchPublishedBooks);
 
 // Rutas protegidas (requieren autenticación) - ANTES de /:id
 router.get(

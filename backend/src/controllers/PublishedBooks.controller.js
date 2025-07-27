@@ -773,3 +773,112 @@ export async function deleteSwipeInteraction(req, res) {
     return error(res, "Error al eliminar interacción", 500)
   }
 }
+
+// Búsqueda de libros publicados
+export async function searchPublishedBooks(req, res) {
+  try {
+    const { q, page = 1, limit = 20 } = req.query
+
+    console.log(`🔍 Búsqueda iniciada: "${q}"`)
+
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({
+        error: "El término de búsqueda debe tener al menos 2 caracteres",
+      })
+    }
+
+    const searchTerm = q.trim()
+    const offset = (page - 1) * limit
+
+    // Buscar primero todos los libros publicados con sus relaciones - AGREGADO PublishedBookImage
+    const allBooks = await PublishedBooks.findAll({
+      include: [
+        {
+          model: Book,
+          include: [
+            {
+              model: Category,
+              as: "Categories",
+              through: { attributes: [] },
+            },
+          ],
+        },
+        {
+          model: User,
+          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          include: [
+            {
+              model: LocationBook,
+              as: "userLocation",
+              attributes: ["location_id", "comuna", "region"],
+            },
+          ],
+        },
+        {
+          model: TransactionType,
+        },
+        {
+          model: BookCondition,
+        },
+        {
+          model: LocationBook,
+        },
+        {
+          model: PublishedBookImage, // AGREGADO PARA LAS IMÁGENES
+          limit: 1,
+          where: { is_primary: true },
+          required: false,
+        },
+      ],
+    })
+
+    // Filtrar en JavaScript para evitar problemas de SQL
+    const searchResults = allBooks.filter((book) => {
+      const bookTitle = book.Book?.title?.toLowerCase() || ""
+      const bookAuthor = book.Book?.author?.toLowerCase() || ""
+      const bookIsbn = book.Book?.isbn?.toLowerCase() || ""
+      const userFirstName = book.User?.first_name?.toLowerCase() || ""
+      const userLastName = book.User?.last_name?.toLowerCase() || ""
+      const userName = book.User?.username?.toLowerCase() || ""
+      const locationComuna = book.LocationBook?.comuna?.toLowerCase() || ""
+      const locationRegion = book.LocationBook?.region?.toLowerCase() || ""
+
+      const searchLower = searchTerm.toLowerCase()
+
+      return (
+        bookTitle.includes(searchLower) ||
+        bookAuthor.includes(searchLower) ||
+        bookIsbn.includes(searchLower) ||
+        userFirstName.includes(searchLower) ||
+        userLastName.includes(searchLower) ||
+        userName.includes(searchLower) ||
+        locationComuna.includes(searchLower) ||
+        locationRegion.includes(searchLower)
+      )
+    })
+
+    // Aplicar paginación
+    const totalResults = searchResults.length
+    const paginatedResults = searchResults.slice(offset, offset + Number.parseInt(limit))
+
+    console.log(`✅ Búsqueda completada: ${totalResults} resultados encontrados`)
+
+    res.json({
+      searchResults: paginatedResults,
+      searchTerm,
+      pagination: {
+        currentPage: Number.parseInt(page),
+        totalPages: Math.ceil(totalResults / limit),
+        totalResults,
+        hasNextPage: offset + Number.parseInt(limit) < totalResults,
+        hasPreviousPage: page > 1,
+      },
+    })
+  } catch (error) {
+    console.error("Error en searchPublishedBooks:", error)
+    res.status(500).json({
+      error: "Error al realizar la búsqueda",
+      details: error.message,
+    })
+  }
+}

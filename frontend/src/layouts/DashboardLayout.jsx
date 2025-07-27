@@ -11,6 +11,7 @@ export default function DashboardLayout({ children }) {
   const { user, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -43,6 +44,11 @@ export default function DashboardLayout({ children }) {
     setSidebarOpen(false);
   };
 
+  // Función para manejar cambios en la búsqueda
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+  };
+
   // Mostrar loading mientras se cargan los datos del usuario
   if (isLoading || !user) {
     return (
@@ -54,7 +60,12 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={user} onToggleSidebar={toggleSidebar} />
+      <DashboardHeader 
+        user={user} 
+        onToggleSidebar={toggleSidebar}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearchChange}
+      />
 
       {/* Overlay para móvil */}
       {sidebarOpen && (
