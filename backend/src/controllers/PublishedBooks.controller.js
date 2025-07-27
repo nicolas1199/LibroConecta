@@ -774,7 +774,7 @@ export async function deleteSwipeInteraction(req, res) {
   }
 }
 
-// Búsqueda simplificada de libros publicados - SOLO MODIFICADA ESTA FUNCIÓN
+// Búsqueda simplificada de libros publicados
 export async function searchPublishedBooks(req, res) {
   try {
     const { q, page = 1, limit = 20 } = req.query
@@ -790,7 +790,7 @@ export async function searchPublishedBooks(req, res) {
     const searchTerm = q.trim()
     const offset = (page - 1) * limit
 
-    // Buscar primero todos los libros publicados con sus relaciones - AGREGADO PublishedBookImage
+    // Buscar primero todos los libros publicados con sus relaciones
     const allBooks = await PublishedBooks.findAll({
       include: [
         {
@@ -824,7 +824,7 @@ export async function searchPublishedBooks(req, res) {
           model: LocationBook,
         },
         {
-          model: PublishedBookImage, // AGREGADO PARA LAS IMÁGENES
+          model: PublishedBookImage,
           limit: 1,
           where: { is_primary: true },
           required: false,
