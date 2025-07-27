@@ -1,82 +1,16 @@
 "use client"
 
 import { Link } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import BookOpen from "../icons/BookOpen"
 import Search from "../icons/Search"
 import Bell from "../icons/Bell"
 import Plus from "../icons/Plus"
 import Menu from "../icons/Menu"
 import NotificationDropdown from "../NotificationDropdown"
-import { getPublishedBooks } from "../../api/publishedBooks"
 
 export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onSearchChange }) {
   const [showNotifications, setShowNotifications] = useState(false)
-  const [searchResults, setSearchResults] = useState([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
-
-  // Debounce search
-  useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      if (searchTerm && searchTerm.trim()) {
-        handleSearch(searchTerm.trim())
-      } else {
-        setSearchResults([])
-        setShowSearchDropdown(false)
-      }
-    }, 500)
-
-    return () => clearTimeout(delayedSearch)
-  }, [searchTerm])
-
-  // Close search dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest(".search-container")) {
-        setShowSearchDropdown(false)
-      }
-    }
-
-    document.addEventListener("click", handleClickOutside)
-    return () => document.removeEventListener("click", handleClickOutside)
-  }, [])
-
-  const handleSearch = async (term) => {
-    if (!term.trim()) return
-
-    setIsSearching(true)
-    setShowSearchDropdown(true)
-
-    try {
-      const response = await getPublishedBooks({
-        search: term,
-        limit: 10,
-      })
-
-      console.log("Search response:", response)
-      setSearchResults(response.publishedBooks || [])
-    } catch (error) {
-      console.error("Error searching books:", error)
-      setSearchResults([])
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const handleSearchResultClick = () => {
-    setShowSearchDropdown(false)
-    onSearchChange("")
-  }
-
-  const handleInputChange = (e) => {
-    const value = e.target.value
-    onSearchChange(value)
-    if (!value.trim()) {
-      setSearchResults([])
-      setShowSearchDropdown(false)
-    }
-  }
 
   return (
     <header className="dashboard-header">
@@ -102,78 +36,15 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
         </div>
 
         {/* Search Bar */}
-        <div className="search-container mx-8 relative">
+        <div className="search-container mx-8">
           <Search className="search-icon h-4 w-4" />
           <input
             type="text"
             placeholder="Buscar libros, autores, usuarios..."
             className="search-input"
             value={searchTerm}
-            onChange={handleInputChange}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
-
-          {/* Search Results Dropdown */}
-          {showSearchDropdown && (
-            <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50">
-              {isSearching ? (
-                <div className="p-4 text-center text-gray-500">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  Buscando...
-                </div>
-              ) : searchResults.length > 0 ? (
-                <>
-                  <div className="p-3 border-b border-gray-100 text-sm text-gray-600">
-                    {searchResults.length} resultados encontrados
-                  </div>
-                  {searchResults.map((book) => (
-                    <Link
-                      key={book.published_book_id}
-                      to={`/dashboard/book/${book.published_book_id}`}
-                      className="block p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                      onClick={handleSearchResultClick}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                          {book.PublishedBookImages && book.PublishedBookImages.length > 0 ? (
-                            <img
-                              src={book.PublishedBookImages[0].image_url || book.PublishedBookImages[0].image_base64}
-                              alt={book.Book?.title || "Libro"}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.src = "/images/book-placeholder.png"
-                              }}
-                            />
-                          ) : (
-                            <img
-                              src="/images/book-placeholder.png"
-                              alt="Libro"
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 truncate">
-                            {book.Book?.title || "Título no disponible"}
-                          </h4>
-                          <p className="text-sm text-gray-500 truncate">
-                            Autor: {book.Book?.author || "Autor desconocido"}
-                          </p>
-                          <p className="text-sm text-gray-500 truncate">
-                            Por: {book.User?.first_name} {book.User?.last_name}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-blue-600">${book.price || "0.00"}</p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </>
-              ) : searchTerm.trim() ? (
-                <div className="p-4 text-center text-gray-500">No se encontraron libros para "{searchTerm}"</div>
-              ) : null}
-            </div>
-          )}
         </div>
 
         {/* Actions */}
