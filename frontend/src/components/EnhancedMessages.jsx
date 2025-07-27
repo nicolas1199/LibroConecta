@@ -48,6 +48,11 @@ export default function EnhancedMessages() {
     scrollToBottom();
   }, [messages]);
 
+  // Debug: Monitorear cambios en showRatingModal
+  useEffect(() => {
+    console.log("🔍 showRatingModal cambió a:", showRatingModal);
+  }, [showRatingModal]);
+
   const loadConversations = async () => {
     try {
       const response = await getConversations();
@@ -171,6 +176,7 @@ export default function EnhancedMessages() {
   const handleCompleteExchange = async () => {
     try {
       console.log("🎯 Iniciando completar intercambio...");
+      console.log("📊 Estado actual - showRatingModal:", showRatingModal);
       
       await completeExchange(selectedConversation.match_id);
       console.log("✅ Intercambio completado exitosamente");
@@ -185,8 +191,15 @@ export default function EnhancedMessages() {
       // Mostrar modal de calificación después de completar
       setTimeout(() => {
         console.log("🎭 Timer ejecutado - Mostrando modal de calificación");
+        console.log("📊 Estado antes de setShowRatingModal(true):", showRatingModal);
         setShowRatingModal(true);
+        console.log("📊 Estado después de setShowRatingModal(true):", true);
         setDebugInfo("Modal debería estar visible ahora");
+        
+        // Verificar que el estado se actualizó correctamente
+        setTimeout(() => {
+          console.log("🔍 Verificación - showRatingModal debería ser true ahora");
+        }, 100);
       }, 1000); // Mostrar después de 1 segundo
       
       // Recargar información del intercambio
@@ -509,16 +522,10 @@ export default function EnhancedMessages() {
       </div>
 
       {/* Modal de Calificación */}
-      {(() => {
-        console.log("🎭 Evaluando showRatingModal:", showRatingModal);
-        return showRatingModal;
-      })() && (
+      {showRatingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            {(() => {
-              console.log("🎭 Modal renderizado correctamente");
-              return null;
-            })()}
+            {console.log("🎭 Modal renderizado correctamente")}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 ¡Intercambio Completado! 🎉
