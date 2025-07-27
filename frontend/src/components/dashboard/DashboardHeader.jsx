@@ -1,82 +1,72 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Outlet, useNavigate } from "react-router-dom"
-import { styled } from "@mui/material/styles"
-import { Box, CssBaseline } from "@mui/material"
+import { Link } from "react-router-dom"
+import { useState } from "react"
+import BookOpen from "../icons/BookOpen"
+import Search from "../icons/Search"
+import Bell from "../icons/Bell"
+import Plus from "../icons/Plus"
+import Menu from "../icons/Menu"
+import NotificationDropdown from "../NotificationDropdown"
 
-import DashboardHeader from "./DashboardHeader"
-import DashboardSidebar from "./DashboardSidebar"
-import useAuth from "../hooks/useAuth"
-
-const drawerWidth = 240
-
-const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(({ theme, open }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  transition: theme.transitions.create("margin", {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  marginLeft: `-${drawerWidth}px`,
-  ...(open && {
-    transition: theme.transitions.create("margin", {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    marginLeft: 0,
-  }),
-}))
-
-const AppBarOffset = styled("div")(({ theme }) => theme.mixins.toolbar)
-
-export default function DashboardLayout({ children, searchTerm, onSearchChange }) {
-  const [open, setOpen] = useState(false)
-  const { auth } = useAuth()
-  const navigate = useNavigate()
-  const [user, setUser] = useState(null)
-
-  useEffect(() => {
-    if (auth?.user) {
-      setUser(auth.user)
-    } else {
-      setUser(null)
-    }
-  }, [auth])
-
-  useEffect(() => {
-    if (!auth?.token) {
-      navigate("/login", { replace: true })
-    }
-  }, [auth, navigate])
-
-  const handleDrawerOpen = () => {
-    setOpen(true)
-  }
-
-  const handleDrawerClose = () => {
-    setOpen(false)
-  }
-
-  const toggleSidebar = () => {
-    setOpen(!open)
-  }
+export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onSearchChange }) {
+  const [showNotifications, setShowNotifications] = useState(false)
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
-      <DashboardHeader
-        user={user}
-        onToggleSidebar={toggleSidebar}
-        searchTerm={searchTerm}
-        onSearchChange={onSearchChange}
-      />
-      <DashboardSidebar open={open} handleDrawerClose={handleDrawerClose} />
-      <Main open={open}>
-        <AppBarOffset />
-        {children}
-        <Outlet />
-      </Main>
-    </Box>
+    <header className="dashboard-header">
+      <div className="flex items-center justify-between h-full">
+        {/* Lado izquierdo - Botón de menú móvil y Logo */}
+        <div className="flex items-center space-x-3">
+          {/* Botón de menú móvil */}
+          <button
+            onClick={onToggleSidebar}
+            className="lg:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+
+          {/* Logo */}
+          <Link to="/dashboard" className="flex items-center space-x-3">
+            <BookOpen className="h-8 w-8 text-blue-600" />
+            <div className="hidden sm:block">
+              <span className="text-xl font-bold text-gray-900">LibroConecta</span>
+              <p className="text-xs text-gray-500 leading-none">Tu biblioteca conectada</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Search Bar */}
+        <div className="search-container mx-8">
+          <Search className="search-icon h-4 w-4" />
+          <input
+            type="text"
+            placeholder="Buscar libros, autores, usuarios..."
+            className="search-input"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center space-x-4">
+          <Link to="/dashboard/publish" className="btn btn-primary flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>Publicar</span>
+          </Link>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="notification-badge">2</span>
+            </button>
+
+            <NotificationDropdown isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+          </div>
+        </div>
+      </div>
+    </header>
   )
 }
