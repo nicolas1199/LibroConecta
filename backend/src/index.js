@@ -1,10 +1,10 @@
 import "./config/configEnv.js";
 import express from "express";
 
-console.log('🚀 SERVIDOR INICIANDO...');
-console.log('🚀 PUERTO:', process.env.PORT);
-console.log('🚀 NODE_ENV:', process.env.NODE_ENV);
-console.log('🚀 MODO:', process.env.NODE_ENV || 'development');
+console.log("🚀 SERVIDOR INICIANDO...");
+console.log("🚀 PUERTO:", process.env.PORT);
+console.log("🚀 NODE_ENV:", process.env.NODE_ENV);
+console.log("🚀 MODO:", process.env.NODE_ENV || "development");
 
 // Remover la modificación de console.log que está causando el error
 
@@ -17,23 +17,7 @@ import errorHandler from "./middlewares/errorhandler.middleware.js";
 
 import { PORT } from "./config/configEnv.js";
 import { connectDB, syncDB } from "./config/configDb.js";
-import indexRoutes from "./routes/index.routes.js";
-import AuthRoutes from "./routes/Auth.routes.js";
-import UserRoutes from "./routes/User.routes.js";
-import BookRoutes from "./routes/Book.routes.js";
-import CategoryRoutes from "./routes/Category.routes.js";
-import BookConditionRoutes from "./routes/BookCondition.routes.js";
-import TransactionTypeRoutes from "./routes/TransactionType.routes.js";
-import LocationBookRoutes from "./routes/LocationBook.routes.js";
-import PublishedBooksRoutes from "./routes/PublishedBooks.routes.js";
-import PublishedBookImageRoutes from "./routes/PublishedBookImage.routes.js";
-import MatchRoutes from "./routes/Match.routes.js";
-import MessageRoutes from "./routes/Message.routes.js";
-import RatingRoutes from "./routes/Rating.routes.js";
-import UserLibraryRoutes from "./routes/UserLibrary.routes.js";
-import UserBookRoutes from "./routes/UserBook.routes.js";
-import PaymentRoutes from "./routes/Payment.routes.js";
-import ChatRequestRoutes from "./routes/ChatRequest.routes.js";
+import apiRoutes from "./routes/index.routes.js";
 
 async function setupServer() {
   const app = express();
@@ -66,23 +50,8 @@ async function setupServer() {
     );
   }
 
-  // Rutas de la API
-  app.use("/api/auth", AuthRoutes);
-  app.use("/api/users", UserRoutes);
-  app.use("/api/books", BookRoutes);
-  app.use("/api/categories", CategoryRoutes);
-  app.use("/api/book-conditions", BookConditionRoutes);
-  app.use("/api/transaction-types", TransactionTypeRoutes);
-  app.use("/api/locations", LocationBookRoutes);
-  app.use("/api/published-books", PublishedBooksRoutes);
-  app.use("/api/published-book-images", PublishedBookImageRoutes);
-  app.use("/api/matches", MatchRoutes);
-  app.use("/api/messages", MessageRoutes);
-  app.use("/api/ratings", RatingRoutes);
-  app.use("/api/user-library", UserLibraryRoutes);
-  app.use("/api/user-books", UserBookRoutes);
-  app.use("/api/payments", PaymentRoutes);
-  app.use("/api/chat-requests", ChatRequestRoutes);
+  // Ruta de las API
+  app.use("/api", apiRoutes);
 
   // Error handler middleware (debe ir después de todas las rutas)
   app.use(errorHandler);
