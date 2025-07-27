@@ -12,7 +12,6 @@ import {
   getUserSwipeHistory,
   updateSwipeInteraction,
   deleteSwipeInteraction,
-  searchPublishedBooks,
 } from "../controllers/PublishedBooks.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import {
@@ -25,11 +24,7 @@ import { validateUUIDParam } from "../utils/uuid.util.js";
 const router = Router();
 
 // Rutas públicas
-router.get("/", getAllPublishedBooks)
-router.get("/search", searchPublishedBooks) // Ruta de búsqueda
-router.get("/:id", getPublishedBookById)
-router.get("/user/:userId", getPublishedBooksByUser)
-
+router.get("/", getAllPublishedBooks);
 
 // Rutas protegidas (requieren autenticación) - ANTES de /:id
 router.get(
