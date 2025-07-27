@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { getPublishedBooks } from "../api/publishedBooks"
+import { getPublishedBookById } from "../api/publishedBooks"
 import MapPin from "../components/icons/MapPin"
 import Star from "../components/icons/Star"
 import MessageCircle from "../components/icons/MessageCircle"
@@ -24,14 +24,12 @@ export default function BookDetails() {
     const loadBook = async () => {
       try {
         setLoading(true)
-        // Obtener el libro específico
- const response = await getPublishedBooks({
-  published_book_id: bookId,
-})
-
-        if (response.publishedBooks && response.publishedBooks.length > 0) {
-          console.log("Libro cargado:", response.publishedBooks[0])
-          setBook(response.publishedBooks[0])
+        // Obtener el libro específico por ID
+        const response = await getPublishedBookById(bookId)
+        
+        if (response) {
+          console.log("Libro cargado:", response)
+          setBook(response)
         } else {
           setError("Libro no encontrado")
         }
