@@ -774,7 +774,7 @@ export async function deleteSwipeInteraction(req, res) {
   }
 }
 
-// Búsqueda avanzada de libros publicados
+// Búsqueda avanzada de libros publicados - CORREGIDA
 export async function searchPublishedBooks(req, res) {
   try {
     const {
@@ -797,10 +797,8 @@ export async function searchPublishedBooks(req, res) {
 
     console.log(`🔍 Búsqueda iniciada: "${searchTerm}"`)
 
-    // Construir condiciones WHERE base
-    const whereConditions = {
-      status: { [Op.in]: ["available", "reserved"] },
-    }
+    // Construir condiciones WHERE base para PublishedBooks
+    const whereConditions = {}
 
     // Aplicar filtros adicionales si se proporcionan
     if (transaction_type_id) whereConditions.transaction_type_id = transaction_type_id
@@ -819,6 +817,7 @@ export async function searchPublishedBooks(req, res) {
               { isbn: { [Op.iLike]: `%${searchTerm}%` } },
             ],
           },
+          required: false, // LEFT JOIN para incluir libros aunque no coincidan
           include: [
             {
               model: Category,
@@ -837,6 +836,7 @@ export async function searchPublishedBooks(req, res) {
             ],
           },
           attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          required: false, // LEFT JOIN para incluir usuarios aunque no coincidan
           include: [
             {
               model: LocationBook,
@@ -844,7 +844,6 @@ export async function searchPublishedBooks(req, res) {
               attributes: ["location_id", "comuna", "region"],
             },
           ],
-          required: false,
         },
         {
           model: TransactionType,
@@ -854,12 +853,10 @@ export async function searchPublishedBooks(req, res) {
         },
         {
           model: LocationBook,
-          where: searchTerm
-            ? {
-                [Op.or]: [{ comuna: { [Op.iLike]: `%${searchTerm}%` } }, { region: { [Op.iLike]: `%${searchTerm}%` } }],
-              }
-            : undefined,
-          required: false,
+          where: {
+            [Op.or]: [{ comuna: { [Op.iLike]: `%${searchTerm}%` } }, { region: { [Op.iLike]: `%${searchTerm}%` } }],
+          },
+          required: false, // LEFT JOIN para incluir ubicaciones aunque no coincidan
         },
         {
           model: PublishedBookImage,
@@ -868,11 +865,7 @@ export async function searchPublishedBooks(req, res) {
           required: false,
         },
       ],
-      order: [
-        // Priorizar coincidencias exactas en título
-        [fn("CASE"), fn("LOWER", col("Book.title")), "LIKE", `%${searchTerm.toLowerCase()}%`, 1, 2],
-        ["date_published", "DESC"],
-      ],
+      order: [["date_published", "DESC"]],
       limit: Number.parseInt(limit),
       offset: offset,
       distinct: true,
