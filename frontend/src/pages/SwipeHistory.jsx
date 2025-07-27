@@ -336,8 +336,13 @@ function HistoryCard({ interaction, onChangeInteraction, onDeleteInteraction }) 
   const { PublishedBook } = interaction;
   const { Book: book, User: user, PublishedBookImages: images = [] } = PublishedBook;
   
+  const [imageError, setImageError] = useState(false);
+  
   const primaryImage = images.find(img => img.is_primary) || images[0];
-  const imageUrl = primaryImage?.image_url || "/api/placeholder/300/200";
+  const imageUrl = imageError ? "/api/placeholder/300/200" :
+                   primaryImage?.image_data ||          // Usar image_data (base64) como prioridad
+                   primaryImage?.image_url ||            // Fallback a image_url
+                   "/api/placeholder/300/200";          // Fallback final
   
   const currentType = INTERACTION_TYPES[interaction.interaction_type];
   const date = new Date(interaction.created_at).toLocaleDateString();
@@ -354,7 +359,12 @@ function HistoryCard({ interaction, onChangeInteraction, onDeleteInteraction }) 
         <img
           src={imageUrl}
           alt={book.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover image-render-crisp"
+          style={{
+            imageRendering: 'optimize-contrast',
+            msInterpolationMode: 'nearest-neighbor'
+          }}
+          onError={() => setImageError(true)}
         />
         <div className={`absolute top-3 right-3 bg-${currentType.color}-500 text-white px-3 py-1 rounded-full text-sm font-medium`}>
           {currentType.label}

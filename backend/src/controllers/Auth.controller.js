@@ -170,6 +170,8 @@ export const login = async (req, res) => {
         location_id: user.get("location_id"),
         location: user.userLocation,
         user_type_id: user.get("user_type_id"),
+        profile_image_base64: user.get("profile_image_base64"),
+        biography: user.get("biography"),
       },
     });
   } catch (err) {
