@@ -26,9 +26,9 @@ export async function getAllPublishedBooks(req, res) {
     if (location_id) whereConditions.location_id = location_id
     if (min_price) whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price }
     if (max_price) whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price }
-    
+
     // 🚀 NUEVO: Solo mostrar libros disponibles (no vendidos)
-    whereConditions.status = { [Op.in]: ['available', 'reserved'] }
+    whereConditions.status = { [Op.in]: ["available", "reserved"] }
 
     const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
       where: whereConditions,
@@ -771,5 +771,131 @@ export async function deleteSwipeInteraction(req, res) {
   } catch (err) {
     console.error("Error en deleteSwipeInteraction:", err)
     return error(res, "Error al eliminar interacción", 500)
+  }
+}
+
+// Búsqueda avanzada de libros publicados
+export async function searchPublishedBooks(req, res) {
+  try {
+    const {
+      q, // término de búsqueda general
+      page = 1,
+      limit = 20,
+      transaction_type_id,
+      condition_id,
+      location_id,
+    } = req.query
+
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({
+        error: "El término de búsqueda debe tener al menos 2 caracteres",
+      })
+    }
+
+    const searchTerm = q.trim()
+    const offset = (page - 1) * limit
+
+    console.log(`🔍 Búsqueda iniciada: "${searchTerm}"`)
+
+    // Construir condiciones WHERE base
+    const whereConditions = {
+      status: { [Op.in]: ["available", "reserved"] },
+    }
+
+    // Aplicar filtros adicionales si se proporcionan
+    if (transaction_type_id) whereConditions.transaction_type_id = transaction_type_id
+    if (condition_id) whereConditions.condition_id = condition_id
+    if (location_id) whereConditions.location_id = location_id
+
+    const { count, rows: searchResults } = await PublishedBooks.findAndCountAll({
+      where: whereConditions,
+      include: [
+        {
+          model: Book,
+          where: {
+            [Op.or]: [
+              { title: { [Op.iLike]: `%${searchTerm}%` } },
+              { author: { [Op.iLike]: `%${searchTerm}%` } },
+              { isbn: { [Op.iLike]: `%${searchTerm}%` } },
+            ],
+          },
+          include: [
+            {
+              model: Category,
+              as: "Categories",
+              through: { attributes: [] },
+            },
+          ],
+        },
+        {
+          model: User,
+          where: {
+            [Op.or]: [
+              { first_name: { [Op.iLike]: `%${searchTerm}%` } },
+              { last_name: { [Op.iLike]: `%${searchTerm}%` } },
+              { username: { [Op.iLike]: `%${searchTerm}%` } },
+            ],
+          },
+          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          include: [
+            {
+              model: LocationBook,
+              as: "userLocation",
+              attributes: ["location_id", "comuna", "region"],
+            },
+          ],
+          required: false,
+        },
+        {
+          model: TransactionType,
+        },
+        {
+          model: BookCondition,
+        },
+        {
+          model: LocationBook,
+          where: searchTerm
+            ? {
+                [Op.or]: [{ comuna: { [Op.iLike]: `%${searchTerm}%` } }, { region: { [Op.iLike]: `%${searchTerm}%` } }],
+              }
+            : undefined,
+          required: false,
+        },
+        {
+          model: PublishedBookImage,
+          limit: 1,
+          where: { is_primary: true },
+          required: false,
+        },
+      ],
+      order: [
+        // Priorizar coincidencias exactas en título
+        [fn("CASE"), fn("LOWER", col("Book.title")), "LIKE", `%${searchTerm.toLowerCase()}%`, 1, 2],
+        ["date_published", "DESC"],
+      ],
+      limit: Number.parseInt(limit),
+      offset: offset,
+      distinct: true,
+    })
+
+    console.log(`✅ Búsqueda completada: ${count} resultados encontrados`)
+
+    res.json({
+      searchResults,
+      searchTerm,
+      pagination: {
+        currentPage: Number.parseInt(page),
+        totalPages: Math.ceil(count / limit),
+        totalResults: count,
+        hasNextPage: page * limit < count,
+        hasPreviousPage: page > 1,
+      },
+    })
+  } catch (error) {
+    console.error("Error en searchPublishedBooks:", error)
+    res.status(500).json({
+      error: "Error al realizar la búsqueda",
+      details: error.message,
+    })
   }
 }
