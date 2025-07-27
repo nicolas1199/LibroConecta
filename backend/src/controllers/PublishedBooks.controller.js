@@ -11,6 +11,7 @@ import {
 } from "../db/modelIndex.js"
 import { Op, fn, col } from "sequelize"
 import { success, error } from "../utils/responses.util.js"
+import { checkAndCreateAutoMatch, getAutoMatchStats, getUserAutoMatches } from "../services/AutoMatch.service.js"
 
 // Obtener todos los libros publicados con filtros
 export async function getAllPublishedBooks(req, res) {
@@ -456,120 +457,213 @@ export async function deletePublishedBook(req, res) {
   }
 }
 
-// Obtener recomendaciones inteligentes para swipe
+// Algoritmo inteligente de recomendaciones para sistema de swipe
+// FLUJO DE DATOS:
+// 1. Recibe solicitud del frontend con cantidad de libros deseados
+// 2. Consulta UserPublishedBookInteraction para obtener libros ya evaluados por el usuario
+// 3. Construye filtros para excluir: propios libros + libros ya swipeados
+// 4. Cuenta cuántos libros están realmente disponibles
+// 5. Calcula límite real (menor entre solicitado y disponible)
+// 6. Obtiene libros con joins completos para mostrar información rica
+// 7. Filtra duplicados por seguridad
+// 8. Retorna libros únicos con metadata de paginación
 export async function getRecommendations(req, res) {
   try {
-    const { user_id } = req.user
-    const { limit = 20 } = req.query
+    // Extracción de datos de entrada
+    const { user_id } = req.user // Usuario autenticado desde middleware auth
+    const { limit = 20 } = req.query // Cantidad solicitada de libros (default: 20)
+    const requestedLimit = Number.parseInt(limit)
 
-    console.log(`🔍 Obteniendo recomendaciones para usuario: ${user_id}`)
+    console.log(`Obteniendo ${requestedLimit} recomendaciones para usuario: ${user_id}`)
 
-    // Obtener los IDs de libros publicados que el usuario ya evaluó
+    // PASO 1: Obtener historial de interacciones del usuario
+    // Consulta tabla UserPublishedBookInteraction para conocer qué libros ya evaluó
     const interactedBooks = await UserPublishedBookInteraction.findAll({
       where: { user_id },
-      attributes: ["published_book_id"],
-      raw: true,
+      attributes: ["published_book_id"], // Solo IDs para optimizar consulta
+      raw: true, // Retorna objetos planos en lugar de instancias Sequelize
     })
 
+    // Extraer array de IDs de libros ya evaluados
     const interactedBookIds = interactedBooks.map((interaction) => interaction.published_book_id)
 
-    console.log(`📚 Libros ya evaluados por el usuario: [${interactedBookIds.join(", ")}]`)
+    console.log(`Libros ya evaluados: ${interactedBookIds.length}`)
 
-    // Construir condiciones WHERE para excluir libros ya evaluados
+    // PASO 2: Construir filtros de exclusión
+    // Excluir libros del propio usuario y libros ya evaluados
     const whereConditions = {
-      user_id: { [Op.ne]: user_id }, // No mostrar los propios libros
+      user_id: { [Op.ne]: user_id }, // Operador "not equal" - excluir propios libros
     }
 
+    // PASO 3: Añadir filtro de libros ya evaluados si existen
+    // Solo aplicar filtro si el usuario ha interactuado con algún libro
     if (interactedBookIds.length > 0) {
-      whereConditions.published_book_id = { [Op.notIn]: interactedBookIds }
+      whereConditions.published_book_id = { [Op.notIn]: interactedBookIds } // Excluir libros ya swipeados
     }
 
-    console.log(`🎯 Condiciones WHERE:`, whereConditions)
+    // PASO 4: Análisis de disponibilidad
+    // Contar cuántos libros están realmente disponibles con los filtros aplicados
+    const availableCount = await PublishedBooks.count({
+      where: whereConditions
+    })
 
+    console.log(`Libros disponibles para swipe: ${availableCount}`)
+
+    // PASO 5: Manejo de caso sin libros disponibles
+    // Si no hay libros disponibles, informar al usuario que ya revisó todo
+    if (availableCount === 0) {
+      console.log(`No hay más libros para mostrar al usuario ${user_id}`)
+      return success(res, [], "Has revisado todos los libros disponibles")
+    }
+
+    // PASO 6: Cálculo inteligente del límite
+    // Determinar cuántos libros solicitar (el menor entre lo pedido y lo disponible)
+    // Esto evita solicitar más libros de los que existen
+    const actualLimit = Math.min(requestedLimit, availableCount)
+    console.log(`Solicitando ${actualLimit} libros (pedidos: ${requestedLimit}, disponibles: ${availableCount})`)
+
+    // PASO 7: Consulta principal con joins completos
+    // Obtener libros con toda la información necesaria para el frontend
     const recommendations = await PublishedBooks.findAll({
-      where: whereConditions,
+      where: whereConditions, // Aplicar filtros de exclusión
       include: [
         {
+          // Información del libro base (título, autor, etc.)
           model: Book,
           include: [
             {
+              // Categorías del libro (géneros)
               model: Category,
               as: "Categories",
-              through: { attributes: [] },
+              through: { attributes: [] }, // Excluir atributos de tabla intermedia
             },
           ],
         },
         {
+          // Información del usuario propietario del libro
           model: User,
           attributes: ["user_id", "first_name", "last_name", "email"],
         },
         {
+          // Tipo de transacción (venta, intercambio, regalo)
           model: TransactionType,
         },
         {
+          // Estado del libro (nuevo, usado, etc.)
           model: BookCondition,
         },
         {
+          // Ubicación del libro
           model: LocationBook,
         },
         {
+          // Imágenes del libro publicado
           model: PublishedBookImage,
         },
       ],
       order: [
-        // Priorizar libros recién publicados
+        // ALGORITMO DE ORDENAMIENTO:
+        // 1. Priorizar libros recién publicados (más recientes primero)
         ["date_published", "DESC"],
-        // Ordenar aleatoriamente para diversidad
+        // 2. Añadir aleatoriedad para diversidad en recomendaciones
         [fn("RANDOM")],
       ],
-      limit: Number.parseInt(limit),
+      limit: actualLimit, // Usar el límite calculado exacto (no más de lo necesario)
+      distinct: true, // Asegurar resultados únicos a nivel de base de datos
     })
 
-    console.log(`✅ Recomendaciones encontradas: ${recommendations.length}`)
-    console.log(`📋 IDs de libros recomendados: [${recommendations.map((r) => r.published_book_id).join(", ")}]`)
+    // PASO 8: Filtrado de duplicados adicional (capa de seguridad)
+    // Filtrar duplicados por published_book_id como precaución adicional
+    const uniqueRecommendations = recommendations
+      .filter((book, index, self) => 
+        index === self.findIndex(b => b.published_book_id === book.published_book_id)
+      )
 
-    // Si no hay más libros para mostrar, enviar mensaje específico
-    if (recommendations.length === 0) {
-      console.log(`🎯 No hay más libros para mostrar al usuario ${user_id}`)
+    // PASO 9: Logging y debugging
+    console.log(`Recomendaciones encontradas: ${recommendations.length}`)
+    console.log(`Recomendaciones únicas después de filtrar: ${uniqueRecommendations.length}`)
+    console.log(`IDs de libros recomendados: [${uniqueRecommendations.map((r) => r.published_book_id).join(", ")}]`)
+
+    // PASO 10: Detección de duplicados para debugging
+    // Identificar y reportar cualquier duplicado encontrado
+    const duplicates = recommendations.filter((book, index, self) => 
+      self.findIndex(b => b.published_book_id === book.published_book_id) !== index
+    )
+    
+    if (duplicates.length > 0) {
+      console.warn(`Se encontraron ${duplicates.length} libros duplicados:`)
+      duplicates.forEach(book => {
+        console.warn(`   - ID: ${book.published_book_id}, Título: ${book.Book?.title || 'N/A'}`)
+      })
+    }
+
+    // PASO 11: Validación de resultado vacío
+    // Si no hay libros para mostrar, enviar mensaje específico
+    if (uniqueRecommendations.length === 0) {
+      console.log(`No hay más libros para mostrar al usuario ${user_id}`)
       return success(res, [], "Has revisado todos los libros disponibles")
     }
 
-    return success(res, recommendations, `${recommendations.length} recomendaciones encontradas`)
+    // PASO 12: Respuesta final con metadata
+    console.log(`Algoritmo de recomendaciones completado:`)
+    console.log(`   Libros solicitados: ${requestedLimit}`)
+    console.log(`   Libros disponibles: ${availableCount}`)
+    console.log(`   Libros entregados: ${uniqueRecommendations.length}`)
+
+    // RETORNO DE DATOS AL FRONTEND:
+    // - data: Array de libros recomendados con información completa
+    // - message: Mensaje informativo sobre el resultado
+    // El frontend usará estos datos para renderizar las tarjetas de swipe
+    return success(res, uniqueRecommendations, 
+      availableCount < requestedLimit 
+        ? `Se encontraron ${availableCount} libros disponibles de ${requestedLimit} solicitados`
+        : `${uniqueRecommendations.length} recomendaciones encontradas`
+    )
   } catch (err) {
     console.error("Error en getRecommendations:", err)
     return error(res, "Error al obtener recomendaciones", 500)
   }
 }
 
-// Registrar interacción del usuario con un libro publicado (swipe)
+// Sistema de registro de interacciones de swipe con detección automática de matches
+// FLUJO DE DATOS:
+// 1. Recibe interacción del frontend (like/dislike + published_book_id)
+// 2. Valida datos y existencia del libro
+// 3. Busca/crea/actualiza registro en UserPublishedBookInteraction
+// 4. Si es LIKE: verifica automáticamente si hay match mutuo
+// 5. Si hay match mutuo: crea registro en tabla Match
+// 6. Retorna resultado con información de auto-match si aplicable
 export async function recordInteraction(req, res) {
   try {
-    const { user_id } = req.user
-    const { published_book_id, interaction_type } = req.body
+    // Extracción de datos de entrada
+    const { user_id } = req.user // Usuario autenticado desde middleware
+    const { published_book_id, interaction_type } = req.body // Datos del swipe
 
-    // Validar datos
+    // PASO 1: Validación de datos de entrada
     if (!published_book_id || !interaction_type) {
       return error(res, "published_book_id e interaction_type son requeridos", 400)
     }
 
-    if (!["like", "dislike", "super_like"].includes(interaction_type)) {
-      return error(res, "interaction_type debe ser: like, dislike o super_like", 400)
+    if (!["like", "dislike"].includes(interaction_type)) {
+      return error(res, "interaction_type debe ser: like o dislike", 400)
     }
 
-    // Verificar que el libro publicado existe
+    // PASO 2: Verificación de existencia del libro
     const publishedBook = await PublishedBooks.findByPk(published_book_id)
     if (!publishedBook) {
       return error(res, "Libro publicado no encontrado", 404)
     }
 
-    // Verificar que no es su propio libro
+    // PASO 3: Verificación de que no es su propio libro
+    // Los usuarios no pueden hacer swipe en sus propios libros
     if (publishedBook.user_id === user_id) {
       return error(res, "No puedes interactuar con tus propios libros", 400)
     }
 
-    console.log(`👆 Registrando interacción: usuario ${user_id}, libro ${published_book_id}, tipo: ${interaction_type}`)
+    console.log(`Registrando interacción: usuario ${user_id}, libro ${published_book_id}, tipo: ${interaction_type}`)
 
-    // Buscar si ya existe una interacción
+    // PASO 4: Buscar interacción existente
+    // Verificar si el usuario ya interactuó con este libro previamente
     let interaction = await UserPublishedBookInteraction.findOne({
       where: {
         user_id,
@@ -579,14 +673,16 @@ export async function recordInteraction(req, res) {
 
     let message
     if (interaction) {
-      // Si ya existe, actualizar el tipo de interacción
-      console.log(`🔄 Actualizando interacción existente: ${interaction.interaction_type} → ${interaction_type}`)
+      // CASO A: Actualización de interacción existente
+      // El usuario ya había swipeado este libro, cambiar su decisión
+      console.log(`Actualizando interacción existente: ${interaction.interaction_type} → ${interaction_type}`)
       interaction.interaction_type = interaction_type
       await interaction.save()
       message = "Interacción actualizada"
     } else {
-      // Si no existe, crear nueva interacción
-      console.log(`✨ Creando nueva interacción`)
+      // CASO B: Nueva interacción
+      // Primera vez que el usuario interactúa con este libro
+      console.log(`Creando nueva interacción`)
       interaction = await UserPublishedBookInteraction.create({
         user_id,
         published_book_id,
@@ -595,38 +691,92 @@ export async function recordInteraction(req, res) {
       message = "Interacción registrada"
     }
 
-    console.log(`✅ Interacción ${message.toLowerCase()}: ID ${interaction.interaction_id}`)
+    console.log(`Interacción ${message.toLowerCase()}: ID ${interaction.interaction_id}`)
 
-    return success(res, interaction, message)
+    // PASO 5: SISTEMA DE AUTO-MATCH
+    // Verificar auto-match solo si la interacción es un LIKE
+    let autoMatchResult = null;
+    if (interaction_type === "like") {
+      console.log(`Es un LIKE! Verificando posibles auto-matches...`);
+      try {
+        // Llamar al servicio de auto-match para verificar reciprocidad
+        // FLUJO DEL AUTO-MATCH:
+        // 1. Busca si el dueño del libro también le dio LIKE a algún libro del usuario actual
+        // 2. Si encuentra reciprocidad, crea un Match automático
+        // 3. Retorna información del match creado
+        autoMatchResult = await checkAndCreateAutoMatch(user_id, published_book_id);
+        if (autoMatchResult.success) {
+          console.log(`AUTO-MATCH CREADO! ${autoMatchResult.message}`);
+        } else {
+          console.log(`No se creó auto-match: ${autoMatchResult.message}`);
+        }
+      } catch (autoMatchError) {
+        console.error("Error verificando auto-match:", autoMatchError);
+        // No fallar la interacción principal si hay error en auto-match
+        // El swipe se registra exitosamente aunque falle la detección de match
+      }
+    }
+
+    // PASO 6: Preparación de respuesta
+    // Estructurar datos de respuesta incluyendo información de auto-match
+    const responseData = {
+      interaction, // Datos de la interacción registrada
+      autoMatch: autoMatchResult?.success ? {
+        // Si se creó un auto-match, incluir información completa
+        created: true,
+        match: autoMatchResult.match, // Datos del match creado
+        trigger_info: autoMatchResult.trigger_info, // Info sobre qué libros causaron el match
+      } : {
+        // Si no se creó auto-match, indicar por qué
+        created: false,
+        reason: autoMatchResult?.message || "No aplicable",
+      }
+    };
+
+    // RETORNO AL FRONTEND:
+    // El frontend recibe tanto la confirmación del swipe como información de auto-match
+    // Si hay auto-match, el frontend puede mostrar notificación inmediata
+    return success(res, responseData, message)
   } catch (err) {
     console.error("Error en recordInteraction:", err)
     return error(res, "Error al registrar interacción", 500)
   }
 }
 
-// Obtener estadísticas de interacciones del usuario
+// Obtener estadísticas globales de interacciones del usuario
+// FLUJO DE DATOS:
+// 1. Recibe user_id desde middleware de autenticación
+// 2. Consulta tabla UserPublishedBookInteraction agrupando por tipo
+// 3. Cuenta likes, dislikes y total de interacciones
+// 4. Retorna estadísticas formateadas para frontend
 export async function getUserInteractionStats(req, res) {
   try {
-    const { user_id } = req.user
+    const { user_id } = req.user // Usuario autenticado
 
+    // CONSULTA: Contar interacciones agrupadas por tipo
+    // Usando GROUP BY para obtener conteos por interaction_type
     const stats = await UserPublishedBookInteraction.findAll({
       where: { user_id },
-      attributes: ["interaction_type", [fn("COUNT", col("interaction_type")), "count"]],
-      group: ["interaction_type"],
-      raw: true,
+      attributes: [
+        "interaction_type", // Agrupar por tipo (like/dislike)
+        [fn("COUNT", col("interaction_type")), "count"] // Contar ocurrencias
+      ],
+      group: ["interaction_type"], // Agrupar por tipo de interacción
+      raw: true, // Retornar objetos planos
     })
 
+    // FORMATEO: Estructurar datos para frontend
     const formattedStats = {
       likes: 0,
       dislikes: 0,
-      super_likes: 0,
       total: 0,
     }
 
+    // Procesar resultados y sumar totales
     stats.forEach((stat) => {
       const count = Number.parseInt(stat.count)
-      formattedStats[stat.interaction_type + "s"] = count
-      formattedStats.total += count
+      formattedStats[stat.interaction_type + "s"] = count // likes o dislikes
+      formattedStats.total += count // Sumar al total
     })
 
     return success(res, formattedStats, "Estadísticas obtenidas correctamente")
@@ -636,92 +786,115 @@ export async function getUserInteractionStats(req, res) {
   }
 }
 
-// Obtener historial de interacciones del usuario
+// Obtener historial paginado de interacciones del usuario
+// FLUJO DE DATOS:
+// 1. Recibe parámetros de paginación y filtros desde frontend
+// 2. Construye consulta con joins para obtener información completa
+// 3. Aplica filtros por tipo de interacción si se especifica
+// 4. Retorna datos paginados + estadísticas globales
 export async function getUserSwipeHistory(req, res) {
   try {
-    const { user_id } = req.user
-    const { page = 1, limit = 20, interaction_type } = req.query
+    const { user_id } = req.user // Usuario autenticado
+    const { page = 1, limit = 20, interaction_type } = req.query // Parámetros de consulta
 
-    const offset = (page - 1) * limit
-    const whereConditions = { user_id }
+    // CÁLCULO DE PAGINACIÓN
+    const offset = (page - 1) * limit // Saltar registros de páginas anteriores
+    const whereConditions = { user_id } // Condición base
 
-    // Filtrar por tipo de interacción si se especifica
-    if (interaction_type && ["like", "dislike", "super_like"].includes(interaction_type)) {
+    // FILTRO OPCIONAL: por tipo de interacción
+    if (interaction_type && ["like", "dislike"].includes(interaction_type)) {
       whereConditions.interaction_type = interaction_type
     }
 
+    // CONSULTA PRINCIPAL: Obtener interacciones con información completa
+    // Usa findAndCountAll para obtener datos + total count para paginación
     const { count, rows: interactions } = await UserPublishedBookInteraction.findAndCountAll({
       where: whereConditions,
       include: [
         {
+          // Incluir datos completos del libro publicado
           model: PublishedBooks,
           as: "PublishedBook",
           include: [
             {
+              // Información básica del libro
               model: Book,
               include: [
                 {
+                  // Categorías del libro
                   model: Category,
                   as: "Categories",
-                  through: { attributes: [] },
+                  through: { attributes: [] }, // Excluir atributos de tabla intermedia
                 },
               ],
             },
             {
+              // Propietario del libro
               model: User,
               attributes: ["user_id", "first_name", "last_name", "email"],
             },
             {
+              // Tipo de transacción
               model: TransactionType,
             },
             {
+              // Estado del libro
               model: BookCondition,
             },
             {
+              // Ubicación
               model: LocationBook,
             },
             {
+              // Imágenes del libro
               model: PublishedBookImage,
             },
           ],
         },
       ],
-      order: [["created_at", "DESC"]],
-      limit: Number.parseInt(limit),
-      offset: Number.parseInt(offset),
+      order: [["created_at", "DESC"]], // Más recientes primero
+      limit: Number.parseInt(limit), // Límite de resultados
+      offset: Number.parseInt(offset), // Offset para paginación
     })
 
-    // Obtener estadísticas totales
+    // CONSULTA SECUNDARIA: Obtener estadísticas globales del usuario
+    // Se ejecuta por separado para no afectar la paginación
     const stats = await UserPublishedBookInteraction.findAll({
-      where: { user_id },
-      attributes: ["interaction_type", [fn("COUNT", col("interaction_type")), "count"]],
-      group: ["interaction_type"],
+      where: { user_id }, // Todas las interacciones del usuario
+      attributes: [
+        "interaction_type",
+        [fn("COUNT", col("interaction_type")), "count"]
+      ],
+      group: ["interaction_type"], // Agrupar por tipo
       raw: true,
     })
 
+    // FORMATEO DE ESTADÍSTICAS
     const statsFormatted = {
       likes: 0,
       dislikes: 0,
-      super_likes: 0,
       total: 0,
     }
 
+    // Procesar estadísticas y calcular totales
     stats.forEach((stat) => {
       statsFormatted[stat.interaction_type + "s"] = Number.parseInt(stat.count)
       statsFormatted.total += Number.parseInt(stat.count)
     })
 
+    // RESPUESTA ESTRUCTURADA para frontend
+    // Incluye datos paginados + estadísticas + metadata de paginación
     return success(
       res,
       {
-        interactions,
-        stats: statsFormatted,
+        interactions, // Array de interacciones de la página actual
+        stats: statsFormatted, // Estadísticas globales
         pagination: {
-          page: Number.parseInt(page),
-          limit: Number.parseInt(limit),
-          total: count,
-          totalPages: Math.ceil(count / limit),
-          hasMore: offset + limit < count,
+          page: Number.parseInt(page), // Página actual
+          limit: Number.parseInt(limit), // Elementos por página
+          total: count, // Total de interacciones
+          totalPages: Math.ceil(count / limit), // Total de páginas
+          hasMore: offset + limit < count, // Si hay más páginas
         },
       },
       `${count} interacciones encontradas`,
@@ -742,8 +915,8 @@ export async function updateSwipeInteraction(req, res) {
     console.log(`🔄 Actualizando interacción ${id} para usuario ${user_id}`)
 
     // Validar tipo de interacción
-    if (!["like", "dislike", "super_like"].includes(interaction_type)) {
-      return error(res, "interaction_type debe ser: like, dislike o super_like", 400)
+    if (!["like", "dislike"].includes(interaction_type)) {
+      return error(res, "interaction_type debe ser: like o dislike", 400)
     }
 
     // Buscar la interacción
@@ -800,5 +973,39 @@ export async function deleteSwipeInteraction(req, res) {
   } catch (err) {
     console.error("Error en deleteSwipeInteraction:", err)
     return error(res, "Error al eliminar interacción", 500)
+  }
+}
+
+// 🚀 NUEVAS FUNCIONES PARA AUTO-MATCHES
+
+// Obtener estadísticas de auto-matches del usuario
+export async function getUserAutoMatchStats(req, res) {
+  try {
+    const { user_id } = req.user
+
+    console.log(`📊 Obteniendo estadísticas de auto-matches para usuario: ${user_id}`)
+
+    const stats = await getAutoMatchStats(user_id)
+
+    return success(res, stats, "Estadísticas de auto-matches obtenidas correctamente")
+  } catch (err) {
+    console.error("Error en getUserAutoMatchStats:", err)
+    return error(res, "Error al obtener estadísticas de auto-matches", 500)
+  }
+}
+
+// Obtener todos los auto-matches del usuario
+export async function getUserAutoMatchesList(req, res) {
+  try {
+    const { user_id } = req.user
+
+    console.log(`🤖 Obteniendo auto-matches para usuario: ${user_id}`)
+
+    const autoMatches = await getUserAutoMatches(user_id)
+
+    return success(res, autoMatches, `${autoMatches.length} auto-matches encontrados`)
+  } catch (err) {
+    console.error("Error en getUserAutoMatchesList:", err)
+    return error(res, "Error al obtener auto-matches", 500)
   }
 }

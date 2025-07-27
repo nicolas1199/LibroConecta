@@ -126,6 +126,20 @@ export const deleteSwipeInteraction = async (interactionId) => {
   return res.data
 }
 
+// 🚀 NUEVAS FUNCIONES PARA AUTO-MATCHES
+
+// Obtener estadísticas de auto-matches del usuario
+export const getAutoMatchStats = async () => {
+  const res = await api.get("/published-books/auto-matches/stats")
+  return res.data
+}
+
+// Obtener todos los auto-matches del usuario
+export const getUserAutoMatches = async () => {
+  const res = await api.get("/published-books/auto-matches")
+  return res.data
+}
+
 // Actualizar una publicación de libro
 export const updatePublishedBook = async (publishedBookId, updateData) => {
   try {

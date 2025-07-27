@@ -12,6 +12,8 @@ import {
   getUserSwipeHistory,
   updateSwipeInteraction,
   deleteSwipeInteraction,
+  getUserAutoMatchStats,
+  getUserAutoMatchesList,
 } from "../controllers/PublishedBooks.controller.js";
 import { authenticateToken } from "../middlewares/auth.middleware.js";
 import {
@@ -100,6 +102,19 @@ router.delete(
   "/interactions/:id",
   authenticateToken,
   deleteSwipeInteraction
+);
+
+// 🚀 Rutas para auto-matches
+router.get(
+  "/auto-matches/stats",
+  authenticateToken,
+  getUserAutoMatchStats
+);
+
+router.get(
+  "/auto-matches",
+  authenticateToken,
+  getUserAutoMatchesList
 );
 
 export default router;

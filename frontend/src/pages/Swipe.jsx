@@ -2,56 +2,74 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import SwipeCard from "../components/SwipeCard";
+import AutoMatchNotification from "../components/AutoMatchNotification";
 import BookOpen from "../components/icons/BookOpen";
 import Clock from "../components/icons/Clock";
 import { getRecommendations, recordSwipeInteraction, getUserSwipeHistory } from "../api/publishedBooks";
 
+// Componente principal del sistema de swipe de libros
+// FLUJO DE DATOS:
+// 1. Carga recomendaciones de libros desde backend
+// 2. Muestra tarjetas interactivas para swipe
+// 3. Registra interacciones (like/dislike) en backend
+// 4. Detecta y muestra notificaciones de auto-match
+// 5. Maneja paginación automática de más libros
+// 6. Actualiza estadísticas en tiempo real
 export default function Swipe() {
-  const [books, setBooks] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [allBooksViewed, setAllBooksViewed] = useState(false);
-  const [totalStats, setTotalStats] = useState({
+  // ESTADOS PRINCIPALES del componente
+  const [books, setBooks] = useState([]); // Array de libros para swipe
+  const [autoMatchNotification, setAutoMatchNotification] = useState(null); // Datos para notificación de match
+  const [currentIndex, setCurrentIndex] = useState(0); // Índice del libro actual en la pila
+  const [loading, setLoading] = useState(true); // Estado de carga inicial
+  const [error, setError] = useState(null); // Manejo de errores
+  const [allBooksViewed, setAllBooksViewed] = useState(false); // Flag cuando no hay más libros
+  const [totalStats, setTotalStats] = useState({ // Estadísticas globales del usuario
     likes: 0,
     dislikes: 0,
     total: 0,
   });
 
-  // Cargar estadísticas totales del usuario
+  // FUNCIÓN: Cargar estadísticas totales del usuario
+  // Se ejecuta para mostrar contadores globales en la interfaz
   const loadTotalStats = async () => {
     try {
-      const response = await getUserSwipeHistory({ limit: 1 });
+      const response = await getUserSwipeHistory({ limit: 1 }); // Solo necesitamos stats
       if (response.success) {
-        setTotalStats(response.data.stats);
+        setTotalStats(response.data.stats); // Actualizar estadísticas
       }
     } catch (err) {
       console.error("Error loading total stats:", err);
     }
   };
 
-  // Cargar libros recomendados
+  // EFECTO: Carga inicial de datos
+  // Se ejecuta una sola vez al montar el componente
   useEffect(() => {
-    loadBooks();
-    loadTotalStats();
+    loadBooks(); // Cargar libros recomendados
+    loadTotalStats(); // Cargar estadísticas globales
   }, []);
 
+  // FUNCIÓN: Carga inicial de libros recomendados
+  // Obtiene la primera tanda de libros desde el backend
   const loadBooks = async () => {
     try {
       setLoading(true);
       setError(null);
       setAllBooksViewed(false);
+      
+      // Solicitar 20 libros al backend
       const response = await getRecommendations({
         limit: 20,
       });
       
       if (response.success) {
         if (response.data.length > 0) {
-          setBooks(response.data);
+          setBooks(response.data); // Guardar libros obtenidos
         } else {
-          // Verificar si el mensaje indica que ya revisó todos los libros
+          // CASO: No hay libros disponibles
+          // Verificar el mensaje específico del backend
           if (response.message === "Has revisado todos los libros disponibles") {
-            setAllBooksViewed(true);
+            setAllBooksViewed(true); // Mostrar pantalla de "todos revisados"
           } else {
             setError("No se encontraron libros para recomendar");
           }
@@ -67,67 +85,60 @@ export default function Swipe() {
     }
   };
 
-  // Manejar swipe
-  const handleSwipe = async (bookId, action) => {
-    if (action === 'like') {
-      // Actualizar estadísticas totales
+  // FUNCIÓN PRINCIPAL: Manejo de swipe (like/dislike)
+  // Se ejecuta cuando el usuario hace swipe en una tarjeta
+  const handleSwipe = async (bookId, direction) => {
+    try {
+      // PASO 1: Preparar datos de interacción para backend
+      const interactionData = {
+        published_book_id: bookId,
+        interaction_type: direction // "like" o "dislike"
+      };
+      
+      // PASO 2: Registrar interacción en backend
+      const response = await recordSwipeInteraction(interactionData);
+      
+      // PASO 3: Verificar si se creó un auto-match
+      // El backend retorna información de match si hay reciprocidad
+      if (response.data.autoMatch && response.data.autoMatch.created) {
+        setAutoMatchNotification(response.data.autoMatch); // Mostrar notificación
+      }
+      
+      // PASO 4: Avanzar al siguiente libro
+      // Incrementar índice para mostrar la siguiente tarjeta
+      setCurrentIndex(prev => prev + 1);
+      
+      // PASO 5: Actualizar estadísticas locales
       setTotalStats(prev => ({
         ...prev,
-        likes: prev.likes + 1,
-        total: prev.total + 1
+        [direction === "like" ? "likes" : "dislikes"]: prev[direction === "like" ? "likes" : "dislikes"] + 1,
+        total: prev.total + 1,
       }));
       
-      // Registrar interacción
-      try {
-        await recordSwipeInteraction({
-          published_book_id: bookId,
-          interaction_type: 'like'
-        });
-        console.log(`✅ Interacción registrada para el libro ${bookId}`);
-      } catch (error) {
-        console.error("Error registrando interacción:", error);
-        // No mostramos error al usuario para no interrumpir la experiencia
-      }
-    } else {
-      // Actualizar estadísticas totales
-      setTotalStats(prev => ({
-        ...prev,
-        dislikes: prev.dislikes + 1,
-        total: prev.total + 1
-      }));
-      
-      // Registrar interacción de dislike
-      try {
-        await recordSwipeInteraction({
-          published_book_id: bookId,
-          interaction_type: 'dislike'
-        });
-        console.log(`👎 Dislike registrado para el libro ${bookId}`);
-      } catch (error) {
-        console.error("Error registrando dislike:", error);
-      }
+    } catch (error) {
+      console.error("Error recording swipe:", error);
+      // En caso de error, aún avanzar al siguiente libro para no bloquear UX
+      setCurrentIndex(prev => prev + 1);
     }
-
-    // Avanzar al siguiente libro
-    setCurrentIndex(prev => prev + 1);
   };
 
-  // Función para cargar más libros
+  // FUNCIÓN: Carga paginada de más libros
+  // Se ejecuta automáticamente cuando quedan pocos libros en la pila
   const loadMoreBooks = useCallback(async () => {
-    if (allBooksViewed) return; // No cargar más si ya vimos todos
+    if (allBooksViewed) return; // No cargar si ya se vieron todos los libros
     
     try {
       const response = await getRecommendations({
-        limit: 20,
+        limit: 20, // Solicitar 20 libros adicionales
       });
       
       if (response.success) {
         if (response.data.length > 0) {
-          setBooks(prev => [...prev, ...response.data]);
+          setBooks(prev => [...prev, ...response.data]); // Añadir a libros existentes
         } else {
-          // Verificar si el mensaje indica que ya revisó todos los libros
+          // CASO: No hay más libros disponibles
           if (response.message === "Has revisado todos los libros disponibles") {
-            setAllBooksViewed(true);
+            setAllBooksViewed(true); // Marcar como todos revisados
           }
         }
       }
@@ -136,21 +147,29 @@ export default function Swipe() {
     }
   }, [allBooksViewed]);
 
-  // Cargar más libros cuando quedan pocos
+  // EFECTO: Carga automática cuando quedan pocos libros
+  // Monitorea cuántos libros quedan en la pila y carga más si es necesario
   useEffect(() => {
+    // Si quedan 3 o menos libros por mostrar y no estamos cargando
     if (books.length - currentIndex <= 3 && !loading) {
-      loadMoreBooks();
+      loadMoreBooks(); // Cargar más libros proactivamente
     }
   }, [currentIndex, books.length, loading, loadMoreBooks]);
 
+  // FUNCIÓN: Reiniciar sesión de swipe
+  // Permite al usuario empezar de nuevo
   const resetSwipe = () => {
-    setCurrentIndex(0);
-    setAllBooksViewed(false);
-    setBooks([]);
-    loadBooks();
+    setCurrentIndex(0); // Volver al inicio
+    setAllBooksViewed(false); // Reset del flag de todos revisados
+    setBooks([]); // Limpiar libros actuales
+    loadBooks(); // Cargar nueva tanda de libros
     loadTotalStats(); // Recargar estadísticas totales
   };
 
+  // LÓGICA DE RENDERIZADO CONDICIONAL
+  // El componente muestra diferentes pantallas según el estado
+
+  // PANTALLA: Carga inicial
   if (loading && books.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -162,6 +181,7 @@ export default function Swipe() {
     );
   }
 
+  // PANTALLA: Error en carga de libros
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -379,6 +399,13 @@ export default function Swipe() {
                   <Clock className="h-4 w-4" />
                   <span>Historial</span>
                 </Link>
+                <Link
+                  to="/dashboard/swipe/test"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                >
+                  <span>🧪</span>
+                  <span>Pruebas</span>
+                </Link>
               </div>
               <p className="text-gray-600 mb-3">
                 Desliza para descubrir tu próximo libro favorito
@@ -446,6 +473,14 @@ export default function Swipe() {
         <div className="fixed bottom-4 right-4 bg-white rounded-full p-3 shadow-lg border border-gray-200">
           <div className="spinner border-gray-300 border-t-blue-600 w-6 h-6"></div>
         </div>
+      )}
+
+      {/* Auto-match notification */}
+      {autoMatchNotification && (
+        <AutoMatchNotification
+          autoMatchData={autoMatchNotification}
+          onClose={() => setAutoMatchNotification(null)}
+        />
       )}
     </div>
   );

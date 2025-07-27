@@ -116,6 +116,7 @@ export default function DashboardSidebar({
       { icon: Star, label: "Calificaciones", path: "/dashboard/ratings" },
       { icon: FileText, label: "Reseñas", path: "/dashboard/reviews" },
       { icon: BarChart, label: "Estadísticas", path: "/dashboard/stats" },
+      { icon: Settings, label: "Pruebas Auto-Match", path: "/dashboard/swipe/test", badge: "Dev" },
     ],
   };
 
