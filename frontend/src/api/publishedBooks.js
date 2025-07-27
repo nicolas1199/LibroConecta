@@ -74,15 +74,7 @@ export const uploadBookImage = async (publishedBookId, imageData) => {
 
 // Obtener todos los libros publicados
 export const getPublishedBooks = async (params = {}) => {
-  // Limpiar parámetros vacíos
-  const cleanParams = Object.entries(params).reduce((acc, [key, value]) => {
-    if (value !== "" && value !== null && value !== undefined) {
-      acc[key] = value
-    }
-    return acc
-  }, {})
-
-  const res = await api.get("/published-books", { params: cleanParams })
+  const res = await api.get("/published-books", { params })
   return res.data
 }
 
