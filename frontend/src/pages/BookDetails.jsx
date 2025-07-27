@@ -25,9 +25,7 @@ export default function BookDetails() {
       try {
         setLoading(true)
         // Obtener el libro específico
-        const response = await getPublishedBooks({
-          published_book_id: bookId,
-        })
+   const response = await getPublishedBookById(bookId)
 
         if (response.publishedBooks && response.publishedBooks.length > 0) {
           console.log("Libro cargado:", response.publishedBooks[0])
