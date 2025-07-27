@@ -1,35 +1,48 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Layout } from "antd"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
+import DashboardSidebar from "../components/dashboard/DashboardSidebar"
+import DashboardHeader from "../components/dashboard/DashboardHeader"
+import { performLogout } from "../utils/auth"
+import { useAuth } from "../hooks/useAuth"
 
-import DashboardHeader from "../components/DashboardHeader"
-import DashboardSidebar from "../components/DashboardSidebar"
-import { getUserFromLocalStorage } from "../utils/localStorage"
-
-const { Header, Sider, Content } = Layout
-
-const DashboardLayout = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [user, setUser] = useState(null)
+export default function DashboardLayout({ children }) {
+  const { user, isLoading } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const navigate = useNavigate()
-
-  // Agregar al inicio del componente, después de los otros estados:
   const [searchResults, setSearchResults] = useState([])
+  const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
-    const storedUser = getUserFromLocalStorage()
-    if (storedUser) {
-      setUser(storedUser)
-    } else {
-      navigate("/login")
+    // Agregar clase dashboard al body
+    document.body.classList.add("dashboard")
+
+    // Cleanup: remover clase cuando se desmonte el componente
+    return () => {
+      document.body.classList.remove("dashboard")
     }
-  }, [navigate])
+  }, [])
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await performLogout(navigate)
+    } catch (error) {
+      // En caso de error, resetear el estado
+      setIsLoggingOut(false)
+      console.error("Error durante logout:", error)
+    }
+  }
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
+    setSidebarOpen(!sidebarOpen)
+  }
+
+  const closeSidebar = () => {
+    setSidebarOpen(false)
   }
 
   // Función para manejar los resultados de búsqueda
@@ -37,40 +50,39 @@ const DashboardLayout = ({ children }) => {
     setSearchResults(results)
   }
 
+  // Mostrar loading mientras se cargan los datos del usuario
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider trigger={null} collapsible collapsed={isSidebarOpen}>
-        <DashboardSidebar user={user} />
-      </Sider>
-      <Layout className="site-layout">
-        <Header
-          className="site-layout-background"
-          style={{
-            padding: 0,
-            background: "#fff",
-          }}
-        >
-          <DashboardHeader
-            user={user}
-            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            onSearchResults={handleSearchResults} // <- Agregar esta línea
-          />
-        </Header>
-        <Content
-          style={{
-            margin: "24px 16px",
-            padding: 24,
-            minHeight: 280,
-            background: "#fff",
-          }}
-        >
-          {children}
-        </Content>
-      </Layout>
-    </Layout>
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader
+        user={user}
+        onToggleSidebar={toggleSidebar}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onSearchResults={handleSearchResults}
+      />
+
+      {/* Overlay para móvil */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden" onClick={closeSidebar}></div>
+      )}
+
+      <DashboardSidebar
+        user={user}
+        onLogout={handleLogout}
+        currentPath={location.pathname}
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        isLoggingOut={isLoggingOut}
+      />
+      <main className="dashboard-main">{children}</main>
+    </div>
   )
 }
-
-export default DashboardLayout
