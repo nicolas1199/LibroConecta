@@ -1,78 +1,106 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import DashboardSidebar from "../components/dashboard/DashboardSidebar";
-import DashboardHeader from "../components/dashboard/DashboardHeader";
-import { performLogout } from "../utils/auth";
-import { useAuth } from "../hooks/useAuth";
+import { useState, useEffect } from "react"
+import { Outlet, useLocation } from "react-router-dom"
+import DashboardSidebar from "../components/dashboard/DashboardSidebar"
+import DashboardHeader from "../components/dashboard/DashboardHeader"
+import { useAuth } from "../hooks/useAuth"
+import { getPublishedBooks } from "../api/publishedBooks"
 
-export default function DashboardLayout({ children }) {
-  const { user, isLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+export default function DashboardLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
+  const { user } = useAuth()
+  const location = useLocation()
 
+  // Debounce search
   useEffect(() => {
-    // Agregar clase dashboard al body
-    document.body.classList.add("dashboard");
+    const delayedSearch = setTimeout(() => {
+      if (searchTerm.trim()) {
+        handleSearch(searchTerm)
+      } else {
+        setSearchResults([])
+        setShowSearchDropdown(false)
+      }
+    }, 500)
 
-    // Cleanup: remover clase cuando se desmonte el componente
-    return () => {
-      document.body.classList.remove("dashboard");
-    };
-  }, []);
+    return () => clearTimeout(delayedSearch)
+  }, [searchTerm])
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
+  const handleSearch = async (term) => {
+    if (!term.trim()) return
+
+    setIsSearching(true)
+    setShowSearchDropdown(true)
+
     try {
-      await performLogout(navigate);
+      const response = await getPublishedBooks({
+        search: term.trim(),
+        limit: 10,
+      })
+      setSearchResults(response.publishedBooks || [])
     } catch (error) {
-      // En caso de error, resetear el estado
-      setIsLoggingOut(false);
-      console.error("Error durante logout:", error);
+      console.error("Error searching books:", error)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
     }
-  };
+  }
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value)
+    if (!value.trim()) {
+      setSearchResults([])
+      setShowSearchDropdown(false)
+    }
+  }
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
-
-  // Mostrar loading mientras se cargan los datos del usuario
-  if (isLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    setSidebarOpen(!sidebarOpen)
   }
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".search-container")) {
+        setShowSearchDropdown(false)
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={user} onToggleSidebar={toggleSidebar} />
+      {/* Sidebar */}
+      <DashboardSidebar user={user} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Overlay para móvil */}
+      {/* Main Content */}
+      <div className="lg:ml-64">
+        <DashboardHeader
+          user={user}
+          onToggleSidebar={toggleSidebar}
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          searchResults={searchResults}
+          isSearching={isSearching}
+          showSearchDropdown={showSearchDropdown}
+          onCloseSearch={() => setShowSearchDropdown(false)}
+        />
+
+        <main className="p-6">
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={closeSidebar}
-        ></div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-
-      <DashboardSidebar
-        user={user}
-        onLogout={handleLogout}
-        currentPath={location.pathname}
-        isOpen={sidebarOpen}
-        onClose={closeSidebar}
-        isLoggingOut={isLoggingOut}
-      />
-      <main className="dashboard-main">{children}</main>
     </div>
-  );
+  )
 }
