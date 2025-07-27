@@ -95,11 +95,11 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
     }
   }
 
-  // Manejar selección de resultado
+  // Manejar selección de resultado - CORREGIDO: quitar /dashboard del path
   const handleResultClick = (result) => {
     setShowSearchResults(false)
-    // Navegar al detalle del libro
-    navigate(`/dashboard/book/${result.published_book_id}`)
+    // Navegar al detalle del libro SIN el prefijo /dashboard
+    navigate(`/book/${result.published_book_id}`)
     console.log("Navegando a libro:", result.published_book_id)
   }
 
@@ -159,9 +159,11 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
                     onClick={() => handleResultClick(result)}
                     className="flex items-center p-3 hover:bg-gray-50 cursor-pointer rounded-lg border-b border-gray-100 last:border-b-0"
                   >
-                    {/* Imagen del libro */}
+                    {/* Imagen del libro - CORREGIDO: usar la estructura correcta */}
                     <div className="w-12 h-16 bg-gray-200 rounded flex-shrink-0 mr-3 overflow-hidden">
-                      {result.PublishedBookImages?.[0]?.image_base64 ? (
+                      {result.PublishedBookImages &&
+                      result.PublishedBookImages.length > 0 &&
+                      result.PublishedBookImages[0].image_base64 ? (
                         <img
                           src={`data:image/jpeg;base64,${result.PublishedBookImages[0].image_base64}`}
                           alt={result.Book?.title}
