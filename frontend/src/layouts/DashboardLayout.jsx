@@ -1,78 +1,82 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import DashboardSidebar from "../components/dashboard/DashboardSidebar";
-import DashboardHeader from "../components/dashboard/DashboardHeader";
-import { performLogout } from "../utils/auth";
-import { useAuth } from "../hooks/useAuth";
+import { useState, useEffect } from "react"
+import { Outlet, useNavigate } from "react-router-dom"
+import { styled } from "@mui/material/styles"
+import { Box, CssBaseline } from "@mui/material"
 
-export default function DashboardLayout({ children }) {
-  const { user, isLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+import DashboardHeader from "./DashboardHeader"
+import DashboardSidebar from "./DashboardSidebar"
+import useAuth from "../hooks/useAuth"
+
+const drawerWidth = 240
+
+const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(({ theme, open }) => ({
+  flexGrow: 1,
+  padding: theme.spacing(3),
+  transition: theme.transitions.create("margin", {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  marginLeft: `-${drawerWidth}px`,
+  ...(open && {
+    transition: theme.transitions.create("margin", {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  }),
+}))
+
+const AppBarOffset = styled("div")(({ theme }) => theme.mixins.toolbar)
+
+export default function DashboardLayout({ children, searchTerm, onSearchChange }) {
+  const [open, setOpen] = useState(false)
+  const { auth } = useAuth()
+  const navigate = useNavigate()
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    // Agregar clase dashboard al body
-    document.body.classList.add("dashboard");
-
-    // Cleanup: remover clase cuando se desmonte el componente
-    return () => {
-      document.body.classList.remove("dashboard");
-    };
-  }, []);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await performLogout(navigate);
-    } catch (error) {
-      // En caso de error, resetear el estado
-      setIsLoggingOut(false);
-      console.error("Error durante logout:", error);
+    if (auth?.user) {
+      setUser(auth.user)
+    } else {
+      setUser(null)
     }
-  };
+  }, [auth])
+
+  useEffect(() => {
+    if (!auth?.token) {
+      navigate("/login", { replace: true })
+    }
+  }, [auth, navigate])
+
+  const handleDrawerOpen = () => {
+    setOpen(true)
+  }
+
+  const handleDrawerClose = () => {
+    setOpen(false)
+  }
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
-
-  // Mostrar loading mientras se cargan los datos del usuario
-  if (isLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    setOpen(!open)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={user} onToggleSidebar={toggleSidebar} />
-
-      {/* Overlay para móvil */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={closeSidebar}
-        ></div>
-      )}
-
-      <DashboardSidebar
+    <Box sx={{ display: "flex" }}>
+      <CssBaseline />
+      <DashboardHeader
         user={user}
-        onLogout={handleLogout}
-        currentPath={location.pathname}
-        isOpen={sidebarOpen}
-        onClose={closeSidebar}
-        isLoggingOut={isLoggingOut}
+        onToggleSidebar={toggleSidebar}
+        searchTerm={searchTerm}
+        onSearchChange={onSearchChange}
       />
-      <main className="dashboard-main">{children}</main>
-    </div>
-  );
+      <DashboardSidebar open={open} handleDrawerClose={handleDrawerClose} />
+      <Main open={open}>
+        <AppBarOffset />
+        {children}
+        <Outlet />
+      </Main>
+    </Box>
+  )
 }
