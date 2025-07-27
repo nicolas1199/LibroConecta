@@ -774,7 +774,7 @@ export async function deleteSwipeInteraction(req, res) {
   }
 }
 
-// Búsqueda simplificada de libros publicados - CORREGIDA PARA INCLUIR IMÁGENES CORRECTAMENTE
+// Búsqueda simplificada de libros publicados - SOLO MODIFICADA ESTA FUNCIÓN
 export async function searchPublishedBooks(req, res) {
   try {
     const { q, page = 1, limit = 20 } = req.query
@@ -790,7 +790,7 @@ export async function searchPublishedBooks(req, res) {
     const searchTerm = q.trim()
     const offset = (page - 1) * limit
 
-    // Buscar libros publicados con sus relaciones - CORREGIDO: sin filtros WHERE en PublishedBookImage
+    // Buscar primero todos los libros publicados con sus relaciones - AGREGADO PublishedBookImage
     const allBooks = await PublishedBooks.findAll({
       include: [
         {
@@ -824,25 +824,12 @@ export async function searchPublishedBooks(req, res) {
           model: LocationBook,
         },
         {
-          model: PublishedBookImage, // CORREGIDO: sin where ni limit para obtener todas las imágenes
+          model: PublishedBookImage, // AGREGADO PARA LAS IMÁGENES
+          limit: 1,
+          where: { is_primary: true },
           required: false,
         },
       ],
-    })
-
-    console.log(`📚 Total de libros encontrados en DB: ${allBooks.length}`)
-
-    // Log detallado de las imágenes
-    allBooks.forEach((book, index) => {
-      console.log(`📖 Libro ${index + 1}: ${book.Book?.title}`)
-      console.log(`🖼️ Imágenes totales: ${book.PublishedBookImages?.length || 0}`)
-      if (book.PublishedBookImages && book.PublishedBookImages.length > 0) {
-        book.PublishedBookImages.forEach((img, imgIndex) => {
-          console.log(
-            `  📸 Imagen ${imgIndex + 1}: primary=${img.is_primary}, hasBase64=${!!img.image_base64}, base64Length=${img.image_base64?.length || 0}`,
-          )
-        })
-      }
     })
 
     // Filtrar en JavaScript para evitar problemas de SQL
@@ -875,19 +862,6 @@ export async function searchPublishedBooks(req, res) {
     const paginatedResults = searchResults.slice(offset, offset + Number.parseInt(limit))
 
     console.log(`✅ Búsqueda completada: ${totalResults} resultados encontrados`)
-    console.log(`📄 Resultados paginados: ${paginatedResults.length}`)
-
-    // Log final de los resultados que se envían
-    paginatedResults.forEach((result, index) => {
-      console.log(`🔍 Resultado final ${index + 1}: ${result.Book?.title}`)
-      console.log(`  🖼️ Imágenes: ${result.PublishedBookImages?.length || 0}`)
-      if (result.PublishedBookImages && result.PublishedBookImages.length > 0) {
-        const primaryImage = result.PublishedBookImages.find((img) => img.is_primary) || result.PublishedBookImages[0]
-        console.log(
-          `  📸 Imagen principal: hasBase64=${!!primaryImage?.image_base64}, length=${primaryImage?.image_base64?.length || 0}`,
-        )
-      }
-    })
 
     res.json({
       searchResults: paginatedResults,
