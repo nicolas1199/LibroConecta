@@ -1,29 +1,81 @@
 "use client"
 
 import { Link } from "react-router-dom"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import BookOpen from "../icons/BookOpen"
 import Search from "../icons/Search"
 import Bell from "../icons/Bell"
 import Plus from "../icons/Plus"
 import Menu from "../icons/Menu"
 import NotificationDropdown from "../NotificationDropdown"
+import { getPublishedBooks } from "../../api/publishedBooks"
 
-export default function DashboardHeader({
-  user,
-  onToggleSidebar,
-  searchTerm,
-  onSearchChange,
-  searchResults,
-  isSearching,
-  showSearchDropdown,
-  onCloseSearch,
-}) {
+export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onSearchChange }) {
   const [showNotifications, setShowNotifications] = useState(false)
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
 
-  const handleSearchResultClick = (book) => {
-    onCloseSearch()
+  // Debounce search
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchTerm && searchTerm.trim()) {
+        handleSearch(searchTerm.trim())
+      } else {
+        setSearchResults([])
+        setShowSearchDropdown(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(delayedSearch)
+  }, [searchTerm])
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".search-container")) {
+        setShowSearchDropdown(false)
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [])
+
+  const handleSearch = async (term) => {
+    if (!term.trim()) return
+
+    setIsSearching(true)
+    setShowSearchDropdown(true)
+
+    try {
+      const response = await getPublishedBooks({
+        search: term,
+        limit: 10,
+      })
+
+      console.log("Search response:", response)
+      setSearchResults(response.publishedBooks || [])
+    } catch (error) {
+      console.error("Error searching books:", error)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleSearchResultClick = () => {
+    setShowSearchDropdown(false)
     onSearchChange("")
+  }
+
+  const handleInputChange = (e) => {
+    const value = e.target.value
+    onSearchChange(value)
+    if (!value.trim()) {
+      setSearchResults([])
+      setShowSearchDropdown(false)
+    }
   }
 
   return (
@@ -57,7 +109,7 @@ export default function DashboardHeader({
             placeholder="Buscar libros, autores, usuarios..."
             className="search-input"
             value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={handleInputChange}
           />
 
           {/* Search Results Dropdown */}
@@ -78,7 +130,7 @@ export default function DashboardHeader({
                       key={book.published_book_id}
                       to={`/dashboard/book/${book.published_book_id}`}
                       className="block p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                      onClick={() => handleSearchResultClick(book)}
+                      onClick={handleSearchResultClick}
                     >
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">

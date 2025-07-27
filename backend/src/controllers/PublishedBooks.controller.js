@@ -41,23 +41,35 @@ export async function getAllPublishedBooks(req, res) {
     // Aplicar búsqueda si se proporciona
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`
+      console.log("Searching for:", searchTerm)
 
-      // Buscar en título y autor del libro
-      bookWhereConditions[Op.or] = [{ title: { [Op.iLike]: searchTerm } }, { author: { [Op.iLike]: searchTerm } }]
+      // Crear condiciones de búsqueda más específicas
+      const searchConditions = {
+        [Op.or]: [
+          // Buscar en título del libro
+          { "$Book.title$": { [Op.iLike]: searchTerm } },
+          // Buscar en autor del libro
+          { "$Book.author$": { [Op.iLike]: searchTerm } },
+          // Buscar en nombre completo del usuario
+          {
+            [Op.or]: [
+              { "$User.first_name$": { [Op.iLike]: searchTerm } },
+              { "$User.last_name$": { [Op.iLike]: searchTerm } },
+              fn("CONCAT", col("User.first_name"), " ", col("User.last_name")),
+              { [Op.iLike]: searchTerm },
+            ],
+          },
+        ],
+      }
 
-      // Buscar en nombre del usuario
-      userWhereConditions[Op.or] = [
-        { first_name: { [Op.iLike]: searchTerm } },
-        { last_name: { [Op.iLike]: searchTerm } },
-        fn("CONCAT", col("User.first_name"), " ", col("User.last_name")),
-        { [Op.iLike]: searchTerm },
-      ]
+      // Agregar las condiciones de búsqueda a whereConditions
+      Object.assign(whereConditions, searchConditions)
     }
 
     const includeOptions = [
       {
         model: Book,
-        where: Object.keys(bookWhereConditions).length > 0 ? bookWhereConditions : undefined,
+        required: true,
         include: [
           {
             model: Category,
@@ -69,7 +81,7 @@ export async function getAllPublishedBooks(req, res) {
       {
         model: User,
         attributes: ["user_id", "first_name", "last_name", "location_id"],
-        where: Object.keys(userWhereConditions).length > 0 ? userWhereConditions : undefined,
+        required: true,
         include: [
           {
             model: LocationBook,
@@ -95,13 +107,18 @@ export async function getAllPublishedBooks(req, res) {
       },
     ]
 
+    console.log("Where conditions:", JSON.stringify(whereConditions, null, 2))
+
     const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
       where: whereConditions,
       include: includeOptions,
       order: [["date_published", "DESC"]],
       limit: Number.parseInt(limit),
       offset: offset,
+      distinct: true,
     })
+
+    console.log(`Found ${count} books matching search criteria`)
 
     res.json({
       publishedBooks,
