@@ -212,11 +212,11 @@ export async function createPaymentPreference(req, res) {
         }
       },
       external_reference: externalReference,
-      notification_url: "https://146.83.198.35:1234/api/payments/webhook",
+      notification_url: "http://146.83.198.35:1234/api/payments/webhook",
       back_urls: {
-        "success": "https://146.83.198.35:1235/payment/success",
-        "failure": "https://146.83.198.35:1235/payment/failure",
-        "pending": "https://146.83.198.35:1235/payment/pending"
+        "success": "http://146.83.198.35:1235/payment/success",
+        "failure": "http://146.83.198.35:1235/payment/failure",
+        "pending": "http://146.83.198.35:1235/payment/pending"
       },
       auto_return: "approved",
       // Configuración de tiempo de expiración
@@ -314,14 +314,14 @@ export async function createPaymentPreference(req, res) {
     // Actualizar registro con ID de preferencia
     await paymentRecord.update({
       mp_preference_id: mpPreference.id,
-      notification_url: "https://146.83.198.35:1234/api/payments/webhook",
-      success_url: "https://146.83.198.35:1235/payment/success",
-      failure_url: "https://146.83.198.35:1235/payment/failure",
-      pending_url: "https://146.83.198.35:1235/payment/pending"
+      notification_url: "http://146.83.198.35:1234/api/payments/webhook",
+      success_url: "http://146.83.198.35:1235/payment/success",
+      failure_url: "http://146.83.198.35:1235/payment/failure",
+      pending_url: "http://146.83.198.35:1235/payment/pending"
     });
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
-    console.log(`🎯 URL de éxito: https://146.83.198.35:1235/payment/success`);
+    console.log(`🎯 URL de éxito: http://146.83.198.35:1235/payment/success`);
 
     // Almacenar información del pago para redirección automática desde webhook
     pendingPayments.set(paymentRecord.payment_id, {
