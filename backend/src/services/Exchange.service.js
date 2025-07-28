@@ -366,7 +366,12 @@ export async function getExchangeHistoryService(userId) {
       order: [["date_exchange", "DESC"]]
     });
 
-    const formattedHistory = exchanges.map(exchange => {
+    // Filtrar duplicados por exchange_id (por si hay joins que generan duplicados)
+    const uniqueExchanges = exchanges.filter((exchange, idx, self) =>
+      idx === self.findIndex(e => e.exchange_id === exchange.exchange_id)
+    );
+
+    const formattedHistory = uniqueExchanges.map(exchange => {
       const isUser1 = exchange.Book1.user_id === userId;
       const myBook = isUser1 ? exchange.Book1 : exchange.Book2;
       const otherBook = isUser1 ? exchange.Book2 : exchange.Book1;

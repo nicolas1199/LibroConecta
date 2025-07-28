@@ -547,6 +547,8 @@ export async function getRecommendations(req, res) {
 
     // PASO 7: Consulta principal con joins completos
     // Obtener libros con toda la información necesaria para el frontend
+    // SOLUCIÓN MEJORADA: Solicitar más libros de los necesarios para compensar duplicados
+    const bufferMultiplier = 2; // Solicitar el doble para tener buffer
     const recommendations = await PublishedBooks.findAll({
       where: whereConditions, // Aplicar filtros de exclusión
       include: [
@@ -597,17 +599,19 @@ export async function getRecommendations(req, res) {
         // 2. Añadir aleatoriedad para diversidad en recomendaciones
         [fn("RANDOM")],
       ],
-      limit: actualLimit, // Usar el límite calculado exacto (no más de lo necesario)
+      limit: actualLimit * bufferMultiplier, // Solicitar el doble para tener buffer
       distinct: true, // Asegurar resultados únicos a nivel de base de datos
     });
 
-    // PASO 8: Filtrado de duplicados adicional (capa de seguridad)
-    // Filtrar duplicados por published_book_id como precaución adicional
-    const uniqueRecommendations = recommendations.filter(
-      (book, index, self) =>
-        index ===
-        self.findIndex((b) => b.published_book_id === book.published_book_id)
-    );
+    // PASO 8: Filtrado de duplicados mejorado (capa de seguridad)
+    // Filtrar duplicados por published_book_id y limitar al número solicitado
+    const uniqueRecommendations = recommendations
+      .filter(
+        (book, index, self) =>
+          index ===
+          self.findIndex((b) => b.published_book_id === book.published_book_id)
+      )
+      .slice(0, actualLimit); // Limitar al número exacto solicitado
 
     // PASO 9: Logging y debugging
     console.log(`Recomendaciones encontradas: ${recommendations.length}`);
@@ -630,7 +634,7 @@ export async function getRecommendations(req, res) {
     );
 
     if (duplicates.length > 0) {
-      console.warn(`Se encontraron ${duplicates.length} libros duplicados:`);
+      console.warn(`⚠️ Se encontraron ${duplicates.length} libros duplicados:`);
       duplicates.forEach((book) => {
         console.warn(
           `   - ID: ${book.published_book_id}, Título: ${
@@ -638,6 +642,8 @@ export async function getRecommendations(req, res) {
           }`
         );
       });
+    } else {
+      console.log(`✅ No se encontraron duplicados en la consulta`);
     }
 
     // PASO 11: Validación de resultado vacío
@@ -652,6 +658,8 @@ export async function getRecommendations(req, res) {
     console.log(`   Libros solicitados: ${requestedLimit}`);
     console.log(`   Libros disponibles: ${availableCount}`);
     console.log(`   Libros entregados: ${uniqueRecommendations.length}`);
+    console.log(`   Buffer solicitado: ${actualLimit * bufferMultiplier}`);
+    console.log(`   Eficiencia: ${((uniqueRecommendations.length / (actualLimit * bufferMultiplier)) * 100).toFixed(1)}%`);
 
     // RETORNO DE DATOS AL FRONTEND:
     // - data: Array de libros recomendados con información completa

@@ -877,9 +877,15 @@ export async function getUserPurchaseHistory(req, res) {
       offset: parseInt(offset)
     });
 
+    // Filtrar duplicados por payment_id en compras
+    const uniquePurchases = purchases.rows.filter(
+      (purchase, idx, self) =>
+        idx === self.findIndex(p => p.payment_id === purchase.payment_id)
+    );
+
     // Verificar si ya calificó cada transacción
     const purchasesWithRatings = await Promise.all(
-      purchases.rows.map(async (purchase) => {
+      uniquePurchases.map(async (purchase) => {
         const existingRating = await Rating.findOne({
           where: {
             rater_id: userId,
@@ -950,9 +956,15 @@ export async function getUserSalesHistory(req, res) {
       offset: parseInt(offset)
     });
 
+    // Filtrar duplicados por payment_id en ventas
+    const uniqueSales = sales.rows.filter(
+      (sale, idx, self) =>
+        idx === self.findIndex(s => s.payment_id === sale.payment_id)
+    );
+
     // Verificar si ya fue calificado por el comprador
     const salesWithRatings = await Promise.all(
-      sales.rows.map(async (sale) => {
+      uniqueSales.map(async (sale) => {
         const receivedRating = await Rating.findOne({
           where: {
             rater_id: sale.buyer_id,
