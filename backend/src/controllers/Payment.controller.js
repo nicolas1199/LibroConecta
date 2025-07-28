@@ -179,7 +179,7 @@ export async function createPaymentPreference(req, res) {
     // URLs hardcodeadas exactamente como en la documentación de MercadoPago
     console.log('🔗 Configurando URLs hardcodeadas para MercadoPago');
 
-    // Preparar datos para MercadoPago - Estructura según documentación oficial
+    // Preparar datos para MercadoPago - Estructura exacta según documentación oficial
     const preferenceData = {
       items: [
         {
@@ -195,7 +195,7 @@ export async function createPaymentPreference(req, res) {
       notification_url: `${BACKEND_URL}/api/payments/webhook`,
       back_urls: {
         success: `${FRONTEND_URL}/payment/success`,
-        failure: `${FRONTEND_URL}/payment/failure`, 
+        failure: `${FRONTEND_URL}/payment/failure`,
         pending: `${FRONTEND_URL}/payment/pending`
       },
       auto_return: "approved",
@@ -203,11 +203,7 @@ export async function createPaymentPreference(req, res) {
         name: buyerUser.first_name || buyerUser.username || 'Comprador',
         surname: buyerUser.last_name || 'LibroConecta',
         email: buyerUser.email
-      },
-      expires: true,
-      expiration_date_from: new Date().toISOString(),
-      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-      statement_descriptor: 'LIBROCONECTA'
+      }
     };
 
     // Validar que las URLs estén correctamente formateadas
@@ -267,24 +263,60 @@ export async function createPaymentPreference(req, res) {
     } catch (sdkError) {
       console.log('❌ Error con SDK, intentando con API directa:', sdkError.message);
       
-      // Fallback: usar API directa de MercadoPago
+      // Fallback: usar API directa con estructura alternativa
+      console.log('🔄 Intentando con estructura alternativa (back_url en singular)...');
+      
+      const alternativeData = {
+        ...preferenceData,
+        back_url: {
+          success: preferenceData.back_urls.success,
+          failure: preferenceData.back_urls.failure,
+          pending: preferenceData.back_urls.pending
+        }
+      };
+      delete alternativeData.back_urls;
+      
+      console.log('📋 Estructura alternativa:', JSON.stringify(alternativeData, null, 2));
+      
       const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(preferenceData)
+        body: JSON.stringify(alternativeData)
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ Error API directa MercadoPago:', errorData);
-        throw new Error(`MercadoPago API Error: ${JSON.stringify(errorData)}`);
+        console.error('❌ Error con estructura alternativa:', errorData);
+        
+        // Si también falla con back_url, intentar sin auto_return
+        console.log('🔄 Intentando sin auto_return...');
+        const noAutoReturnData = { ...preferenceData };
+        delete noAutoReturnData.auto_return;
+        
+        const response2 = await fetch('https://api.mercadopago.com/checkout/preferences', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(noAutoReturnData)
+        });
+        
+        if (!response2.ok) {
+          const errorData2 = await response2.json();
+          console.error('❌ Error final:', errorData2);
+          throw new Error(`MercadoPago API Error: ${JSON.stringify(errorData2)}`);
+        }
+        
+        mpPreference = await response2.json();
+        console.log('✅ Preferencia creada SIN auto_return');
+      } else {
+        mpPreference = await response.json();
+        console.log('✅ Preferencia creada con back_url (singular)');
       }
-      
-      mpPreference = await response.json();
-      console.log('✅ Preferencia creada con API directa exitosamente');
     }
 
     console.log('✅ Preferencia creada en MercadoPago:', {
