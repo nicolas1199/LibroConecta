@@ -1,4 +1,4 @@
-import { PublishedBooks, Match, User, Book, MatchBooks, Exchange, State } from "../db/modelIndex.js";
+import { PublishedBooks, Match, User, Book, MatchBooks, Exchange, State, UserBook } from "../db/modelIndex.js";
 import { Op } from "sequelize";
 import { sequelize } from "../config/configDb.js";
 import { populateExistingMatch, getMatchBooks } from "./MatchBooks.service.js";
