@@ -155,14 +155,12 @@ export default function PaymentProcessing() {
                    pollStatus === 'error' ? 'Error' : pollStatus}
                 </span>
               </div>
-              {source && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Fuente:</span>
-                  <span className="text-gray-900">
-                    {isFromMercadoPago ? 'MercadoPago (back_url)' : 'LibroConecta App'}
-                  </span>
-                </div>
-              )}
+              <div className="flex justify-between">
+                <span className="text-gray-600">Fuente:</span>
+                <span className="text-gray-900">
+                  {isFromMercadoPago ? 'MercadoPago (back_url)' : 'LibroConecta App'}
+                </span>
+              </div>
               {shouldUseExternalReference && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Método de Polling:</span>

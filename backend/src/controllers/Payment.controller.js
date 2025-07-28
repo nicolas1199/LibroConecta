@@ -224,8 +224,7 @@ export async function createPaymentPreference(req, res) {
     console.log('👤 COMPRADOR:', {
       user_id: buyerUser.user_id,
       email: buyerUser.email,
-      name: `${buyerUser.first_name} ${buyerUser.last_name}`,
-      identification: preferenceData.payer.identification.number
+      name: `${buyerUser.first_name} ${buyerUser.last_name}`
     });
     console.log('🏪 VENDEDOR:', {
       user_id: publishedBook.user_id,
