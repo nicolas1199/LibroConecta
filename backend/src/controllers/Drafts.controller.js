@@ -8,13 +8,12 @@ import {
 } from "../db/modelIndex.js";
 import { Op } from "sequelize";
 import { success, error } from "../utils/responses.util.js";
-import { validateUUID } from "../utils/uuid.util.js";
 import { isValidUUID } from "../utils/uuid.util.js";
 
 // POST /api/drafts - Crear o actualizar un borrador
 export const saveDraft = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const draftData = req.body;
 
     // Calcular porcentaje de completado
@@ -60,7 +59,7 @@ export const saveDraft = async (req, res) => {
 // GET /api/drafts - Obtener todos los borradores del usuario
 export const getUserDrafts = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const { search } = req.query;
 
     let whereClause = { user_id: userId };
@@ -106,10 +105,10 @@ export const getUserDrafts = async (req, res) => {
 export const getDraftById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     // Validar UUID
-    if (!validateUUID(id)) {
+    if (!isValidUUID(id)) {
       return error(res, "ID de borrador inválido", 400);
     }
 
@@ -146,11 +145,11 @@ export const getDraftById = async (req, res) => {
 export const updateDraft = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const updateData = req.body;
 
     // Validar UUID
-    if (!validateUUID(id)) {
+    if (!isValidUUID(id)) {
       return error(res, "ID de borrador inválido", 400);
     }
 
@@ -188,10 +187,10 @@ export const updateDraft = async (req, res) => {
 export const deleteDraft = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     // Validar UUID
-    if (!validateUUID(id)) {
+    if (!isValidUUID(id)) {
       return error(res, "ID de borrador inválido", 400);
     }
 
@@ -216,10 +215,10 @@ export const deleteDraft = async (req, res) => {
 export const publishFromDraft = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     // Validar UUID
-    if (!validateUUID(id)) {
+    if (!isValidUUID(id)) {
       return error(res, "ID de borrador inválido", 400);
     }
 
