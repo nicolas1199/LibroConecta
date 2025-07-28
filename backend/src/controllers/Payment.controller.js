@@ -203,6 +203,11 @@ export async function createPaymentPreference(req, res) {
         surname: buyerUser.last_name || 'LibroConecta',
         email: buyerUser.email
       },
+      // Auto-return: Configurar según documentación MercadoPago
+      // "approved" = redirige automáticamente solo si el pago es aprobado
+      // "all" = redirige automáticamente para todos los estados
+      // Sin auto_return = usuario debe hacer clic manualmente
+      auto_return: "approved",
       // Configuración de tiempo de expiración
       expires: true,
       expiration_date_from: new Date().toISOString(),
