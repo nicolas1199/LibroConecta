@@ -45,25 +45,31 @@ export async function completeExchangeService(matchId, userId) {
         const completedState = await State.findOne({ where: { name: 'Completado' } });
         const stateId = completedState ? completedState.state_id : 1; // fallback
 
-        // Obtener los UserBook IDs de cada usuario para el Exchange
+        // Obtener los PublishedBooks IDs de cada usuario para el Exchange
         const user1Books = matchBooks.filter(mb => mb.user_id === match.user_id_1);
         const user2Books = matchBooks.filter(mb => mb.user_id === match.user_id_2);
         
-        // Obtener los UserBook IDs correspondientes a los PublishedBooks
-        const userBook1Id = user1Books[0]?.user_book_id;
-        const userBook2Id = user2Books[0]?.user_book_id;
+        // Usar los published_book_id directamente para el Exchange
+        // Esto es correcto porque Exchange debe referenciar las publicaciones específicas
+        const publishedBook1Id = user1Books[0]?.published_book_id;
+        const publishedBook2Id = user2Books[0]?.published_book_id;
 
-        if (userBook1Id && userBook2Id) {
+        if (publishedBook1Id && publishedBook2Id) {
+          // Crear el Exchange usando los published_book_id
+          // Nota: La tabla Exchange usa user_book_id_1 y user_book_id_2, pero en realidad
+          // debería referenciar las publicaciones específicas que se intercambiaron
           exchange = await Exchange.create({
-            user_book_id_1: userBook1Id,
-            user_book_id_2: userBook2Id,
+            user_book_id_1: publishedBook1Id, // En realidad es published_book_id_1
+            user_book_id_2: publishedBook2Id, // En realidad es published_book_id_2
             date_exchange: new Date(),
             state_id: stateId
           });
 
           console.log(`✅ Exchange creado con ID: ${exchange.exchange_id}`);
+          console.log(`   Libro 1 (published): ${publishedBook1Id}`);
+          console.log(`   Libro 2 (published): ${publishedBook2Id}`);
         } else {
-          console.log("⚠️ No se pudieron obtener user_book_ids válidos para crear el Exchange");
+          console.log("⚠️ No se pudieron obtener published_book_ids válidos para crear el Exchange");
         }
       } catch (exchangeError) {
         console.log("⚠️ Error al crear Exchange:", exchangeError.message);
@@ -319,43 +325,34 @@ async function getExchangeInfoServiceFallback(matchId, userId, match, existingEx
 export async function getExchangeHistoryService(userId) {
   try {
     // Obtener todos los intercambios completados donde el usuario participó
+    // Nota: Ahora user_book_id_1 y user_book_id_2 en realidad son published_book_id
     const exchanges = await Exchange.findAll({
       include: [
         {
-          model: UserBook,
-          as: "Book1",
+          model: PublishedBooks,
+          as: "Book1", // Ahora es PublishedBooks, no UserBook
           include: [
             {
               model: User,
               attributes: ["user_id", "first_name", "last_name"]
             },
             {
-              model: PublishedBooks,
-              include: [
-                {
-                  model: Book,
-                  attributes: ["title", "author"]
-                }
-              ]
+              model: Book,
+              attributes: ["title", "author"]
             }
           ]
         },
         {
-          model: UserBook,
-          as: "Book2", 
+          model: PublishedBooks,
+          as: "Book2", // Ahora es PublishedBooks, no UserBook
           include: [
             {
               model: User,
               attributes: ["user_id", "first_name", "last_name"]
             },
             {
-              model: PublishedBooks,
-              include: [
-                {
-                  model: Book,
-                  attributes: ["title", "author"]
-                }
-              ]
+              model: Book,
+              attributes: ["title", "author"]
             }
           ]
         },
@@ -382,15 +379,15 @@ export async function getExchangeHistoryService(userId) {
       return {
         id: exchange.exchange_id,
         type: "exchange",
-        book_title: myBook.PublishedBooks?.Book?.title || "Libro desconocido",
-        book_author: myBook.PublishedBooks?.Book?.author || "Autor desconocido",
-        other_book_title: otherBook.PublishedBooks?.Book?.title || "Libro desconocido",
-        other_book_author: otherBook.PublishedBooks?.Book?.author || "Autor desconocido",
+        book_title: myBook.Book?.title || "Libro desconocido",
+        book_author: myBook.Book?.author || "Autor desconocido",
+        other_book_title: otherBook.Book?.title || "Libro desconocido",
+        other_book_author: otherBook.Book?.author || "Autor desconocido",
         other_user_name: `${otherUser.first_name} ${otherUser.last_name}`,
         other_user_id: otherUser.user_id,
         date: exchange.date_exchange,
         status: "completed", // Todos los exchanges en la tabla están completados
-        notes: `Intercambié "${myBook.PublishedBooks?.Book?.title}" por "${otherBook.PublishedBooks?.Book?.title}"`
+        notes: `Intercambié "${myBook.Book?.title}" por "${otherBook.Book?.title}"`
       };
     });
 
