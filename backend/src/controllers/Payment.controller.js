@@ -150,7 +150,7 @@ export async function createPaymentPreference(req, res) {
       buyer_email: buyerUser.email,
       seller_email: sellerUser.email,
       emails_diferentes: buyerUser.email !== sellerUser.email,
-      buyer_name: `${buyerUser.first_name} ${buyer.last_name}`,
+      buyer_name: `${buyerUser.first_name} ${buyerUser.last_name}`,
       seller_name: `${sellerUser.first_name} ${sellerUser.last_name}`
     });
 
