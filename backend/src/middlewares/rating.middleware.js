@@ -1,12 +1,12 @@
 // Middleware para validar datos de calificaciones
 export const validateRatingCreation = (req, res, next) => {
-  const { rated_id, rating, comment, exchange_id, match_id, sell_id } = req.body;
+  const { rated_user_id, rating, comment, exchange_id, match_id, sell_id } = req.body;
 
   // Validar que se proporcionen los datos necesarios
-  if (!rated_id || !rating) {
+  if (!rated_user_id || !rating) {
     return res.status(400).json({
       error: "Datos incompletos",
-      message: "Se requieren rated_id y rating",
+      message: "Se requieren rated_user_id y rating",
     });
   }
 
@@ -18,16 +18,17 @@ export const validateRatingCreation = (req, res, next) => {
     });
   }
 
-  // Validar que el rated_id sea un número válido
-  if (!Number.isInteger(rated_id)) {
+  // Validar que rated_user_id sea un UUID válido
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(rated_user_id)) {
     return res.status(400).json({
       error: "ID inválido",
-      message: "El ID del usuario a calificar debe ser un número entero válido",
+      message: "El ID del usuario a calificar debe ser un UUID válido",
     });
   }
 
   // Validar que no se califique a sí mismo
-  if (rated_id === req.user.user_id) {
+  if (rated_user_id === req.user.user_id) {
     return res.status(400).json({
       error: "Calificación inválida",
       message: "No puedes calificarte a ti mismo",

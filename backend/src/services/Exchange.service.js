@@ -1,4 +1,4 @@
-import { PublishedBooks, Match, User, Book, MatchBooks, Exchange, State } from "../db/modelIndex.js";
+import { PublishedBooks, Match, User, Book, MatchBooks, Exchange, State, UserBook } from "../db/modelIndex.js";
 import { Op } from "sequelize";
 import { sequelize } from "../config/configDb.js";
 import { populateExistingMatch, getMatchBooks } from "./MatchBooks.service.js";
@@ -176,32 +176,32 @@ export async function getExchangeInfoService(matchId, userId) {
     }
 
     // Verificar si ya existe un Exchange completado para este match
-    const existingExchange = await Exchange.findOne({
-      where: {
-        [Op.or]: [
-          {
-            "$Book1.user_id$": match.user_id_1,
-            "$Book2.user_id$": match.user_id_2
-          },
-          {
-            "$Book1.user_id$": match.user_id_2,
-            "$Book2.user_id$": match.user_id_1
-          }
-        ]
-      },
-      include: [
-        {
-          model: UserBook,
-          as: "Book1",
-          attributes: ["user_id"],
+    // Buscar por match directamente usando la tabla Match_Books si existe
+    let existingExchange = null;
+    try {
+      // Intentar buscar exchanges relacionados con este match
+      const exchangeQuery = await sequelize.query(`
+        SELECT e.* FROM "Exchange" e
+        JOIN "UserBooks" ub1 ON e.user_book_id_1 = ub1.user_book_id
+        JOIN "UserBooks" ub2 ON e.user_book_id_2 = ub2.user_book_id
+        WHERE (ub1.user_id = :user1 AND ub2.user_id = :user2)
+           OR (ub1.user_id = :user2 AND ub2.user_id = :user1)
+        LIMIT 1
+      `, {
+        replacements: { 
+          user1: match.user_id_1, 
+          user2: match.user_id_2 
         },
-        {
-          model: UserBook,
-          as: "Book2",
-          attributes: ["user_id"],
-        }
-      ]
-    });
+        type: sequelize.QueryTypes.SELECT
+      });
+      
+      if (exchangeQuery.length > 0) {
+        existingExchange = exchangeQuery[0];
+      }
+    } catch (queryError) {
+      console.log("⚠️ No se pudo verificar exchange existente:", queryError.message);
+      existingExchange = null;
+    }
 
     // Intentar obtener libros específicos del match
     let matchBooks = await getMatchBooks(matchId);
