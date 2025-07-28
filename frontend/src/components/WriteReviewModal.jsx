@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { createRating } from '../api/ratings';
 
 const WriteReviewModal = ({ 
   isOpen, 
@@ -15,8 +15,6 @@ const WriteReviewModal = ({
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:1234/api';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +39,7 @@ const WriteReviewModal = ({
       if (sellId) reviewData.sell_id = sellId;
       if (transactionId) reviewData.transaction_id = transactionId;
 
-      await axios.post(`${API_BASE_URL}/ratings`, reviewData);
+      await createRating(reviewData);
       
       // Notificar que se creó la review
       if (onReviewSubmitted) {

@@ -9,8 +9,9 @@ import ImageIcon from "../components/icons/ImageIcon";
 import Paperclip from "../components/icons/Paperclip";
 import CheckCircle from "../components/icons/CheckCircle";
 import Star from "../components/icons/Star";
-import X from "../components/icons/X"; // Para cerrar el modal
+import X from "../components/icons/X";
 import ProfileImage from "./ProfileImage";
+import WriteReviewModal from "./WriteReviewModal";
 import { Link } from "react-router-dom";
 
 export default function EnhancedMessages() {
@@ -26,9 +27,8 @@ export default function EnhancedMessages() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState(null);
   const [showExchangeActions, setShowExchangeActions] = useState(false);
-  const [showRatingModal, setShowRatingModal] = useState(false); // Nuevo estado para el modal
-  const [exchangeCompleted, setExchangeCompleted] = useState(false); // Para track del intercambio
-  const [debugInfo, setDebugInfo] = useState(null); // Para debuggear
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [exchangeCompleted, setExchangeCompleted] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -48,10 +48,6 @@ export default function EnhancedMessages() {
     scrollToBottom();
   }, [messages]);
 
-  // Debug: Monitorear cambios en showRatingModal
-  useEffect(() => {
-    console.log("🔍 showRatingModal cambió a:", showRatingModal);
-  }, [showRatingModal]);
 
   const loadConversations = async () => {
     try {
@@ -175,32 +171,16 @@ export default function EnhancedMessages() {
 
   const handleCompleteExchange = async () => {
     try {
-      console.log("🎯 Iniciando completar intercambio...");
-      console.log("📊 Estado actual - showRatingModal:", showRatingModal);
-      
       await completeExchange(selectedConversation.match_id);
-      console.log("✅ Intercambio completado exitosamente");
       
       setShowExchangeActions(false);
       setExchangeInfo(prev => ({ ...prev, is_completed: true }));
       setExchangeCompleted(true);
       
-      console.log("🔔 Configurando timer para mostrar modal...");
-      setDebugInfo("Timer configurado, esperando 1 segundo...");
-      
       // Mostrar modal de calificación después de completar
       setTimeout(() => {
-        console.log("🎭 Timer ejecutado - Mostrando modal de calificación");
-        console.log("📊 Estado antes de setShowRatingModal(true):", showRatingModal);
         setShowRatingModal(true);
-        console.log("📊 Estado después de setShowRatingModal(true):", true);
-        setDebugInfo("Modal debería estar visible ahora");
-        
-        // Verificar que el estado se actualizó correctamente
-        setTimeout(() => {
-          console.log("🔍 Verificación - showRatingModal debería ser true ahora");
-        }, 100);
-      }, 1000); // Mostrar después de 1 segundo
+      }, 1000);
       
       // Recargar información del intercambio
       loadExchangeInfo(selectedConversation.match_id);
@@ -210,21 +190,28 @@ export default function EnhancedMessages() {
     }
   };
 
-  const handleGoToReview = () => {
-    if (exchangeInfo && exchangeInfo.users) {
-      // Encontrar el otro usuario
-      const otherUser = exchangeInfo.users.find(user => user.user_id !== currentUser.user_id);
-      if (otherUser) {
-        navigate(`/dashboard/ratings?review_user=${otherUser.user_id}&match_id=${selectedConversation.match_id}`);
-      }
-    }
+  const handleRatingModalClose = () => {
     setShowRatingModal(false);
-    setDebugInfo(null);
   };
 
-  const handleSkipRating = () => {
+  const handleRatingSubmitted = () => {
     setShowRatingModal(false);
-    setDebugInfo(null);
+    // Opcional: mostrar mensaje de éxito
+  };
+
+  const getOtherUser = () => {
+    if (exchangeInfo && exchangeInfo.users) {
+      return exchangeInfo.users.find(user => user.user_id !== currentUser.user_id);
+    }
+    return selectedConversation?.other_user;
+  };
+
+  const getOtherUserName = () => {
+    const otherUser = getOtherUser();
+    if (otherUser) {
+      return `${otherUser.first_name} ${otherUser.last_name}`;
+    }
+    return "Usuario";
   };
 
   const scrollToBottom = () => {
@@ -409,7 +396,7 @@ export default function EnhancedMessages() {
                   <span>Completar Intercambio</span>
                 </button>
                 <button
-                  onClick={handleGoToReview}
+                  onClick={() => setShowRatingModal(true)}
                   className="btn btn-primary btn-sm flex items-center space-x-1"
                 >
                   <Star className="h-4 w-4" />
@@ -426,7 +413,7 @@ export default function EnhancedMessages() {
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-sm text-green-800">Intercambio completado</span>
                 <button
-                  onClick={handleGoToReview}
+                  onClick={() => setShowRatingModal(true)}
                   className="ml-auto text-sm text-green-600 hover:text-green-800 flex items-center space-x-1"
                 >
                   <Star className="h-4 w-4" />
@@ -522,72 +509,14 @@ export default function EnhancedMessages() {
       </div>
 
       {/* Modal de Calificación */}
-      {showRatingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            {console.log("🎭 Modal renderizado correctamente")}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                ¡Intercambio Completado! 🎉
-              </h3>
-              <button
-                onClick={handleSkipRating}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-gray-600 mb-2">
-                El intercambio se ha completado exitosamente.
-              </p>
-              <p className="text-sm text-gray-500">
-                ¿Te gustaría calificar tu experiencia con este intercambio?
-              </p>
-            </div>
-
-            {exchangeInfo && (
-              <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">
-                  Detalles del intercambio:
-                </h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {exchangeInfo.users?.map((user, index) => (
-                    <div key={user.user_id} className="flex justify-between">
-                      <span>{user.name}</span>
-                      <span>{user.books?.length || 0} libro(s)</span>
-                    </div>
-                  ))}
-                  <div className="border-t pt-1 mt-2">
-                    <span className="font-medium">Total de libros: {exchangeInfo.total_books || 0}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex space-x-3">
-              <button
-                onClick={handleGoToReview}
-                className="flex-1 btn btn-primary flex items-center justify-center space-x-2"
-              >
-                <Star className="h-4 w-4" />
-                <span>Calificar Ahora</span>
-              </button>
-              <button
-                onClick={handleSkipRating}
-                className="flex-1 btn btn-secondary"
-              >
-                Más Tarde
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-500 text-center mt-3">
-              Puedes calificar más tarde desde tu perfil
-            </p>
-          </div>
-        </div>
-      )}
+      <WriteReviewModal
+        isOpen={showRatingModal}
+        onClose={handleRatingModalClose}
+        ratedUserId={getOtherUser()?.user_id}
+        ratedUserName={getOtherUserName()}
+        exchangeId={exchangeInfo?.exchange_id}
+        onReviewSubmitted={handleRatingSubmitted}
+      />
 
       {/* Success Message */}
       {exchangeCompleted && !showRatingModal && (
