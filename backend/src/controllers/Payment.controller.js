@@ -164,7 +164,7 @@ export async function createPaymentPreference(req, res) {
     // Crear referencia externa única
     const externalReference = `LIBRO_${publishedBookId}_${userId}_${Date.now()}`;
 
-    // Crear registro de pago en la base de datos
+    // Crear registro de pago en la base de datos con nuevos campos
     const paymentRecord = await Payment.create({
       published_book_id: publishedBookId,
       buyer_id: userId,
@@ -173,7 +173,8 @@ export async function createPaymentPreference(req, res) {
       currency: 'CLP',
       mp_external_reference: externalReference,
       description: `Compra de libro: ${publishedBook.Book.title}`,
-      status: 'pending'
+      status: 'pending',
+      installments: 1 // Campo requerido ahora disponible
     });
 
     // URLs hardcodeadas exactamente como en la documentación de MercadoPago
@@ -433,12 +434,19 @@ export async function createPaymentPreference(req, res) {
  */
 export async function handlePaymentWebhook(req, res) {
   try {
-    console.log('🔔 Webhook recibido de MercadoPago:', {
+    console.log('🔔🔔🔔 WEBHOOK LLAMADO - MercadoPago:', {
+      method: req.method,
+      url: req.url,
       headers: req.headers,
       body: req.body,
       query: req.query,
       timestamp: new Date().toISOString()
     });
+    
+    // Log específico para debug
+    console.log('🔔 WEBHOOK - User-Agent:', req.headers['user-agent']);
+    console.log('🔔 WEBHOOK - X-Forwarded-For:', req.headers['x-forwarded-for']);
+    console.log('🔔 WEBHOOK - Content-Type:', req.headers['content-type']);
 
     // MercadoPago puede enviar diferentes tipos de notificaciones
     const { type, data } = req.body;
@@ -499,7 +507,7 @@ export async function handlePaymentWebhook(req, res) {
  * Actualizar pago desde webhook de MercadoPago
  */
 async function updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentId) {
-  // Extraer más datos del pago para información completa
+  // Extraer todos los datos del pago para información completa
   const paymentDetails = {
     mp_payment_id: mpPaymentId.toString(),
     mp_collection_id: mpPaymentInfo.collection_id,
@@ -544,10 +552,12 @@ async function updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentI
     status: paymentDetails.status,
     amount: paymentDetails.transaction_amount,
     method: paymentDetails.payment_method,
-    installments: paymentDetails.installments
+    installments: paymentDetails.installments,
+    payer_email: paymentDetails.payer_email,
+    card_ending: paymentDetails.card_last_four_digits
   });
 
-  // Actualizar información del pago
+  // Actualizar información completa del pago
   await paymentRecord.update(paymentDetails);
 
   // Si el pago fue aprobado, crear la transacción

@@ -28,17 +28,48 @@ export default function PaymentButton({
     
     setPaymentWindow(popup);
     
-    // Monitorear el popup
+    // Monitorear el popup más frecuentemente y detectar redirecciones
     const checkPopup = setInterval(() => {
-      if (popup.closed) {
-        console.log('🪟 Popup cerrado, verificando estado del pago...');
-        clearInterval(checkPopup);
-        setPaymentWindow(null);
+      try {
+        // Verificar si el popup fue cerrado
+        if (popup.closed) {
+          console.log('🪟 Popup cerrado por usuario, verificando estado del pago...');
+          clearInterval(checkPopup);
+          setPaymentWindow(null);
+          
+          // Redirigir a processing con más información
+          window.location.href = `/payment/processing?external_reference=${externalReference}&source=popup_closed&timestamp=${Date.now()}`;
+          return;
+        }
+
+        // Intentar detectar redirecciones de MercadoPago (auto_return)
+        try {
+          const popupUrl = popup.location.href;
+          console.log('🔍 URL actual del popup:', popupUrl);
+          
+          // Si detectamos que MercadoPago redirigió a nuestra URL
+          if (popupUrl && (popupUrl.includes('/payment/processing') || popupUrl.includes('/payment/success'))) {
+            console.log('✅ Auto_return detectado, cerrando popup...');
+            popup.close();
+            clearInterval(checkPopup);
+            setPaymentWindow(null);
+            
+            // Extraer parámetros de la URL del popup
+            const urlObj = new URL(popupUrl);
+            const params = urlObj.searchParams.toString();
+            
+            // Redirigir con los parámetros del auto_return
+            window.location.href = `/payment/processing?${params}&source=auto_return`;
+            return;
+          }
+        } catch (crossOriginError) {
+          // Es normal que esto falle por cross-origin, seguir monitoreando
+        }
         
-        // Redirigir a la página de procesamiento para verificar el pago
-        window.location.href = `/payment/processing?external_reference=${externalReference}&source=popup`;
+      } catch (error) {
+        console.log('🔍 Error monitoreando popup (normal):', error.message);
       }
-    }, 1000);
+    }, 500); // Verificar cada 500ms para mejor detección
     
     return popup;
   };
@@ -69,9 +100,8 @@ export default function PaymentButton({
           // 🆕 Abrir en popup
           console.log('🪟 Abriendo pago en popup:', preference.init_point);
           
-          // Extraer external_reference del preference (generado en el backend)
-          const externalRef = preference.book_info?.external_reference || 
-                             `LIBRO_${publishedBookId}_${Date.now()}`;
+          // Usar external_reference del backend
+          const externalRef = preference.external_reference;
           
           openPaymentPopup(preference.init_point, externalRef);
           setIsProcessing(true); // Mantener botón en estado "procesando"
