@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Filter from "../components/icons/Filter"
-import Search from "../components/icons/Search"
+import BookOpen from "../components/icons/BookOpen"
 import BookCard from "../components/BookCard"
 import { getPublishedBooks, getTransactionTypes, getBookConditions, getLocations } from "../api/publishedBooks"
 
@@ -13,12 +13,11 @@ export default function Explore() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filters, setFilters] = useState({
-    search: "",
     transaction_type_id: "",
     condition_id: "",
     location_id: "",
   })
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(true)
 
   // Datos de referencia para filtros
   const [transactionTypes, setTransactionTypes] = useState([])
@@ -74,7 +73,6 @@ export default function Explore() {
 
   const clearFilters = () => {
     setFilters({
-      search: "",
       transaction_type_id: "",
       condition_id: "",
       location_id: "",
@@ -112,18 +110,6 @@ export default function Explore() {
 
         {/* Search and Filters */}
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-          {/* Search Bar */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar por título, autor..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
           {/* Filters */}
           {showFilters && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
@@ -220,10 +206,10 @@ export default function Explore() {
           {!loading && !error && publishedBooks.length === 0 && (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="h-8 w-8 text-gray-400" />
+                <BookOpen className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron libros</h3>
-              <p className="text-gray-600 mb-6">Intenta ajustar los filtros o buscar con otros términos</p>
+              <p className="text-gray-600 mb-6">Intenta ajustar los filtros para encontrar libros disponibles</p>
               <button onClick={clearFilters} className="btn btn-primary">
                 Limpiar filtros
               </button>

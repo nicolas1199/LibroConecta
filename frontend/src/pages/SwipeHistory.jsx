@@ -363,10 +363,16 @@ function HistoryCard({ interaction, onChangeInteraction, onDeleteInteraction }) 
   const { PublishedBook } = interaction; // Datos del libro publicado
   const { Book: book, User: user, PublishedBookImages: images = [] } = PublishedBook;
   
+  // ESTADO para manejo de errores de imagen
+  const [imageError, setImageError] = useState(false);
+  
   // MANEJO DE IMÁGENES
   // Buscar imagen principal o usar la primera disponible
   const primaryImage = images.find(img => img.is_primary) || images[0];
-  const imageUrl = primaryImage?.image_url || "/api/placeholder/300/200";
+  const imageUrl = imageError ? "/api/placeholder/300/200" :
+                   primaryImage?.image_data ||          // Usar image_data (base64) como prioridad
+                   primaryImage?.image_url ||            // Fallback a image_url
+                   "/api/placeholder/300/200";          // Fallback final
   
   // CONFIGURACIÓN DE UI
   const currentType = INTERACTION_TYPES[interaction.interaction_type]; // Configuración del tipo actual
@@ -385,7 +391,12 @@ function HistoryCard({ interaction, onChangeInteraction, onDeleteInteraction }) 
         <img
           src={imageUrl}
           alt={book.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover image-render-crisp"
+          style={{
+            imageRendering: 'optimize-contrast',
+            msInterpolationMode: 'nearest-neighbor'
+          }}
+          onError={() => setImageError(true)}
         />
         {/* Badge con tipo de interacción */}
         <div className={`absolute top-3 right-3 bg-${currentType.color}-500 text-white px-3 py-1 rounded-full text-sm font-medium`}>

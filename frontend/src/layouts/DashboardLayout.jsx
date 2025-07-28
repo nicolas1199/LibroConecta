@@ -6,11 +6,13 @@ import DashboardSidebar from "../components/dashboard/DashboardSidebar";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import { performLogout } from "../utils/auth";
 import { useAuth } from "../hooks/useAuth";
+import { getUserProfile } from "../api/auth";
 
 export default function DashboardLayout({ children }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, updateUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,6 +25,27 @@ export default function DashboardLayout({ children }) {
       document.body.classList.remove("dashboard");
     };
   }, []);
+
+  // Sincronizar datos del usuario desde el servidor
+  useEffect(() => {
+    const syncUserData = async () => {
+      if (user && user.user_id) {
+        try {
+          const response = await getUserProfile();
+          if (response && response.data) {
+            // Actualizar localStorage y estado del hook
+            localStorage.setItem("user", JSON.stringify(response.data));
+            updateUser(response.data);
+          }
+        } catch (error) {
+          console.error("Error sincronizando datos del usuario:", error);
+          // Si falla, mantener los datos actuales
+        }
+      }
+    };
+
+    syncUserData();
+  }, [user, updateUser]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -43,6 +66,11 @@ export default function DashboardLayout({ children }) {
     setSidebarOpen(false);
   };
 
+  // Función para manejar cambios en la búsqueda
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+  };
+
   // Mostrar loading mientras se cargan los datos del usuario
   if (isLoading || !user) {
     return (
@@ -54,7 +82,12 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={user} onToggleSidebar={toggleSidebar} />
+      <DashboardHeader 
+        user={user} 
+        onToggleSidebar={toggleSidebar}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearchChange}
+      />
 
       {/* Overlay para móvil */}
       {sidebarOpen && (

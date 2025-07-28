@@ -16,89 +16,61 @@ import { checkAndCreateAutoMatch, getAutoMatchStats, getUserAutoMatches } from "
 // Obtener todos los libros publicados con filtros
 export async function getAllPublishedBooks(req, res) {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      transaction_type_id,
-      condition_id,
-      location_id,
-      min_price,
-      max_price,
-      search,
-    } = req.query
+    const { page = 1, limit = 10, transaction_type_id, condition_id, location_id, min_price, max_price } = req.query
 
     const offset = (page - 1) * limit
     const whereConditions = {}
-    const bookWhereConditions = {}
-    const userWhereConditions = {}
 
-    // Aplicar filtros existentes
+    // Aplicar filtros
     if (transaction_type_id) whereConditions.transaction_type_id = transaction_type_id
     if (condition_id) whereConditions.condition_id = condition_id
     if (location_id) whereConditions.location_id = location_id
     if (min_price) whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price }
     if (max_price) whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price }
-
-    // Aplicar búsqueda si se proporciona
-    if (search && search.trim()) {
-      const searchTerm = `%${search.trim()}%`
-
-      // Buscar en título y autor del libro
-      bookWhereConditions[Op.or] = [{ title: { [Op.iLike]: searchTerm } }, { author: { [Op.iLike]: searchTerm } }]
-
-      // Buscar en nombre del usuario
-      userWhereConditions[Op.or] = [
-        { first_name: { [Op.iLike]: searchTerm } },
-        { last_name: { [Op.iLike]: searchTerm } },
-        fn("CONCAT", col("User.first_name"), " ", col("User.last_name")),
-        { [Op.iLike]: searchTerm },
-      ]
-    }
-
-    const includeOptions = [
-      {
-        model: Book,
-        where: Object.keys(bookWhereConditions).length > 0 ? bookWhereConditions : undefined,
-        include: [
-          {
-            model: Category,
-            as: "Categories",
-            through: { attributes: [] },
-          },
-        ],
-      },
-      {
-        model: User,
-        attributes: ["user_id", "first_name", "last_name", "location_id"],
-        where: Object.keys(userWhereConditions).length > 0 ? userWhereConditions : undefined,
-        include: [
-          {
-            model: LocationBook,
-            as: "userLocation",
-            attributes: ["location_id", "comuna", "region"],
-          },
-        ],
-      },
-      {
-        model: TransactionType,
-      },
-      {
-        model: BookCondition,
-      },
-      {
-        model: LocationBook,
-      },
-      {
-        model: PublishedBookImage,
-        limit: 1,
-        where: { is_primary: true },
-        required: false,
-      },
-    ]
+    
+    // 🚀 NUEVO: Solo mostrar libros disponibles (no vendidos)
+    whereConditions.status = { [Op.in]: ['available', 'reserved'] }
 
     const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
       where: whereConditions,
-      include: includeOptions,
+      include: [
+        {
+          model: Book,
+          include: [
+            {
+              model: Category,
+              as: "Categories",
+              through: { attributes: [] },
+            },
+          ],
+        },
+        {
+          model: User,
+          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          include: [
+            {
+              model: LocationBook,
+              as: "userLocation",
+              attributes: ["location_id", "comuna", "region"],
+            },
+          ],
+        },
+        {
+          model: TransactionType,
+        },
+        {
+          model: BookCondition,
+        },
+        {
+          model: LocationBook,
+        },
+        {
+          model: PublishedBookImage,
+          limit: 1,
+          where: { is_primary: true },
+          required: false,
+        },
+      ],
       order: [["date_published", "DESC"]],
       limit: Number.parseInt(limit),
       offset: offset,
@@ -113,7 +85,6 @@ export async function getAllPublishedBooks(req, res) {
         hasNextPage: page * limit < count,
         hasPreviousPage: page > 1,
       },
-      searchTerm: search || null,
     })
   } catch (error) {
     console.error("Error en getAllPublishedBooks:", error)
@@ -139,7 +110,7 @@ export async function getPublishedBookById(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "location_id"],
+          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
           include: [
             {
               model: LocationBook,
@@ -542,7 +513,7 @@ export async function getRecommendations(req, res) {
         {
           // Información del usuario propietario del libro
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "email"],
+          attributes: ["user_id", "first_name", "last_name", "username", "email"],
         },
         {
           // Tipo de transacción (venta, intercambio, regalo)
@@ -831,7 +802,7 @@ export async function getUserSwipeHistory(req, res) {
             {
               // Propietario del libro
               model: User,
-              attributes: ["user_id", "first_name", "last_name", "email"],
+              attributes: ["user_id", "first_name", "last_name", "username", "email"],
             },
             {
               // Tipo de transacción
@@ -1007,5 +978,114 @@ export async function getUserAutoMatchesList(req, res) {
   } catch (err) {
     console.error("Error en getUserAutoMatchesList:", err)
     return error(res, "Error al obtener auto-matches", 500)
+  }
+}
+
+// Búsqueda de libros publicados
+export async function searchPublishedBooks(req, res) {
+  try {
+    const { q, page = 1, limit = 20 } = req.query
+
+    console.log(`🔍 Búsqueda iniciada: "${q}"`)
+
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({
+        error: "El término de búsqueda debe tener al menos 2 caracteres",
+      })
+    }
+
+    const searchTerm = q.trim()
+    const offset = (page - 1) * limit
+
+    // Buscar primero todos los libros publicados con sus relaciones - AGREGADO PublishedBookImage
+    const allBooks = await PublishedBooks.findAll({
+      include: [
+        {
+          model: Book,
+          include: [
+            {
+              model: Category,
+              as: "Categories",
+              through: { attributes: [] },
+            },
+          ],
+        },
+        {
+          model: User,
+          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          include: [
+            {
+              model: LocationBook,
+              as: "userLocation",
+              attributes: ["location_id", "comuna", "region"],
+            },
+          ],
+        },
+        {
+          model: TransactionType,
+        },
+        {
+          model: BookCondition,
+        },
+        {
+          model: LocationBook,
+        },
+        {
+          model: PublishedBookImage, // AGREGADO PARA LAS IMÁGENES
+          limit: 1,
+          where: { is_primary: true },
+          required: false,
+        },
+      ],
+    })
+
+    // Filtrar en JavaScript para evitar problemas de SQL
+    const searchResults = allBooks.filter((book) => {
+      const bookTitle = book.Book?.title?.toLowerCase() || ""
+      const bookAuthor = book.Book?.author?.toLowerCase() || ""
+      const bookIsbn = book.Book?.isbn?.toLowerCase() || ""
+      const userFirstName = book.User?.first_name?.toLowerCase() || ""
+      const userLastName = book.User?.last_name?.toLowerCase() || ""
+      const userName = book.User?.username?.toLowerCase() || ""
+      const locationComuna = book.LocationBook?.comuna?.toLowerCase() || ""
+      const locationRegion = book.LocationBook?.region?.toLowerCase() || ""
+
+      const searchLower = searchTerm.toLowerCase()
+
+      return (
+        bookTitle.includes(searchLower) ||
+        bookAuthor.includes(searchLower) ||
+        bookIsbn.includes(searchLower) ||
+        userFirstName.includes(searchLower) ||
+        userLastName.includes(searchLower) ||
+        userName.includes(searchLower) ||
+        locationComuna.includes(searchLower) ||
+        locationRegion.includes(searchLower)
+      )
+    })
+
+    // Aplicar paginación
+    const totalResults = searchResults.length
+    const paginatedResults = searchResults.slice(offset, offset + Number.parseInt(limit))
+
+    console.log(`✅ Búsqueda completada: ${totalResults} resultados encontrados`)
+
+    res.json({
+      searchResults: paginatedResults,
+      searchTerm,
+      pagination: {
+        currentPage: Number.parseInt(page),
+        totalPages: Math.ceil(totalResults / limit),
+        totalResults,
+        hasNextPage: offset + Number.parseInt(limit) < totalResults,
+        hasPreviousPage: page > 1,
+      },
+    })
+  } catch (error) {
+    console.error("Error en searchPublishedBooks:", error)
+    res.status(500).json({
+      error: "Error al realizar la búsqueda",
+      details: error.message,
+    })
   }
 }
