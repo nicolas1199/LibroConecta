@@ -218,7 +218,6 @@ export async function createPaymentPreference(req, res) {
         "failure": "http://146.83.198.35:1235/payment/failure",
         "pending": "http://146.83.198.35:1235/payment/pending"
       },
-      auto_return: "approved",
       // Configuración de tiempo de expiración
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
