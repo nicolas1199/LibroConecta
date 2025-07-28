@@ -413,6 +413,25 @@ export const deleteMatch = async (req, res) => {
         .json(createResponse(404, "Match no encontrado", null, null));
     }
 
+    // Importar Rating para poder eliminarlo
+    const { Rating } = await import("../db/modelIndex.js");
+
+    // Eliminar primero todos los ratings asociados a este match
+    await Rating.destroy({
+      where: {
+        match_id: match_id,
+      },
+    });
+
+    // Eliminar también los mensajes asociados al match
+    const { Message } = await import("../db/modelIndex.js");
+    await Message.destroy({
+      where: {
+        match_id: match_id,
+      },
+    });
+
+    // Finalmente eliminar el match
     await match.destroy();
 
     return res.json(
