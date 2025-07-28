@@ -57,8 +57,21 @@ async function setupServer() {
     next();
   });
 
-  // Ruta de las API
+  // Ruta de las API - DEBE IR ANTES que cualquier middleware de archivos estáticos
   app.use("/api", apiRoutes);
+
+  // Middleware para capturar rutas no encontradas
+  app.use("*", (req, res, next) => {
+    if (req.originalUrl.startsWith('/api/')) {
+      console.log(`❌ Ruta API no encontrada: ${req.originalUrl}`);
+      return res.status(404).json({ 
+        error: "Ruta API no encontrada",
+        path: req.originalUrl,
+        method: req.method
+      });
+    }
+    next();
+  });
 
   // Error handler middleware (debe ir después de todas las rutas)
   app.use(errorHandler);

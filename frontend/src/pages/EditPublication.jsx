@@ -81,18 +81,6 @@ export default function EditPublication() {
         const publication = publicationData
         setPublication(publication)
         
-        console.log("🔍 DEBUG - Datos de publicación cargados:", {
-          publication: publication,
-          hasImages: !!(publication.PublishedBookImages),
-          imageCount: publication.PublishedBookImages?.length || 0,
-          imageDetails: publication.PublishedBookImages?.map(img => ({
-            id: img.published_book_image_id,
-            hasImageData: !!img.image_data,
-            hasImageUrl: !!img.image_url,
-            isPrimary: img.is_primary
-          })) || []
-        });
-        
         setFormData({
           title: publication.Book?.title || "",
           author: publication.Book?.author || "",
@@ -108,11 +96,6 @@ export default function EditPublication() {
           existingImages: publication.PublishedBookImages || [],
           imagesToDelete: [], // Array para rastrear imágenes a eliminar
         })
-        
-        console.log("🔍 DEBUG - FormData actualizado:", {
-          existingImagesCount: (publication.PublishedBookImages || []).length,
-          existingImages: publication.PublishedBookImages || []
-        });
       } catch (error) {
         console.error("Error loading data:", error)
         alert("Error al cargar los datos de la publicación")
@@ -213,8 +196,6 @@ export default function EditPublication() {
   const removeExistingImage = async (imageId) => {
     if (confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
       try {
-        console.log("🗑️ [FRONTEND] Eliminando imagen Base64, ID:", imageId);
-        
         // 1. Eliminar del estado local inmediatamente
         setFormData((prev) => ({
           ...prev,
@@ -222,9 +203,6 @@ export default function EditPublication() {
           // Agregar a lista de imágenes a eliminar en BD
           imagesToDelete: [...(prev.imagesToDelete || []), imageId]
         }));
-        
-        console.log("✅ [FRONTEND] Imagen eliminada del estado local:", imageId);
-        console.log("📝 [FRONTEND] Imagen marcada para eliminación en BD");
         
       } catch (error) {
         console.error("❌ [FRONTEND] Error eliminando imagen Base64:", error);
@@ -305,18 +283,13 @@ export default function EditPublication() {
       }
 
       // Actualizar la publicación - CORREGIDO: ahora sí llama a la API
-      console.log("Actualizando publicación:", updateData)
       const updatedPublication = await updatePublishedBook(id, updateData)
-      console.log("Publicación actualizada:", updatedPublication)
 
       // Eliminar imágenes marcadas para eliminación
       if (formData.imagesToDelete && formData.imagesToDelete.length > 0) {
-        console.log("🗑️ Eliminando imágenes marcadas:", formData.imagesToDelete);
-        
         for (const imageId of formData.imagesToDelete) {
           try {
             await deletePublishedBookImage(imageId);
-            console.log(`✅ Imagen ${imageId} eliminada de la BD`);
           } catch (error) {
             console.warn(`⚠️ No se pudo eliminar imagen ${imageId} de la BD:`, error);
             // Continuar con las demás, no fallar todo el proceso
