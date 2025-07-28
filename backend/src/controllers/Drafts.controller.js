@@ -7,8 +7,8 @@ import {
   PublishedBooks,
 } from "../db/modelIndex.js";
 import { Op } from "sequelize";
-import { successResponse, errorResponse } from "../utils/response.util.js";
-import { validateUUID } from "../utils/uuid.util.js";
+import { success, error } from "../utils/responses.util.js";
+import { isValidUUID } from "../utils/uuid.util.js";
 
 // POST /api/drafts - Crear o actualizar un borrador
 export const saveDraft = async (req, res) => {
@@ -37,7 +37,7 @@ export const saveDraft = async (req, res) => {
           user_id: userId,
         });
 
-        return successResponse(res, "Borrador actualizado exitosamente", existingDraft);
+        return success(res, existingDraft, "Borrador actualizado exitosamente");
       }
     }
 
@@ -49,10 +49,10 @@ export const saveDraft = async (req, res) => {
       last_edited: new Date(),
     });
 
-    return successResponse(res, "Borrador guardado exitosamente", newDraft);
-  } catch (error) {
-    console.error("Error saving draft:", error);
-    return errorResponse(res, "Error interno del servidor", 500);
+    return success(res, newDraft, "Borrador guardado exitosamente");
+  } catch (err) {
+    console.error("Error saving draft:", err);
+    return error(res, "Error interno del servidor", 500);
   }
 };
 
@@ -94,10 +94,10 @@ export const getUserDrafts = async (req, res) => {
       order: [['last_edited', 'DESC']]
     });
 
-    return successResponse(res, "Borradores obtenidos exitosamente", drafts);
-  } catch (error) {
-    console.error("Error getting drafts:", error);
-    return errorResponse(res, "Error interno del servidor", 500);
+    return success(res, drafts, "Borradores obtenidos exitosamente");
+  } catch (err) {
+    console.error("Error getting drafts:", err);
+    return error(res, "Error interno del servidor", 500);
   }
 };
 
@@ -109,7 +109,7 @@ export const getDraftById = async (req, res) => {
 
     // Validar UUID
     if (!validateUUID(id)) {
-      return errorResponse(res, "ID de borrador inválido", 400);
+      return error(res, "ID de borrador inválido", 400);
     }
 
     const draft = await Drafts.findOne({
@@ -131,13 +131,13 @@ export const getDraftById = async (req, res) => {
     });
 
     if (!draft) {
-      return errorResponse(res, "Borrador no encontrado", 404);
+      return error(res, "Borrador no encontrado", 404);
     }
 
-    return successResponse(res, "Borrador obtenido exitosamente", draft);
-  } catch (error) {
-    console.error("Error getting draft:", error);
-    return errorResponse(res, "Error interno del servidor", 500);
+    return success(res, draft, "Borrador obtenido exitosamente");
+  } catch (err) {
+    console.error("Error getting draft:", err);
+    return error(res, "Error interno del servidor", 500);
   }
 };
 
@@ -150,7 +150,7 @@ export const updateDraft = async (req, res) => {
 
     // Validar UUID
     if (!validateUUID(id)) {
-      return errorResponse(res, "ID de borrador inválido", 400);
+      return error(res, "ID de borrador inválido", 400);
     }
 
     const draft = await Drafts.findOne({
@@ -158,7 +158,7 @@ export const updateDraft = async (req, res) => {
     });
 
     if (!draft) {
-      return errorResponse(res, "Borrador no encontrado", 404);
+      return error(res, "Borrador no encontrado", 404);
     }
 
     // Calcular porcentaje de completado
@@ -176,10 +176,10 @@ export const updateDraft = async (req, res) => {
       last_edited: new Date(),
     });
 
-    return successResponse(res, "Borrador actualizado exitosamente", draft);
-  } catch (error) {
-    console.error("Error updating draft:", error);
-    return errorResponse(res, "Error interno del servidor", 500);
+    return success(res, draft, "Borrador actualizado exitosamente");
+  } catch (err) {
+    console.error("Error updating draft:", err);
+    return error(res, "Error interno del servidor", 500);
   }
 };
 
@@ -191,7 +191,7 @@ export const deleteDraft = async (req, res) => {
 
     // Validar UUID
     if (!validateUUID(id)) {
-      return errorResponse(res, "ID de borrador inválido", 400);
+      return error(res, "ID de borrador inválido", 400);
     }
 
     const draft = await Drafts.findOne({
@@ -199,15 +199,15 @@ export const deleteDraft = async (req, res) => {
     });
 
     if (!draft) {
-      return errorResponse(res, "Borrador no encontrado", 404);
+      return error(res, "Borrador no encontrado", 404);
     }
 
     await draft.destroy();
 
-    return successResponse(res, "Borrador eliminado exitosamente");
-  } catch (error) {
-    console.error("Error deleting draft:", error);
-    return errorResponse(res, "Error interno del servidor", 500);
+    return success(res, null, "Borrador eliminado exitosamente");
+  } catch (err) {
+    console.error("Error deleting draft:", err);
+    return error(res, "Error interno del servidor", 500);
   }
 };
 
@@ -219,7 +219,7 @@ export const publishFromDraft = async (req, res) => {
 
     // Validar UUID
     if (!validateUUID(id)) {
-      return errorResponse(res, "ID de borrador inválido", 400);
+      return error(res, "ID de borrador inválido", 400);
     }
 
     const draft = await Drafts.findOne({
@@ -227,7 +227,7 @@ export const publishFromDraft = async (req, res) => {
     });
 
     if (!draft) {
-      return errorResponse(res, "Borrador no encontrado", 404);
+      return error(res, "Borrador no encontrado", 404);
     }
 
     // Validar que el borrador esté completo
@@ -237,7 +237,7 @@ export const publishFromDraft = async (req, res) => {
     );
 
     if (missingFields.length > 0) {
-      return errorResponse(res, `Faltan campos requeridos: ${missingFields.join(', ')}`, 400);
+      return error(res, `Faltan campos requeridos: ${missingFields.join(', ')}`, 400);
     }
 
     // Crear el libro publicado
@@ -264,9 +264,9 @@ export const publishFromDraft = async (req, res) => {
     // Eliminar el borrador después de publicar
     await draft.destroy();
 
-    return successResponse(res, "Libro publicado exitosamente", publishedBook);
-  } catch (error) {
-    console.error("Error publishing from draft:", error);
-    return errorResponse(res, "Error interno del servidor", 500);
+    return success(res, publishedBook, "Libro publicado exitosamente");
+  } catch (err) {
+    console.error("Error publishing from draft:", err);
+    return error(res, "Error interno del servidor", 500);
   }
 };
