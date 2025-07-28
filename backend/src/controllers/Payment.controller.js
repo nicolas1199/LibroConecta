@@ -179,7 +179,7 @@ export async function createPaymentPreference(req, res) {
     // URLs hardcodeadas exactamente como en la documentación de MercadoPago
     console.log('🔗 Configurando URLs hardcodeadas para MercadoPago');
 
-    // Preparar datos para MercadoPago - Estructura simplificada según referencia
+    // Preparar datos para MercadoPago - Estructura según documentación oficial
     const preferenceData = {
       items: [
         {
@@ -195,34 +195,50 @@ export async function createPaymentPreference(req, res) {
       notification_url: `${BACKEND_URL}/api/payments/webhook`,
       back_urls: {
         success: `${FRONTEND_URL}/payment/success`,
-        failure: `${FRONTEND_URL}/payment/failure`,
+        failure: `${FRONTEND_URL}/payment/failure`, 
         pending: `${FRONTEND_URL}/payment/pending`
       },
+      auto_return: "approved",
       payer: {
         name: buyerUser.first_name || buyerUser.username || 'Comprador',
         surname: buyerUser.last_name || 'LibroConecta',
         email: buyerUser.email
       },
-      // Auto-return: Configurar según documentación MercadoPago
-      // "approved" = redirige automáticamente solo si el pago es aprobado
-      // "all" = redirige automáticamente para todos los estados
-      // Sin auto_return = usuario debe hacer clic manualmente
-      auto_return: "approved",
-      // Configuración de tiempo de expiración
       expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
       statement_descriptor: 'LIBROCONECTA'
     };
 
-    console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
+    // Validar que las URLs estén correctamente formateadas
+    console.log('🔍 Validando URLs antes de enviar a MercadoPago:');
+    console.log('✅ success URL:', preferenceData.back_urls.success);
+    console.log('✅ failure URL:', preferenceData.back_urls.failure);
+    console.log('✅ pending URL:', preferenceData.back_urls.pending);
+    console.log('✅ notification URL:', preferenceData.notification_url);
+    console.log('✅ auto_return:', preferenceData.auto_return);
 
-    // Log específico para las URLs de retorno
-    console.log('🔗 URLs de retorno en preferenceData:', {
-      back_urls: preferenceData.back_urls,
-      notification_url: preferenceData.notification_url,
-      auto_return: preferenceData.auto_return
-    });
+    // Verificar que las URLs sean válidas
+    const isValidUrl = (string) => {
+      try {
+        new URL(string);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+
+    if (!isValidUrl(preferenceData.back_urls.success)) {
+      throw new Error(`URL de éxito inválida: ${preferenceData.back_urls.success}`);
+    }
+    if (!isValidUrl(preferenceData.back_urls.failure)) {
+      throw new Error(`URL de fallo inválida: ${preferenceData.back_urls.failure}`);
+    }
+    if (!isValidUrl(preferenceData.back_urls.pending)) {
+      throw new Error(`URL de pendiente inválida: ${preferenceData.back_urls.pending}`);
+    }
+
+    console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
 
     // Log final de verificación antes de enviar a MercadoPago
     console.log('🔍 VERIFICACIÓN FINAL ANTES DE MERCADOPAGO:');
@@ -242,8 +258,34 @@ export async function createPaymentPreference(req, res) {
       price: publishedBook.price
     });
 
-    // Crear preferencia en MercadoPago
-    const mpPreference = await preference.create({ body: preferenceData });
+    // Intentar con el SDK primero
+    let mpPreference;
+    try {
+      console.log('🔄 Creando preferencia con SDK de MercadoPago...');
+      mpPreference = await preference.create({ body: preferenceData });
+      console.log('✅ Preferencia creada con SDK exitosamente');
+    } catch (sdkError) {
+      console.log('❌ Error con SDK, intentando con API directa:', sdkError.message);
+      
+      // Fallback: usar API directa de MercadoPago
+      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(preferenceData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Error API directa MercadoPago:', errorData);
+        throw new Error(`MercadoPago API Error: ${JSON.stringify(errorData)}`);
+      }
+      
+      mpPreference = await response.json();
+      console.log('✅ Preferencia creada con API directa exitosamente');
+    }
 
     console.log('✅ Preferencia creada en MercadoPago:', {
       id: mpPreference.id,
