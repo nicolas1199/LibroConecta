@@ -136,12 +136,18 @@ export async function createPaymentPreference(req, res) {
     });
 
     // Obtener datos del vendedor para comparación
+    console.log('🔍 Buscando vendedor con user_id:', publishedBook.user_id);
     const sellerUser = await User.findByPk(publishedBook.user_id);
-    console.log('🏪 Datos del vendedor:', {
-      seller_id: sellerUser?.user_id,
-      seller_email: sellerUser?.email,
-      seller_name: `${sellerUser?.first_name || ''} ${sellerUser?.last_name || ''}`.trim()
-    });
+    console.log('🏪 Vendedor encontrado:', sellerUser ? 'SÍ' : 'NO');
+    if (sellerUser) {
+      console.log('🏪 Datos del vendedor:', {
+        seller_id: sellerUser.user_id,
+        seller_email: sellerUser.email,
+        seller_name: `${sellerUser.first_name || ''} ${sellerUser.last_name || ''}`.trim()
+      });
+    } else {
+      console.log('❌ VENDEDOR NO ENCONTRADO para user_id:', publishedBook.user_id);
+    }
 
     console.log('⚖️ Comparación comprador vs vendedor:', {
       buyer_email: buyerUser.email,
@@ -257,23 +263,27 @@ export async function createPaymentPreference(req, res) {
     });
 
     // Log final de verificación antes de enviar a MercadoPago
-    console.log('🔍 VERIFICACIÓN FINAL ANTES DE MERCADOPAGO:');
-    console.log('👤 COMPRADOR:', {
-      user_id: buyerUser.user_id,
-      email: buyerUser.email,
-      name: `${buyerUser.first_name} ${buyerUser.last_name}`,
-      identification: preferenceData.payer.identification.number
-    });
-    console.log('🏪 VENDEDOR:', {
-      user_id: publishedBook.user_id,
-      email: sellerUser?.email,
-      name: `${sellerUser?.first_name} ${sellerUser?.last_name}`
-    });
-    console.log('📚 LIBRO:', {
-      id: publishedBookId,
-      title: publishedBook.Book.title,
-      price: publishedBook.price
-    });
+    try {
+      console.log('🔍 VERIFICACIÓN FINAL ANTES DE MERCADOPAGO:');
+      console.log('👤 COMPRADOR:', {
+        user_id: buyerUser.user_id,
+        email: buyerUser.email,
+        name: `${buyerUser.first_name || ''} ${buyerUser.last_name || ''}`.trim()
+      });
+      console.log('🏪 VENDEDOR:', {
+        user_id: publishedBook.user_id,
+        email: sellerUser?.email || 'Email no disponible',
+        name: `${sellerUser?.first_name || ''} ${sellerUser?.last_name || ''}`.trim() || 'Nombre no disponible'
+      });
+      console.log('📚 LIBRO:', {
+        id: publishedBookId,
+        title: publishedBook.Book?.title || 'Título no disponible',
+        price: publishedBook.price
+      });
+    } catch (logError) {
+      console.error('❌ Error en logging final:', logError.message);
+      console.error('❌ Stack trace del error de logging:', logError.stack);
+    }
 
     // Crear preferencia en MercadoPago usando la nueva estructura del SDK
     const mpPreference = await preference.create({
