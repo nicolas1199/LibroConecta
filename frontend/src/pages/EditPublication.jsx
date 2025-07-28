@@ -9,21 +9,17 @@ import {
   getCategories,
   getPublishedBookById,
   updatePublishedBook,
-  uploadBookImages,
   uploadBookImagesBase64,
-  deletePublishedBookImage,
 } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import BookOpen from "../components/icons/BookOpen"
 import Upload from "../components/icons/Upload"
-import X from "../components/icons/X"
 
 export default function EditPublication() {
   const navigate = useNavigate()
   const { id } = useParams()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
-  const [imageStorageType, setImageStorageType] = useState("base64")
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [publication, setPublication] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -184,32 +180,6 @@ export default function EditPublication() {
     }
   }
 
-  const removeNewImage = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }))
-  }
-
-  const removeExistingImage = async (imageId) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
-      try {
-        // Llamar a la API para eliminar la imagen del servidor
-        await deletePublishedBookImage(imageId)
-        console.log("Imagen eliminada exitosamente:", imageId)
-        
-        // Eliminar la imagen del estado local solo si la API fue exitosa
-        setFormData((prev) => ({
-          ...prev,
-          existingImages: prev.existingImages.filter((img) => img.published_book_image_id !== imageId),
-        }))
-      } catch (error) {
-        console.error("Error eliminando imagen:", error)
-        alert("Error al eliminar la imagen. Inténtalo de nuevo.")
-      }
-    }
-  }
-
   const setPrimaryImage = (index, isExisting = false) => {
     if (isExisting) {
       setFormData((prev) => ({
@@ -286,33 +256,25 @@ export default function EditPublication() {
       const updatedPublication = await updatePublishedBook(id, updateData)
       console.log("Publicación actualizada:", updatedPublication)
 
-      // Subir nuevas imágenes si las hay
+      // Subir nuevas imágenes si las hay (siempre usando Base64)
       if (formData.images.length > 0) {
-        if (imageStorageType === "base64") {
-          const base64Images = await Promise.all(
-            formData.images.map(
-              (img) =>
-                new Promise((resolve, reject) => {
-                  const reader = new FileReader()
-                  reader.onload = () => {
-                    resolve({
-                      base64: reader.result,
-                      is_primary: img.is_primary || false,
-                    })
-                  }
-                  reader.onerror = reject
-                  reader.readAsDataURL(img.file)
-                }),
-            ),
-          )
-          await uploadBookImagesBase64(id, base64Images)
-        } else {
-          const imageFormData = new FormData()
-          formData.images.forEach((image) => {
-            imageFormData.append("images", image.file)
-          })
-          await uploadBookImages(id, imageFormData)
-        }
+        const base64Images = await Promise.all(
+          formData.images.map(
+            (img) =>
+              new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => {
+                  resolve({
+                    base64: reader.result,
+                    is_primary: img.is_primary || false,
+                  })
+                }
+                reader.onerror = reject
+                reader.readAsDataURL(img.file)
+              }),
+          ),
+        )
+        await uploadBookImagesBase64(id, base64Images)
       }
 
       // Redirigir con mensaje de éxito y flag para refrescar datos
@@ -585,39 +547,6 @@ export default function EditPublication() {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Imágenes del libro</h3>
 
-              {/* Selector de tipo de almacenamiento */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">💾 Método de almacenamiento de imágenes</h4>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="storageType"
-                      value="base64"
-                      checked={imageStorageType === "base64"}
-                      onChange={(e) => setImageStorageType(e.target.value)}
-                      className="mr-2"
-                    />
-                    <span className="text-xs">
-                      <strong>Base64 (Recomendado)</strong> - Las imágenes se almacenan en la base de datos
-                    </span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="storageType"
-                      value="cloudinary"
-                      checked={imageStorageType === "cloudinary"}
-                      onChange={(e) => setImageStorageType(e.target.value)}
-                      className="mr-2"
-                    />
-                    <span className="text-xs">
-                      <strong>Cloudinary</strong> - Las imágenes se almacenan en la nube
-                    </span>
-                  </label>
-                </div>
-              </div>
-
               {/* Imágenes existentes */}
               {formData.existingImages.length > 0 && (
                 <div className="mb-4">
@@ -630,24 +559,6 @@ export default function EditPublication() {
                           alt={`Imagen ${index + 1}`}
                           className="w-full h-24 object-cover rounded-lg border"
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-1">
-                          {!image.is_primary && (
-                            <button
-                              type="button"
-                              onClick={() => setPrimaryImage(index, true)}
-                              className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
-                            >
-                              Principal
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeExistingImage(image.published_book_image_id)}
-                            className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
                         {image.is_primary && (
                           <div className="absolute top-1 left-1 bg-blue-600 text-white px-1 py-0.5 rounded text-xs">
                             Principal
@@ -715,13 +626,6 @@ export default function EditPublication() {
                               Principal
                             </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => removeNewImage(index)}
-                            className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
                         </div>
                         {image.is_primary && (
                           <div className="absolute top-1 left-1 bg-blue-600 text-white px-1 py-0.5 rounded text-xs">
