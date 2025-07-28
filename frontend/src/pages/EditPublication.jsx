@@ -80,7 +80,6 @@ export default function EditPublication() {
         // Llenar formulario con datos existentes
         const publication = publicationData
         setPublication(publication)
-        
         setFormData({
           title: publication.Book?.title || "",
           author: publication.Book?.author || "",
@@ -94,7 +93,6 @@ export default function EditPublication() {
           location_id: publication.location_id?.toString() || "",
           images: [],
           existingImages: publication.PublishedBookImages || [],
-          imagesToDelete: [], // Array para rastrear imágenes a eliminar
         })
       } catch (error) {
         console.error("Error loading data:", error)
@@ -196,17 +194,18 @@ export default function EditPublication() {
   const removeExistingImage = async (imageId) => {
     if (confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
       try {
-        // 1. Eliminar del estado local inmediatamente
+        // Llamar a la API para eliminar la imagen del servidor
+        await deletePublishedBookImage(imageId)
+        console.log("Imagen eliminada exitosamente:", imageId)
+        
+        // Eliminar la imagen del estado local solo si la API fue exitosa
         setFormData((prev) => ({
           ...prev,
           existingImages: prev.existingImages.filter((img) => img.published_book_image_id !== imageId),
-          // Agregar a lista de imágenes a eliminar en BD
-          imagesToDelete: [...(prev.imagesToDelete || []), imageId]
-        }));
-        
+        }))
       } catch (error) {
-        console.error("❌ [FRONTEND] Error eliminando imagen Base64:", error);
-        alert("Error al eliminar la imagen. Inténtalo de nuevo.");
+        console.error("Error eliminando imagen:", error)
+        alert("Error al eliminar la imagen. Inténtalo de nuevo.")
       }
     }
   }
@@ -283,19 +282,9 @@ export default function EditPublication() {
       }
 
       // Actualizar la publicación - CORREGIDO: ahora sí llama a la API
+      console.log("Actualizando publicación:", updateData)
       const updatedPublication = await updatePublishedBook(id, updateData)
-
-      // Eliminar imágenes marcadas para eliminación
-      if (formData.imagesToDelete && formData.imagesToDelete.length > 0) {
-        for (const imageId of formData.imagesToDelete) {
-          try {
-            await deletePublishedBookImage(imageId);
-          } catch (error) {
-            console.warn(`⚠️ No se pudo eliminar imagen ${imageId} de la BD:`, error);
-            // Continuar con las demás, no fallar todo el proceso
-          }
-        }
-      }
+      console.log("Publicación actualizada:", updatedPublication)
 
       // Subir nuevas imágenes si las hay
       if (formData.images.length > 0) {
@@ -635,11 +624,7 @@ export default function EditPublication() {
                   <h4 className="text-sm font-medium text-gray-900 mb-3">Imágenes actuales</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {formData.existingImages.map((image, index) => (
-                      <div 
-                        key={image.published_book_image_id} 
-                        className="relative group"
-                        data-image-id={image.published_book_image_id}
-                      >
+                      <div key={image.published_book_image_id} className="relative group">
                         <img
                           src={getImageUrl(image) || "/placeholder.svg"}
                           alt={`Imagen ${index + 1}`}
@@ -659,7 +644,6 @@ export default function EditPublication() {
                             type="button"
                             onClick={() => removeExistingImage(image.published_book_image_id)}
                             className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
-                            title={`Eliminar imagen ${image.published_book_image_id}`}
                           >
                             <X className="h-3 w-3" />
                           </button>
