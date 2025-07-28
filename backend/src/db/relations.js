@@ -24,6 +24,7 @@ export default ({
   Transaction,
   MatchBooks, // AGREGAR ESTA LÍNEA
   ChatRequest,
+  Drafts,
 }) => {
   //  UserType 1:N User
   UserType.hasMany(User, { foreignKey: "user_type_id" });
@@ -285,4 +286,21 @@ export default ({
   // PublishedBooks 1:N ChatRequest
   PublishedBooks.hasMany(ChatRequest, { foreignKey: "book_id" });
   ChatRequest.belongsTo(PublishedBooks, { foreignKey: "book_id", as: "Book" });
+
+  // Drafts relations
+  // User 1:N Drafts
+  User.hasMany(Drafts, { foreignKey: "user_id" });
+  Drafts.belongsTo(User, { foreignKey: "user_id" });
+
+  // BookCondition 1:N Drafts
+  BookCondition.hasMany(Drafts, { foreignKey: "book_condition_id" });
+  Drafts.belongsTo(BookCondition, { foreignKey: "book_condition_id" });
+
+  // TransactionType 1:N Drafts
+  TransactionType.hasMany(Drafts, { foreignKey: "transaction_type_id" });
+  Drafts.belongsTo(TransactionType, { foreignKey: "transaction_type_id" });
+
+  // LocationBook 1:N Drafts
+  LocationBook.hasMany(Drafts, { foreignKey: "location_book_id" });
+  Drafts.belongsTo(LocationBook, { foreignKey: "location_book_id" });
 };
