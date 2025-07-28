@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import DashboardLayout from "../layouts/DashboardLayout"
 import BookOpen from "../components/icons/BookOpen"
 import ArrowRight from "../components/icons/ArrowRight"
@@ -10,7 +10,6 @@ import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
 import Search from "../components/icons/Search"
 import Plus from "../components/icons/Plus"
-import Save from "../components/icons/Save"
 import LocationSelect from "../components/LocationSelect";
 import {
   getTransactionTypes,
@@ -21,10 +20,6 @@ import {
   publishBook,
   uploadBookImages,
   uploadBookImagesBase64,
-  saveDraft,
-  getDraftById,
-  updateDraft,
-  deleteDraft,
 } from "../api/publishedBooks"
 
 const STEPS = [
@@ -36,13 +31,8 @@ const STEPS = [
 
 export default function PublishBook() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const draftId = searchParams.get('draft')
-  
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
-  const [isSavingDraft, setIsSavingDraft] = useState(false)
-  const [currentDraftId, setCurrentDraftId] = useState(draftId)
   const [errors, setErrors] = useState({})
   const [imageStorageType, setImageStorageType] = useState("base64") // 'cloudinary' o 'base64'
 
@@ -81,9 +71,9 @@ export default function PublishBook() {
     images: [],
   })
 
-  // Cargar datos de referencia y borrador si existe
+  // Cargar datos de referencia
   useEffect(() => {
-    const loadData = async () => {
+    const loadReferenceData = async () => {
       try {
         const [transactionTypesData, bookConditionsData, locationsData, categoriesData] = await Promise.all([
           getTransactionTypes(),
@@ -96,51 +86,13 @@ export default function PublishBook() {
         setBookConditions(bookConditionsData)
         setLocations(locationsData)
         setCategories(categoriesData)
-
-        // Si hay un draftId, cargar el borrador
-        if (draftId) {
-          await loadDraft(draftId)
-        }
       } catch (error) {
-        console.error("Error loading data:", error)
+        console.error("Error loading reference data:", error)
       }
     }
 
-    loadData()
-  }, [draftId])
-
-  const loadDraft = async (id) => {
-    try {
-      const draft = await getDraftById(id)
-      setFormData({
-        title: draft.title || "",
-        author: draft.author || "",
-        category_ids: draft.category_ids || [],
-        date_of_pub: draft.date_of_pub || "",
-        condition_id: draft.condition_id?.toString() || "",
-        transaction_type_id: draft.transaction_type_id?.toString() || "",
-        price: draft.price || "",
-        look_for: draft.look_for || "",
-        description: draft.description || "",
-        location_id: draft.location_id?.toString() || "",
-        images: [], // Las imágenes se manejarán por separado en borradores
-      })
-      
-      // Determinar en qué paso debería estar basado en los datos completados
-      if (draft.description && draft.location_id) {
-        setCurrentStep(4)
-      } else if (draft.condition_id && draft.transaction_type_id) {
-        setCurrentStep(3)
-      } else if (draft.title && draft.author) {
-        setCurrentStep(2)
-      } else {
-        setCurrentStep(1)
-      }
-    } catch (error) {
-      console.error("Error loading draft:", error)
-      alert("Error al cargar el borrador")
-    }
-  }
+    loadReferenceData()
+  }, [])
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -154,41 +106,6 @@ export default function PublishBook() {
         ...prev,
         [field]: "",
       }))
-    }
-  }
-
-  const handleSaveDraft = async () => {
-    try {
-      setIsSavingDraft(true)
-      
-      const draftData = {
-        title: formData.title,
-        author: formData.author,
-        category_ids: formData.category_ids,
-        date_of_pub: formData.date_of_pub || null,
-        condition_id: formData.condition_id ? parseInt(formData.condition_id) : null,
-        transaction_type_id: formData.transaction_type_id ? parseInt(formData.transaction_type_id) : null,
-        price: formData.price ? parseFloat(formData.price) : null,
-        look_for: formData.look_for || null,
-        description: formData.description,
-        location_id: formData.location_id ? parseInt(formData.location_id) : null,
-        current_step: currentStep,
-      }
-
-      let response
-      if (currentDraftId) {
-        response = await updateDraft(currentDraftId, draftData)
-      } else {
-        response = await saveDraft(draftData)
-        setCurrentDraftId(response.draft_id)
-      }
-
-      alert("Borrador guardado exitosamente")
-    } catch (error) {
-      console.error("Error saving draft:", error)
-      alert("Error al guardar el borrador")
-    } finally {
-      setIsSavingDraft(false)
     }
   }
 
@@ -454,16 +371,6 @@ export default function PublishBook() {
         }
       }
 
-      // 4. Si estamos editando un borrador, eliminarlo después de publicar
-      if (currentDraftId) {
-        try {
-          await deleteDraft(currentDraftId)
-        } catch (error) {
-          console.warn("Error al eliminar borrador:", error)
-          // No fallar la publicación por esto
-        }
-      }
-
       // Redirigir al dashboard con mensaje de éxito
       navigate("/dashboard", { state: { message: "¡Libro publicado exitosamente!" } })
     } catch (error) {
@@ -537,30 +444,8 @@ export default function PublishBook() {
           </button>
 
           <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 mb-1">
-              <h1 className="text-xl font-bold text-gray-900">
-                {currentDraftId ? "Editar borrador" : "Publicar libro"}
-              </h1>
-              {currentDraftId && (
-                <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                  Borrador
-                </span>
-              )}
-            </div>
-            <p className="text-gray-600 text-sm mb-4">
-              {currentDraftId 
-                ? "Continúa completando tu borrador" 
-                : "Comparte tu libro con la comunidad"}
-            </p>
-            
-            {/* Draft info */}
-            {currentDraftId && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-xs text-yellow-800">
-                  💾 Puedes guardar tu progreso en cualquier momento como borrador
-                </p>
-              </div>
-            )}
+            <h1 className="text-xl font-bold text-gray-900 mb-1">Publicar libro</h1>
+            <p className="text-gray-600 text-sm mb-4">Comparte tu libro con la comunidad</p>
 
             {/* Progress */}
             <div className="flex items-center justify-center mb-2">
@@ -608,7 +493,7 @@ export default function PublishBook() {
           {errors.submit && <p className="text-red-600 text-center mt-4 text-sm">{errors.submit}</p>}
 
           {/* Navigation */}
-          <div className="flex justify-between items-center mt-6">
+          <div className="flex justify-between mt-6">
             <button
               onClick={handlePrevious}
               disabled={currentStep === 1}
@@ -616,25 +501,6 @@ export default function PublishBook() {
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Anterior
-            </button>
-
-            {/* Botón de guardar borrador */}
-            <button
-              onClick={handleSaveDraft}
-              disabled={isSavingDraft}
-              className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-lg text-sm flex items-center transition-colors disabled:opacity-50"
-            >
-              {isSavingDraft ? (
-                <>
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-800 mr-2" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar borrador
-                </>
-              )}
             </button>
 
             {currentStep < 4 ? (

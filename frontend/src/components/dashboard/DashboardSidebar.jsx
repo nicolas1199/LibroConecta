@@ -90,12 +90,7 @@ export default function DashboardSidebar({
       { icon: BookOpen, label: "Mi biblioteca", path: "/dashboard/library" },
       { icon: Plus, label: "Publicar libro", path: "/dashboard/publish" },
       { icon: Edit, label: "Mis publicaciones", path: "/my-publications" },
-      {
-        icon: FileText,
-        label: "Borradores",
-        path: "/dashboard/drafts",
-        count: 0,
-      },
+
       { icon: Heart, label: "Favoritos", path: "/dashboard/favorites" },
       { icon: List, label: "Lista de deseos", path: "/dashboard/wishlist" },
       { icon: Clock, label: "Historial", path: "/dashboard/history" },
