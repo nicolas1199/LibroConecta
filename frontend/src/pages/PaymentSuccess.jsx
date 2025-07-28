@@ -19,6 +19,7 @@ export default function PaymentSuccess() {
   const collectionId = searchParams.get('collection_id');
   const collectionStatus = searchParams.get('collection_status');
   const preference_id = searchParams.get('preference_id');
+  const externalRef = searchParams.get('ref'); // Nueva forma de identificación
 
   // Log de debug para ver todos los parámetros
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     const fetchPaymentData = async () => {
-      if (!paymentId) {
+      if (!paymentId && !externalRef) {
         setError('No se encontró información del pago');
         setLoading(false);
         return;

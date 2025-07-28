@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import DashboardLayout from "../layouts/DashboardLayout"
 import BookOpen from "../components/icons/BookOpen"
 import ArrowRight from "../components/icons/ArrowRight"
@@ -31,6 +31,8 @@ const STEPS = [
 
 export default function PublishBook() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
@@ -71,9 +73,9 @@ export default function PublishBook() {
     images: [],
   })
 
-  // Cargar datos de referencia
+  // Cargar datos de referencia y borrador si existe
   useEffect(() => {
-    const loadReferenceData = async () => {
+    const loadData = async () => {
       try {
         const [transactionTypesData, bookConditionsData, locationsData, categoriesData] = await Promise.all([
           getTransactionTypes(),
@@ -87,11 +89,11 @@ export default function PublishBook() {
         setLocations(locationsData)
         setCategories(categoriesData)
       } catch (error) {
-        console.error("Error loading reference data:", error)
+        console.error("Error loading data:", error)
       }
     }
 
-    loadReferenceData()
+    loadData()
   }, [])
 
   const handleInputChange = (field, value) => {
@@ -371,6 +373,16 @@ export default function PublishBook() {
         }
       }
 
+      // 4. Si estamos editando un borrador, eliminarlo después de publicar
+      if (currentDraftId) {
+        try {
+          await deleteDraft(currentDraftId)
+        } catch (error) {
+          console.warn("Error al eliminar borrador:", error)
+          // No fallar la publicación por esto
+        }
+      }
+
       // Redirigir al dashboard con mensaje de éxito
       navigate("/dashboard", { state: { message: "¡Libro publicado exitosamente!" } })
     } catch (error) {
@@ -444,8 +456,30 @@ export default function PublishBook() {
           </button>
 
           <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900 mb-1">Publicar libro</h1>
-            <p className="text-gray-600 text-sm mb-4">Comparte tu libro con la comunidad</p>
+            <div className="flex items-center justify-center space-x-2 mb-1">
+              <h1 className="text-xl font-bold text-gray-900">
+                {currentDraftId ? "Editar borrador" : "Publicar libro"}
+              </h1>
+              {currentDraftId && (
+                <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                  Borrador
+                </span>
+              )}
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              {currentDraftId 
+                ? "Continúa completando tu borrador" 
+                : "Comparte tu libro con la comunidad"}
+            </p>
+            
+            {/* Draft info */}
+            {currentDraftId && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-xs text-yellow-800">
+                  💾 Puedes guardar tu progreso en cualquier momento como borrador
+                </p>
+              </div>
+            )}
 
             {/* Progress */}
             <div className="flex items-center justify-center mb-2">
@@ -493,7 +527,7 @@ export default function PublishBook() {
           {errors.submit && <p className="text-red-600 text-center mt-4 text-sm">{errors.submit}</p>}
 
           {/* Navigation */}
-          <div className="flex justify-between mt-6">
+          <div className="flex justify-between items-center mt-6">
             <button
               onClick={handlePrevious}
               disabled={currentStep === 1}
