@@ -39,57 +39,51 @@ export async function createPaymentPreference(req, res) {
   console.log('🚨 URL:', req.url);
   console.log('🚨 PARAMS:', JSON.stringify(req.params));
   console.log('🚨 USER:', req.user ? 'Present' : 'Missing');
-  
+
   try {
-    console.log('🔍 Iniciando createPaymentPreference...');
-    console.log('🔍 Variables de entorno:', {
-      MP_ACCESS_TOKEN_LENGTH: MP_ACCESS_TOKEN ? MP_ACCESS_TOKEN.length : 0,
-      FRONTEND_URL,
-      BACKEND_URL,
-      NODE_ENV: process.env.NODE_ENV
-    });
-    
-    // Verificar variables de entorno críticas
-    if (!MP_ACCESS_TOKEN) {
-      console.error('❌ MP_ACCESS_TOKEN no está configurado');
-      return error(res, 'Configuración de pagos incompleta: MP_ACCESS_TOKEN faltante', 500);
-    }
-    
-    if (!FRONTEND_URL) {
-      console.error('❌ FRONTEND_URL no está configurado');
-      return error(res, 'Configuración de pagos incompleta: FRONTEND_URL faltante', 500);
-    }
-    
-    if (!BACKEND_URL) {
-      console.error('❌ BACKEND_URL no está configurado');
-      return error(res, 'Configuración de pagos incompleta: BACKEND_URL faltante', 500);
-    }
-    
-    console.log('✅ MP_ACCESS_TOKEN presente:', MP_ACCESS_TOKEN.substring(0, 20) + '...');
-    console.log('✅ FRONTEND_URL:', FRONTEND_URL);
-    console.log('✅ BACKEND_URL:', BACKEND_URL);
-    
     const { publishedBookId } = req.params;
     const userId = req.user.user_id;
-    
-    console.log('📋 Parámetros recibidos:', { publishedBookId, userId });
+
+    console.log('🔍 Iniciando createPaymentPreference...');
+    console.log('🔍 Variables de entorno:', {
+      MP_ACCESS_TOKEN_LENGTH: process.env.MP_ACCESS_TOKEN?.length || 0,
+      FRONTEND_URL: process.env.FRONTEND_URL,
+      BACKEND_URL: process.env.BACKEND_URL,
+      NODE_ENV: process.env.NODE_ENV
+    });
+
+    // Verificar credenciales
+    if (!process.env.MP_ACCESS_TOKEN) {
+      console.error('❌ MP_ACCESS_TOKEN no configurado');
+      return error(res, 'Configuración de pagos no disponible', 500);
+    }
+
+    if (!process.env.FRONTEND_URL || !process.env.BACKEND_URL) {
+      console.error('❌ URLs no configuradas');
+      return error(res, 'Configuración de URLs no disponible', 500);
+    }
+
+    console.log('✅ MP_ACCESS_TOKEN presente:', process.env.MP_ACCESS_TOKEN.substring(0, 20) + '...');
+    console.log('✅ FRONTEND_URL:', process.env.FRONTEND_URL);
+    console.log('✅ BACKEND_URL:', process.env.BACKEND_URL);
+
+    console.log('📋 Parámetros recibidos:', {
+      publishedBookId,
+      userId
+    });
+
+    // Obtener datos del usuario comprador
+    const buyerUser = await User.findByPk(userId);
+    if (!buyerUser) {
+      return error(res, 'Usuario no encontrado', 404);
+    }
+
     console.log('👤 Datos del usuario desde req.user:', {
       first_name: req.user.first_name,
       last_name: req.user.last_name,
       email: req.user.email,
       user_id: req.user.user_id
     });
-
-    // Obtener datos completos del usuario comprador
-    const buyerUser = await User.findByPk(userId);
-    if (!buyerUser) {
-      return error(res, 'Usuario comprador no encontrado', 404);
-    }
-
-    // Validar que el usuario comprador tenga email válido
-    if (!buyerUser.email || !buyerUser.email.includes('@')) {
-      return error(res, 'El usuario debe tener un email válido para realizar compras', 400);
-    }
 
     console.log('👤 Datos completos del usuario comprador:', {
       first_name: buyerUser.first_name,
@@ -99,7 +93,7 @@ export async function createPaymentPreference(req, res) {
       user_id: buyerUser.user_id
     });
 
-    // Verificar que el libro existe y está disponible para venta
+    // Obtener datos del libro publicado
     const publishedBook = await PublishedBooks.findByPk(publishedBookId, {
       include: [
         {
@@ -120,11 +114,12 @@ export async function createPaymentPreference(req, res) {
     console.log('📖 Datos del libro encontrado:', {
       published_book_id: publishedBook.published_book_id,
       user_id: publishedBook.user_id,
-      book_title: publishedBook.Book?.title,
-      book_author: publishedBook.Book?.author,
+      book_title: publishedBook.Book.title,
+      book_author: publishedBook.Book.author,
       price: publishedBook.price
     });
 
+    // Verificar que el usuario no esté comprando su propio libro
     console.log('🔍 Comparación de usuarios:', {
       libro_owner_id: publishedBook.user_id,
       current_user_id: userId,
@@ -135,52 +130,76 @@ export async function createPaymentPreference(req, res) {
       }
     });
 
-    // Obtener datos del vendedor para comparación
-    const sellerUser = await User.findByPk(publishedBook.user_id);
-    console.log('🏪 Datos del vendedor:', {
-      seller_id: sellerUser?.user_id,
-      seller_email: sellerUser?.email,
-      seller_name: `${sellerUser?.first_name || ''} ${sellerUser?.last_name || ''}`.trim()
-    });
-
-    console.log('⚖️ Comparación comprador vs vendedor:', {
-      buyer_email: buyerUser.email,
-      seller_email: sellerUser?.email,
-      emails_diferentes: buyerUser.email !== sellerUser?.email,
-      buyer_name: `${buyerUser.first_name || ''} ${buyerUser.last_name || ''}`.trim(),
-      seller_name: `${sellerUser?.first_name || ''} ${sellerUser?.last_name || ''}`.trim()
-    });
-
-    // Verificar que no sea el propio dueño del libro
     if (publishedBook.user_id === userId) {
       return error(res, 'No puedes comprar tu propio libro', 400);
     }
 
-    // Verificar que el libro esté disponible para venta
-    if (!publishedBook.price || publishedBook.price <= 0) {
-      return error(res, 'Este libro no está disponible para venta', 400);
+    // Obtener datos del vendedor
+    const sellerUser = await User.findByPk(publishedBook.user_id);
+    if (!sellerUser) {
+      return error(res, 'Vendedor no encontrado', 404);
     }
 
-    // Crear referencia externa única
-    const externalReference = `LIBRO_${publishedBookId}_${userId}_${Date.now()}`;
-
-    // Crear registro de pago en la base de datos con nuevos campos
-    const paymentRecord = await Payment.create({
-      published_book_id: publishedBookId,
-      buyer_id: userId,
-      seller_id: publishedBook.user_id,
-      amount: publishedBook.price,
-      currency: 'CLP',
-      mp_external_reference: externalReference,
-      description: `Compra de libro: ${publishedBook.Book.title}`,
-      status: 'pending',
-      installments: 1 // Campo requerido ahora disponible
+    console.log('�� Datos del vendedor:', {
+      seller_id: sellerUser.user_id,
+      seller_email: sellerUser.email,
+      seller_name: `${sellerUser.first_name} ${sellerUser.last_name}`
     });
 
-    // URLs hardcodeadas exactamente como en la documentación de MercadoPago
+    console.log('⚖️ Comparación comprador vs vendedor:', {
+      buyer_email: buyerUser.email,
+      seller_email: sellerUser.email,
+      emails_diferentes: buyerUser.email !== sellerUser.email,
+      buyer_name: `${buyerUser.first_name} ${buyer.last_name}`,
+      seller_name: `${sellerUser.first_name} ${sellerUser.last_name}`
+    });
+
+    // Verificar que el libro esté disponible
+    if (publishedBook.status !== 'available') {
+      return error(res, 'El libro no está disponible para la venta', 400);
+    }
+
+    // Generar external_reference único
+    const timestamp = Date.now();
+    const externalReference = `LIBRO_${publishedBookId}_${userId}_${timestamp}`;
+
     console.log('🔗 Configurando URLs hardcodeadas para MercadoPago');
 
-    // Preparar datos para MercadoPago - Estructura optimizada con auto_return mejorado
+    // Configurar URLs de retorno
+    const successUrl = `${process.env.FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=approved`;
+    const failureUrl = `${process.env.FRONTEND_URL}/payment/failure?external_reference=${externalReference}&status=rejected`;
+    const pendingUrl = `${process.env.FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=pending`;
+
+    console.log('🔍 Validando URLs antes de enviar a MercadoPago:');
+    console.log('✅ success URL:', successUrl);
+    console.log('✅ failure URL:', failureUrl);
+    console.log('✅ pending URL:', pendingUrl);
+    console.log('✅ notification URL:', `${process.env.BACKEND_URL}/api/payments/webhook`);
+    console.log('✅ auto_return: approved');
+
+    // Verificar que las URLs sean válidas
+    const isValidUrl = (string) => {
+      try {
+        new URL(string);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+
+    if (!isValidUrl(successUrl)) {
+      throw new Error(`URL de éxito inválida: ${successUrl}`);
+    }
+
+    if (!isValidUrl(failureUrl)) {
+      throw new Error(`URL de fallo inválida: ${failureUrl}`);
+    }
+
+    if (!isValidUrl(pendingUrl)) {
+      throw new Error(`URL de pendiente inválida: ${pendingUrl}`);
+    }
+
+    // Preparar datos para MercadoPago - Estructura exacta según documentación oficial
     const preferenceData = {
       items: [
         {
@@ -193,88 +212,50 @@ export async function createPaymentPreference(req, res) {
         }
       ],
       external_reference: externalReference,
-      notification_url: `${BACKEND_URL}/api/payments/webhook`,
+      notification_url: `${process.env.BACKEND_URL}/api/payments/webhook`,
       back_urls: {
-        success: `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=approved`,
-        failure: `${FRONTEND_URL}/payment/failure?external_reference=${externalReference}&status=rejected`,
-        pending: `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=pending`
+        success: successUrl,
+        failure: failureUrl,
+        pending: pendingUrl
       },
-      
-      // 🆕 Configuración mejorada de auto_return
-      auto_return: "approved", // Solo auto-retorno en pagos aprobados
-      binary_mode: false, // Permite estados pending
-      
-      // 🆕 Configuraciones adicionales para mejor experiencia
+      auto_return: "approved",
+      binary_mode: false,
       expires: true,
       expiration_date_from: new Date().toISOString(),
-      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-      
+      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       payer: {
         name: buyerUser.first_name || buyerUser.username || 'Comprador',
         surname: buyerUser.last_name || 'LibroConecta',
         email: buyerUser.email
       },
-      
-      // 🆕 Metadata adicional para tracking
       metadata: {
-        published_book_id: publishedBookId,
+        published_book_id: publishedBookId.toString(),
         buyer_id: userId,
         seller_id: publishedBook.user_id,
         book_title: publishedBook.Book.title,
         integration_source: 'LibroConecta'
       },
-      
-      // 🆕 Configuración de statement descriptor
       statement_descriptor: 'LIBROCONECTA'
     };
 
-    // Validar que las URLs estén correctamente formateadas
-    console.log('🔍 Validando URLs antes de enviar a MercadoPago:');
-    console.log('✅ success URL:', preferenceData.back_urls.success);
-    console.log('✅ failure URL:', preferenceData.back_urls.failure);
-    console.log('✅ pending URL:', preferenceData.back_urls.pending);
-    console.log('✅ notification URL:', preferenceData.notification_url);
-    console.log('✅ auto_return:', preferenceData.auto_return);
-    
-    // Verificar formato específico para auto_return según documentación
     console.log('🔧 Formato preparado para MercadoPago con auto_return:');
-    console.log('   - back_urls (plural):', !!preferenceData.back_urls);
-    console.log('   - auto_return configurado:', preferenceData.auto_return);
-    console.log('   - Estructura compatible con PHP docs:', true);
-
-    // Verificar que las URLs sean válidas
-    const isValidUrl = (string) => {
-      try {
-        new URL(string);
-        return true;
-      } catch (_) {
-        return false;
-      }
-    };
-
-    if (!isValidUrl(preferenceData.back_urls.success)) {
-      throw new Error(`URL de éxito inválida: ${preferenceData.back_urls.success}`);
-    }
-    if (!isValidUrl(preferenceData.back_urls.failure)) {
-      throw new Error(`URL de fallo inválida: ${preferenceData.back_urls.failure}`);
-    }
-    if (!isValidUrl(preferenceData.back_urls.pending)) {
-      throw new Error(`URL de pendiente inválida: ${preferenceData.back_urls.pending}`);
-    }
+    console.log('   - back_urls (plural): true');
+    console.log('   - auto_return configurado: approved');
+    console.log('   - Estructura compatible con PHP docs: true');
 
     console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
 
-    // Log final de verificación antes de enviar a MercadoPago
+    // Verificación final antes de enviar a MercadoPago
     console.log('🔍 VERIFICACIÓN FINAL ANTES DE MERCADOPAGO:');
     console.log('👤 COMPRADOR:', {
-      user_id: buyerUser.user_id,
+      user_id: userId,
       email: buyerUser.email,
       name: `${buyerUser.first_name} ${buyerUser.last_name}`
     });
     console.log('🏪 VENDEDOR:', {
       user_id: publishedBook.user_id,
-      email: sellerUser?.email,
-      name: `${sellerUser?.first_name} ${sellerUser?.last_name}`
+      email: sellerUser.email,
+      name: `${sellerUser.first_name} ${sellerUser.last_name}`
     });
     console.log('📚 LIBRO:', {
       id: publishedBookId,
@@ -282,174 +263,135 @@ export async function createPaymentPreference(req, res) {
       price: publishedBook.price
     });
 
-    // Intentar primero con API directa usando el formato correcto de la documentación
-    let mpPreference;
-    
-    console.log('🔄 Creando preferencia con API directa (formato oficial)...');
-    
-    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(preferenceData)
-    });
-    
-    if (response.ok) {
-      mpPreference = await response.json();
-      console.log('✅ Preferencia creada exitosamente con auto_return');
-    } else {
-      const errorData = await response.json();
-      console.log('❌ Error con formato estándar:', errorData);
-      
-      // Fallback 1: Intentar con back_url (singular) como indica el error
-      console.log('🔄 Intentando con back_url (singular)...');
-      
-      const alternativeData = {
-        ...preferenceData,
-        back_url: {
-          success: preferenceData.back_urls.success,
-          failure: preferenceData.back_urls.failure,
-          pending: preferenceData.back_urls.pending
-        }
-      };
-      delete alternativeData.back_urls;
-      
-      const response2 = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(alternativeData)
+    // Intentar crear preferencia con diferentes formatos
+    let preferenceResult;
+    let errorMessage = '';
+
+    try {
+      console.log('🔄 Creando preferencia con API directa (formato oficial)...');
+      preferenceResult = await preference.create({ body: preferenceData });
+      console.log('✅ Preferencia creada con formato estándar');
+    } catch (error) {
+      console.log('❌ Error con formato estándar:', {
+        message: error.message,
+        error: error.error,
+        status: error.status,
+        cause: error.cause
       });
-      
-      if (response2.ok) {
-        mpPreference = await response2.json();
-        console.log('✅ Preferencia creada con back_url (singular) y auto_return');
-      } else {
-        const errorData2 = await response2.json();
-        console.log('❌ Error con back_url singular:', errorData2);
-        
-        // Fallback 2: Sin auto_return como último recurso
-        console.log('🔄 Último intento: sin auto_return...');
-        const noAutoReturnData = { ...preferenceData };
-        delete noAutoReturnData.auto_return;
-        
-        const response3 = await fetch('https://api.mercadopago.com/checkout/preferences', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(noAutoReturnData)
+      errorMessage = error.message;
+
+      try {
+        console.log('🔄 Intentando con back_url (singular)...');
+        const alternativeData = {
+          ...preferenceData,
+          back_url: preferenceData.back_urls,
+          auto_return: "approved"
+        };
+        delete alternativeData.back_urls;
+        preferenceResult = await preference.create({ body: alternativeData });
+        console.log('✅ Preferencia creada con back_url singular');
+      } catch (error2) {
+        console.log('❌ Error con back_url singular:', {
+          message: error2.message,
+          error: error2.error,
+          status: error2.status,
+          cause: error2.cause
         });
-        
-        if (!response3.ok) {
-          const errorData3 = await response3.json();
-          console.error('❌ Error final:', errorData3);
-          throw new Error(`MercadoPago API Error: ${JSON.stringify(errorData3)}`);
+
+        try {
+          console.log('🔄 Último intento: sin auto_return...');
+          const finalData = { ...preferenceData };
+          delete finalData.auto_return;
+          preferenceResult = await preference.create({ body: finalData });
+          console.log('✅ Preferencia creada SIN auto_return');
+        } catch (error3) {
+          console.log('❌ Error final:', {
+            message: error3.message,
+            error: error3.error,
+            status: error3.status,
+            cause: error3.cause
+          });
+          throw new Error(`No se pudo crear la preferencia: ${error3.message}`);
         }
-        
-        mpPreference = await response3.json();
-        console.log('✅ Preferencia creada SIN auto_return');
       }
     }
 
     console.log('✅ Preferencia creada en MercadoPago:', {
-      id: mpPreference.id,
-      init_point: mpPreference.init_point
+      id: preferenceResult.id,
+      init_point: preferenceResult.init_point
     });
 
-    // Actualizar registro con ID de preferencia
-    await paymentRecord.update({
-      mp_preference_id: mpPreference.id,
-      notification_url: `${BACKEND_URL}/api/payments/webhook`,
-      success_url: `${FRONTEND_URL}/payment/success`,
-      failure_url: `${FRONTEND_URL}/payment/failure`,
-      pending_url: `${FRONTEND_URL}/payment/pending`
+    // Crear registro de pago en nuestra base de datos
+    const paymentRecord = await Payment.create({
+      payment_id: uuidv4(),
+      published_book_id: publishedBookId,
+      buyer_id: userId,
+      seller_id: publishedBook.user_id,
+      amount: parseFloat(publishedBook.price),
+      mp_external_reference: externalReference,
+      mp_preference_id: preferenceResult.id,
+      status: 'pending',
+      payment_date: new Date()
     });
 
-    console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
-    console.log(`🎯 URL de éxito: ${FRONTEND_URL}/payment/success`);
+    console.log('✅ Preferencia de pago creada:', preferenceResult.id, 'para libro', publishedBookId);
 
-    // Almacenar información del pago para redirección automática desde webhook
+    // 🚀 NUEVO: Marcar el libro como "reserved" cuando se crea el pago
+    await PublishedBooks.update(
+      { status: 'reserved' },
+      { where: { published_book_id: publishedBookId } }
+    );
+
+    console.log('📚 Libro marcado como reservado:', publishedBookId);
+
+    // Configurar redirección automática
+    const successRedirectUrl = `${process.env.FRONTEND_URL}/payment/success`;
+    
+    // Almacenar información para redirección automática
     pendingPayments.set(paymentRecord.payment_id, {
-      externalReference: externalReference,
+      externalReference,
+      publishedBookId,
       buyerId: userId,
-      createdAt: Date.now(),
-      preferenceId: mpPreference.id
+      sellerId: publishedBook.user_id,
+      amount: parseFloat(publishedBook.price),
+      status: 'pending',
+      createdAt: new Date(),
+      redirectUrl: successRedirectUrl
     });
 
-    // Limpiar registros antiguos (más de 1 hora)
-    const oneHourAgo = Date.now() - (60 * 60 * 1000);
-    for (const [key, value] of pendingPayments.entries()) {
-      if (value.createdAt < oneHourAgo) {
-        pendingPayments.delete(key);
-      }
-    }
-
-    console.log(`📝 Pago rastreado para redirección: ${paymentRecord.payment_id}`);
+    console.log('🎯 URL de éxito:', successRedirectUrl);
+    console.log('📝 Pago rastreado para redirección:', paymentRecord.payment_id);
 
     return success(res, {
-      payment_id: paymentRecord.payment_id,
-      preference_id: mpPreference.id,
-      init_point: mpPreference.init_point,
-      sandbox_init_point: mpPreference.sandbox_init_point,
-      external_reference: externalReference, // 🆕 Incluir external_reference
-      book_info: {
-        title: publishedBook.Book.title,
-        author: publishedBook.Book.author,
-        price: publishedBook.price,
-        external_reference: externalReference // 🆕 También en book_info
-      }
-    }, 'Preferencia de pago creada exitosamente', 201);
+      preference_id: preferenceResult.id,
+      init_point: preferenceResult.init_point,
+      external_reference: externalReference,
+      payment_id: paymentRecord.payment_id
+    }, 'Preferencia de pago creada exitosamente');
 
-  } catch (err) {
-    console.error('❌ Error creando preferencia de pago:', err);
-    console.error('❌ Stack trace completo:', err.stack);
-    console.error('❌ Detalles del error:', {
-      message: err.message,
-      name: err.name,
-      code: err.code,
-      status: err.status,
-      response: err.response?.data || 'No response data'
-    });
-    
-    // Si es un error de MercadoPago, mostrar detalles específicos
-    if (err.response && err.response.data) {
-      console.error('❌ Error de MercadoPago:', JSON.stringify(err.response.data, null, 2));
-      return error(res, `Error de MercadoPago: ${JSON.stringify(err.response.data)}`, 500);
-    }
-    
-    // Enviar más información en desarrollo
-    return error(res, `Error interno del servidor: ${err.message}`, 500);
+  } catch (error) {
+    console.error('❌ Error creando preferencia de pago:', error);
+    return error(res, `Error creando preferencia: ${error.message}`, 500);
   }
 }
 
 /**
- * Webhook para notificaciones de MercadoPago
- * Basado en la referencia: https://dev.to/jarraga/mercadopago-checkout-pro-postman-no-library-1kh3
+ * Manejar webhook de MercadoPago
+ * Esta función procesa las notificaciones que MercadoPago envía cuando cambia el estado de un pago
  */
 export async function handlePaymentWebhook(req, res) {
   try {
-    console.log('🔔🔔🔔 WEBHOOK LLAMADO - MercadoPago:', {
-      method: req.method,
-      url: req.url,
+    console.log('🔔 Webhook recibido de MercadoPago:', {
       headers: req.headers,
       body: req.body,
       query: req.query,
       timestamp: new Date().toISOString()
     });
-    
-    // Log específico para debug
-    console.log('🔔 WEBHOOK - User-Agent:', req.headers['user-agent']);
-    console.log('🔔 WEBHOOK - X-Forwarded-For:', req.headers['x-forwarded-for']);
-    console.log('🔔 WEBHOOK - Content-Type:', req.headers['content-type']);
 
     // MercadoPago puede enviar diferentes tipos de notificaciones
-    const { type, data } = req.body;
+    // Manejar casos donde req.body puede ser undefined
+    const body = req.body || {};
+    const { type, data } = body;
     const { id, topic } = req.query;
 
     // Responder inmediatamente con 200 para confirmar recepción
@@ -491,6 +433,8 @@ export async function handlePaymentWebhook(req, res) {
       console.log(`✅ Pago actualizado: ${paymentRecord.payment_id} - Estado: ${mpPaymentInfo.status}`);
     } else {
       console.log(`ℹ️ Notificación no procesable - Tipo: ${notificationType}, ID: ${paymentId}`);
+      console.log(`📋 Body recibido:`, JSON.stringify(body, null, 2));
+      console.log(`📋 Query recibido:`, JSON.stringify(req.query, null, 2));
     }
 
   } catch (error) {
@@ -507,80 +451,75 @@ export async function handlePaymentWebhook(req, res) {
  * Actualizar pago desde webhook de MercadoPago
  */
 async function updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentId) {
-  // Extraer todos los datos del pago para información completa
-  const paymentDetails = {
-    mp_payment_id: mpPaymentId.toString(),
-    mp_collection_id: mpPaymentInfo.collection_id,
-    mp_collection_status: mpPaymentInfo.status,
-    payment_method: mpPaymentInfo.payment_method_id,
-    payment_date: mpPaymentInfo.date_approved || new Date(),
-    status: mapMercadoPagoStatus(mpPaymentInfo.status),
+  try {
+    console.log(`🔄 Actualizando pago ${paymentRecord.payment_id} con estado: ${mpPaymentInfo.status}`);
     
-    // 🆕 Extraer datos adicionales del pago
-    payment_type: mpPaymentInfo.payment_type_id,
-    installments: mpPaymentInfo.installments || 1,
-    issuer_id: mpPaymentInfo.issuer_id,
-    transaction_amount: mpPaymentInfo.transaction_amount,
-    net_received_amount: mpPaymentInfo.net_received_amount,
-    total_paid_amount: mpPaymentInfo.total_paid_amount,
-    
-    // Información del pagador
-    payer_email: mpPaymentInfo.payer?.email,
-    payer_identification_type: mpPaymentInfo.payer?.identification?.type,
-    payer_identification_number: mpPaymentInfo.payer?.identification?.number,
-    
-    // Información de la tarjeta (si aplica)
-    card_last_four_digits: mpPaymentInfo.card?.last_four_digits,
-    card_first_six_digits: mpPaymentInfo.card?.first_six_digits,
-    
-    // Timestamps importantes
-    date_created: mpPaymentInfo.date_created,
-    date_last_updated: mpPaymentInfo.date_last_updated,
-    
-    // Fees y costos
-    transaction_details: JSON.stringify({
-      financial_institution: mpPaymentInfo.transaction_details?.financial_institution,
-      net_received_amount: mpPaymentInfo.transaction_details?.net_received_amount,
-      total_paid_amount: mpPaymentInfo.transaction_details?.total_paid_amount,
-      installment_amount: mpPaymentInfo.transaction_details?.installment_amount,
-      overpaid_amount: mpPaymentInfo.transaction_details?.overpaid_amount
-    })
-  };
+    // Actualizar información del pago
+    const updateData = {
+      mp_payment_id: mpPaymentId.toString(),
+      mp_collection_id: mpPaymentInfo.collection_id,
+      mp_collection_status: mpPaymentInfo.status,
+      payment_method: mpPaymentInfo.payment_method_id,
+      payment_date: mpPaymentInfo.date_approved || new Date(),
+      status: mapMercadoPagoStatus(mpPaymentInfo.status)
+    };
 
-  console.log('💳 Actualizando pago con datos completos:', {
-    payment_id: paymentRecord.payment_id,
-    status: paymentDetails.status,
-    amount: paymentDetails.transaction_amount,
-    method: paymentDetails.payment_method,
-    installments: paymentDetails.installments,
-    payer_email: paymentDetails.payer_email,
-    card_ending: paymentDetails.card_last_four_digits
-  });
+    await paymentRecord.update(updateData);
 
-  // Actualizar información completa del pago
-  await paymentRecord.update(paymentDetails);
+    console.log(`✅ Pago actualizado: ${paymentRecord.payment_id} - Estado: ${mpPaymentInfo.status}`);
 
-  // Si el pago fue aprobado, crear la transacción
-  if (mpPaymentInfo.status === 'approved') {
-    console.log(`✅ Pago aprobado, creando transacción para: ${paymentRecord.payment_id}`);
-    await createTransactionFromPayment(paymentRecord);
-    
-    // Verificar si este pago está siendo rastreado para redirección
-    const pendingPayment = pendingPayments.get(paymentRecord.payment_id);
-    if (pendingPayment) {
-      console.log(`🔄 Iniciando redirección automática para pago: ${paymentRecord.payment_id}`);
-      
-      // Enviar notificación de redirección al frontend (usando WebSocket o similar)
-      // Por ahora, almacenamos que el pago está listo para redirección
-      pendingPayments.set(paymentRecord.payment_id, {
-        ...pendingPayment,
-        status: 'approved',
-        readyForRedirect: true,
-        redirectUrl: `${FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}&collection_id=${mpPaymentInfo.collection_id}&collection_status=${mpPaymentInfo.status}`
-      });
-      
-      console.log(`✅ Pago marcado para redirección: ${paymentRecord.payment_id}`);
+    // Manejar diferentes estados del pago
+    switch (mpPaymentInfo.status) {
+      case 'approved':
+        console.log(`✅ Pago aprobado, creando transacción para: ${paymentRecord.payment_id}`);
+        await createTransactionFromPayment(paymentRecord);
+        
+        // Verificar si este pago está siendo rastreado para redirección
+        const pendingPayment = pendingPayments.get(paymentRecord.payment_id);
+        if (pendingPayment) {
+          console.log(`🔄 Iniciando redirección automática para pago: ${paymentRecord.payment_id}`);
+          
+          pendingPayments.set(paymentRecord.payment_id, {
+            ...pendingPayment,
+            status: 'approved',
+            readyForRedirect: true,
+            redirectUrl: `${process.env.FRONTEND_URL}/payment/success?payment_id=${paymentRecord.payment_id}&collection_id=${mpPaymentInfo.collection_id}&collection_status=${mpPaymentInfo.status}`
+          });
+          
+          console.log(`✅ Pago marcado para redirección: ${paymentRecord.payment_id}`);
+        }
+        break;
+
+      case 'rejected':
+      case 'cancelled':
+        console.log(`❌ Pago rechazado/cancelado: ${paymentRecord.payment_id}`);
+        
+        // Marcar el libro como disponible nuevamente
+        await PublishedBooks.update(
+          { status: 'available' },
+          { where: { published_book_id: paymentRecord.published_book_id } }
+        );
+        
+        console.log(`📚 Libro marcado como disponible nuevamente: ${paymentRecord.published_book_id}`);
+        break;
+
+      case 'pending':
+        console.log(`⏳ Pago pendiente: ${paymentRecord.payment_id}`);
+        // El libro ya está marcado como 'reserved', mantener ese estado
+        break;
+
+      case 'in_process':
+        console.log(`🔄 Pago en proceso: ${paymentRecord.payment_id}`);
+        // Mantener el libro como 'reserved'
+        break;
+
+      default:
+        console.log(`ℹ️ Estado de pago no manejado: ${mpPaymentInfo.status} para pago: ${paymentRecord.payment_id}`);
     }
+
+  } catch (error) {
+    console.error(`❌ Error actualizando pago ${paymentRecord.payment_id}:`, error);
+    throw error;
   }
 }
 
