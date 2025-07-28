@@ -86,6 +86,7 @@ export async function checkAndCreateAutoMatch(userId, publishedBookId) {
         {
           // Buscar interacciones del dueño del libro con los libros del usuario actual
           model: UserPublishedBookInteraction,
+          as: "UserInteractions", // Usar el alias correcto definido en relations.js
           where: {
             user_id: bookOwnerId, // El dueño del libro
             interaction_type: "like", // Solo likes, no dislikes

@@ -34,6 +34,13 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
     navigate("/dashboard/matches"); // Navegar a matches
   }, [handleClose, navigate]);
 
+  // FUNCIÓN: Navegar a página de swipe
+  // Cierra notificación y redirige al usuario a swipe
+  const handleContinueSwiping = useCallback(() => {
+    handleClose(); // Cerrar notificación primero
+    navigate("/dashboard/swipe"); // Navegar a swipe
+  }, [handleClose, navigate]);
+
   // EFECTO: Auto-cierre automático
   // La notificación se cierra sola después de 8 segundos
   useEffect(() => {
@@ -67,7 +74,8 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
             {/* Botón de cerrar */}
             <button
               onClick={handleClose}
-              className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors"
+              className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors z-10"
+              aria-label="Cerrar notificación"
             >
               <X className="w-5 h-5" />
             </button>
@@ -134,10 +142,10 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
               </p>
               <div className="flex space-x-2">
                 <button
-                  onClick={handleClose}
+                  onClick={handleContinueSwiping}
                   className="flex-1 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Continuar swipeando
+                  Seguir deslizando
                 </button>
                 <button
                   onClick={handleViewMatches}

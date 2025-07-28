@@ -6,6 +6,7 @@ import Heart from "../components/icons/Heart";
 import X from "../components/icons/X";
 import MessageCircle from "../components/icons/MessageCircle";
 import Star from "../components/icons/Star";
+import BookOpen from "../components/icons/BookOpen";
 import ProfileImage from "../components/ProfileImage";
 import { Link } from "react-router-dom";
 
@@ -76,16 +77,25 @@ export default function Matches() {
   const MatchCard = ({ match, type }) => {
     const user = type === "suggested" ? match.user : match.user;
     const isActionLoading = actionLoading === (type === "suggested" ? user.user_id : match.match_id);
+    const isAutoMatch = match.match_type === "automatic";
 
     return (
       <div className="card p-6 hover:shadow-lg transition-shadow">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
             <ProfileImage user={user} size="lg" />
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                {user.first_name} {user.last_name}
-              </h3>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-1">
+                <h3 className="font-semibold text-gray-900">
+                  {user.first_name} {user.last_name}
+                </h3>
+                {isAutoMatch && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    <Heart className="h-3 w-3 mr-1" />
+                    Auto-Match
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-600">{user.email}</p>
               
               {type === "suggested" && (
@@ -99,9 +109,29 @@ export default function Matches() {
               )}
               
               {type === "current" && (
-                <p className="text-sm text-gray-500">
-                  Match desde: {new Date(match.date_match).toLocaleDateString()}
-                </p>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500">
+                    Match desde: {new Date(match.date_match).toLocaleDateString()}
+                  </p>
+                  {isAutoMatch && match.triggered_by_books && (
+                    <div className="mt-2 p-2 bg-purple-50 rounded-lg">
+                      <div className="flex items-center space-x-1 mb-1">
+                        <BookOpen className="h-3 w-3 text-purple-600" />
+                        <span className="text-xs font-medium text-purple-700">
+                          Libro que activó el match:
+                        </span>
+                      </div>
+                      <p className="text-xs text-purple-600 font-medium">
+                        "{match.triggered_by_books.user1_liked_book?.title || 'Libro'}"
+                      </p>
+                      {match.triggered_by_books.user2_liked_books?.length > 1 && (
+                        <p className="text-xs text-purple-500 mt-1">
+                          +{match.triggered_by_books.user2_liked_books.length - 1} libro(s) más en común
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -177,73 +207,50 @@ export default function Matches() {
 
       {/* Content */}
       <div className="min-h-96">
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="spinner border-gray-300 border-t-blue-600"></div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="spinner border-gray-300 border-t-blue-600 w-8 h-8"></div>
           </div>
-        )}
-
-        {error && (
-          <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <p className="text-red-800">{error}</p>
           </div>
-        )}
-
-        {!loading && !error && (
-          <>
-            {activeTab === "current" && (
-              <div className="space-y-4">
-                {matches.length > 0 ? (
-                  matches.map((match) => (
-                    <MatchCard key={match.match_id} match={match} type="current" />
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      No tienes matches aún
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      Explora los usuarios sugeridos para encontrar tu primer match
-                    </p>
-                    <button
-                      onClick={() => setActiveTab("suggested")}
-                      className="btn btn-primary"
-                    >
-                      Ver sugeridos
-                    </button>
-                  </div>
-                )}
+        ) : activeTab === "current" ? (
+          <div className="space-y-4">
+            {matches.length === 0 ? (
+              <div className="text-center py-12">
+                <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No tienes matches aún
+                </h3>
+                <p className="text-gray-600">
+                  Ve a la sección de Swipe para descubrir libros y hacer matches
+                </p>
               </div>
+            ) : (
+              matches.map((match) => (
+                <MatchCard key={match.match_id} match={match} type="current" />
+              ))
             )}
-
-            {activeTab === "suggested" && (
-              <div className="space-y-4">
-                {suggestedMatches.length > 0 ? (
-                  suggestedMatches.map((match) => (
-                    <MatchCard 
-                      key={match.user.user_id} 
-                      match={match} 
-                      type="suggested" 
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      No hay sugerencias disponibles
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      Publica más libros para obtener mejores sugerencias de matches
-                    </p>
-                    <Link to="/dashboard/publish" className="btn btn-primary">
-                      Publicar libro
-                    </Link>
-                  </div>
-                )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {suggestedMatches.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No hay sugerencias disponibles
+                </h3>
+                <p className="text-gray-600">
+                  Publica más libros para recibir sugerencias de matches
+                </p>
               </div>
+            ) : (
+              suggestedMatches.map((match) => (
+                <MatchCard key={match.user.user_id} match={match} type="suggested" />
+              ))
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

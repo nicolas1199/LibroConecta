@@ -46,6 +46,8 @@ export const getMatches = async (req, res) => {
       return {
         match_id: match.get("match_id"),
         date_match: match.get("date_match"),
+        match_type: match.get("match_type") || "manual", // Incluir tipo de match
+        triggered_by_books: match.get("triggered_by_books"), // Incluir información de libros que causaron el match
         user: otherUser,
       };
     });
