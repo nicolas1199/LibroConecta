@@ -147,15 +147,19 @@ export async function updatePublishedBookImage(req, res) {
 
 // Eliminar imagen
 export async function deletePublishedBookImage(req, res) {
+  // Forzar respuesta JSON
+  res.setHeader('Content-Type', 'application/json');
+  
   try {
+    console.log(`🗑️ [CONTROLLER] Iniciando eliminación de imagen con ID: ${req.params.id}`);
+    console.log(`👤 [CONTROLLER] Usuario autenticado: ${req.user?.user_id}`);
+    console.log(`📍 [CONTROLLER] Headers de la petición:`, req.headers.authorization ? 'Token presente' : 'Sin token');
+
     const { id } = req.params;
-    console.log(`🗑️ Iniciando eliminación de imagen con ID: ${id}`);
-    console.log(`👤 Usuario autenticado: ${req.user?.user_id}`);
-    console.log(`📍 Headers de la petición:`, req.headers);
 
     // Validar que el ID sea un número válido
     if (!id || isNaN(parseInt(id))) {
-      console.log(`❌ ID de imagen inválido: ${id}`);
+      console.log(`❌ [CONTROLLER] ID de imagen inválido: ${id}`);
       return res.status(400).json({ error: "ID de imagen inválido" });
     }
 
@@ -166,85 +170,54 @@ export async function deletePublishedBookImage(req, res) {
       }],
     });
 
-    console.log(`📸 Imagen encontrada:`, image ? 'SÍ' : 'NO');
+    console.log(`📸 [CONTROLLER] Imagen encontrada:`, image ? 'SÍ' : 'NO');
     
     if (!image) {
-      console.log(`❌ Error: Imagen ${id} no encontrada en la base de datos`);
+      console.log(`❌ [CONTROLLER] Error: Imagen ${id} no encontrada en la base de datos`);
       return res.status(404).json({ error: "Imagen no encontrada" });
     }
 
-    console.log(`📖 Libro publicado asociado: ${image.PublishedBooks?.published_book_id}`);
-    console.log(`👤 Propietario del libro: ${image.PublishedBooks?.user_id}`);
+    console.log(`📖 [CONTROLLER] Libro publicado asociado: ${image.PublishedBooks?.published_book_id}`);
+    console.log(`👤 [CONTROLLER] Propietario del libro: ${image.PublishedBooks?.user_id}`);
 
     // Verificar que existe la relación con PublishedBooks
     if (!image.PublishedBooks) {
-      console.log(`❌ Error: La imagen ${id} no tiene un libro publicado asociado`);
+      console.log(`❌ [CONTROLLER] Error: La imagen ${id} no tiene un libro publicado asociado`);
       return res.status(500).json({ error: "La imagen no tiene un libro publicado asociado" });
     }
 
     // Verificar permisos
     if (image.PublishedBooks.user_id !== req.user.user_id) {
-      console.log(`🚫 Error de permisos: usuario ${req.user.user_id} no es propietario (propietario real: ${image.PublishedBooks.user_id})`);
-      return res
-        .status(403)
-        .json({ error: "No tienes permisos para eliminar esta imagen" });
+      console.log(`🚫 [CONTROLLER] Error de permisos: usuario ${req.user.user_id} no es propietario (propietario real: ${image.PublishedBooks.user_id})`);
+      return res.status(403).json({ error: "No tienes permisos para eliminar esta imagen" });
     }
 
-    console.log(`🗑️ Eliminando imagen de la base de datos...`);
+    console.log(`🗑️ [CONTROLLER] Eliminando imagen de la base de datos...`);
     
-    // DIAGNÓSTICO: Intentar eliminación simple primero
-    try {
-      console.log(`🔄 Intentando eliminación directa sin transacción...`);
-      
-      // Verificar que la imagen existe antes de eliminar
-      const imageExists = await PublishedBookImage.findByPk(id);
-      console.log(`📸 Imagen existe antes de eliminar:`, !!imageExists);
-      
-      // Eliminar directamente
-      const deleteResult = await image.destroy();
-      console.log(`🗑️ Resultado de eliminación:`, deleteResult);
-      
-      // Verificar que la imagen ya no existe
-      const imageAfterDelete = await PublishedBookImage.findByPk(id);
-      console.log(`📸 Imagen existe después de eliminar:`, !!imageAfterDelete);
-      
-      if (imageAfterDelete) {
-        console.log(`❌ PROBLEMA: La imagen aún existe en la base de datos después de destroy()`);
-        throw new Error("La imagen no se eliminó de la base de datos");
-      }
-      
-      console.log(`✅ Imagen eliminada exitosamente de la base de datos`);
-    } catch (dbError) {
-      console.error(`❌ Error al eliminar de la base de datos:`, dbError);
-      console.error(`❌ Tipo de error:`, dbError.name);
-      console.error(`❌ Mensaje de error:`, dbError.message);
-      throw dbError;
-    }
+    // Eliminar directamente
+    await image.destroy();
+    console.log(`✅ [CONTROLLER] Imagen eliminada exitosamente de la base de datos`);
     
-    res.json({ 
+    const response = { 
       message: "Imagen eliminada correctamente",
-      deleted_image_id: id
-    });
-  } catch (error) {
-    console.error("❌ Error en deletePublishedBookImage:", error);
-    console.error("❌ Stack trace:", error.stack);
-    console.error("❌ Información adicional:", {
-      imageId: req.params.id,
-      userId: req.user?.user_id,
-      timestamp: new Date().toISOString()
-    });
+      deleted_image_id: id,
+      success: true
+    };
     
-    // Respuesta de error más específica
-    if (error.name === 'SequelizeConnectionError') {
-      res.status(503).json({ error: "Error de conexión a la base de datos" });
-    } else if (error.name === 'SequelizeValidationError') {
-      res.status(400).json({ error: "Error de validación de datos" });
-    } else {
-      res.status(500).json({ 
-        error: "Error al eliminar imagen",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
+    console.log(`✅ [CONTROLLER] Enviando respuesta:`, response);
+    return res.status(200).json(response);
+    
+  } catch (error) {
+    console.error("❌ [CONTROLLER] Error en deletePublishedBookImage:", error);
+    
+    const errorResponse = {
+      error: "Error al eliminar imagen",
+      success: false,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    };
+    
+    console.log(`❌ [CONTROLLER] Enviando error:`, errorResponse);
+    return res.status(500).json(errorResponse);
   }
 }
 

@@ -50,6 +50,13 @@ async function setupServer() {
     );
   }
 
+  // Middleware para logging de rutas API
+  app.use("/api", (req, res, next) => {
+    console.log(`🌐 API Request: ${req.method} ${req.originalUrl}`);
+    console.log(`🔍 Headers:`, req.headers.authorization ? 'Token presente' : 'Sin token');
+    next();
+  });
+
   // Ruta de las API
   app.use("/api", apiRoutes);
 
