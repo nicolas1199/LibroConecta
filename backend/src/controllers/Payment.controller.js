@@ -314,14 +314,14 @@ export async function createPaymentPreference(req, res) {
     // Actualizar registro con ID de preferencia
     await paymentRecord.update({
       mp_preference_id: mpPreference.id,
-      notification_url: notificationUrl,
-      success_url: successUrl,
-      failure_url: failureUrl,
-      pending_url: pendingUrl
+      notification_url: "http://146.83.198.35:1234/api/payments/webhook",
+      success_url: "http://146.83.198.35:1235/payment/success",
+      failure_url: "http://146.83.198.35:1235/payment/failure",
+      pending_url: "http://146.83.198.35:1235/payment/pending"
     });
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
-    console.log(`🎯 URL de éxito: ${successUrl}`);
+    console.log(`🎯 URL de éxito: http://146.83.198.35:1235/payment/success`);
 
     // Almacenar información del pago para redirección automática desde webhook
     pendingPayments.set(paymentRecord.payment_id, {
