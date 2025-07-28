@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getExchangeHistory } from "../api/exchanges";
 import Clock from "../components/icons/Clock";
 import Search from "../components/icons/Search";
 import Filter from "../components/icons/Filter";
@@ -21,21 +22,9 @@ export default function History() {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      // Obtener intercambios completados
-      const response = await fetch('/api/exchanges/history', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setHistory(data.data || []);
-      } else {
-        console.error("Error al obtener historial:", response.statusText);
-        setHistory([]);
-      }
+      // Obtener intercambios completados usando la API
+      const response = await getExchangeHistory();
+      setHistory(response.data || []);
     } catch (error) {
       console.error("Error al cargar historial:", error);
       setHistory([]);

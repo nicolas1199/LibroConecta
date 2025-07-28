@@ -45,21 +45,26 @@ export async function completeExchangeService(matchId, userId) {
         const completedState = await State.findOne({ where: { name: 'Completado' } });
         const stateId = completedState ? completedState.state_id : 1; // fallback
 
-        // Obtener los primeros UserBook de cada usuario para el Exchange
+        // Obtener los UserBook IDs de cada usuario para el Exchange
         const user1Books = matchBooks.filter(mb => mb.user_id === match.user_id_1);
         const user2Books = matchBooks.filter(mb => mb.user_id === match.user_id_2);
         
-        const userBook1 = user1Books[0]?.published_book_id;
-        const userBook2 = user2Books[0]?.published_book_id;
+        // Obtener los UserBook IDs correspondientes a los PublishedBooks
+        const userBook1Id = user1Books[0]?.user_book_id;
+        const userBook2Id = user2Books[0]?.user_book_id;
 
-        exchange = await Exchange.create({
-          user_book_id_1: userBook1,
-          user_book_id_2: userBook2,
-          date_exchange: new Date(),
-          state_id: stateId
-        });
+        if (userBook1Id && userBook2Id) {
+          exchange = await Exchange.create({
+            user_book_id_1: userBook1Id,
+            user_book_id_2: userBook2Id,
+            date_exchange: new Date(),
+            state_id: stateId
+          });
 
-        console.log(`✅ Exchange creado con ID: ${exchange.exchange_id}`);
+          console.log(`✅ Exchange creado con ID: ${exchange.exchange_id}`);
+        } else {
+          console.log("⚠️ No se pudieron obtener user_book_ids válidos para crear el Exchange");
+        }
       } catch (exchangeError) {
         console.log("⚠️ Error al crear Exchange:", exchangeError.message);
       }

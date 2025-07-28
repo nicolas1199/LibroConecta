@@ -21,3 +21,14 @@ export const completeExchange = async (matchId) => {
     throw error;
   }
 };
+
+// Obtener historial de intercambios
+export const getExchangeHistory = async () => {
+  try {
+    const response = await api.get("/exchanges/history");
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener historial de intercambios:", error);
+    throw error;
+  }
+};
