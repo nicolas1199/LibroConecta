@@ -9,6 +9,7 @@ import {
 import { Op } from "sequelize";
 import { success, error } from "../utils/responses.util.js";
 import { validateUUID } from "../utils/uuid.util.js";
+import { isValidUUID } from "../utils/uuid.util.js";
 
 // POST /api/drafts - Crear o actualizar un borrador
 export const saveDraft = async (req, res) => {
@@ -37,7 +38,7 @@ export const saveDraft = async (req, res) => {
           user_id: userId,
         });
 
-        return success(res, "Borrador actualizado exitosamente", existingDraft);
+        return success(res, existingDraft, "Borrador actualizado exitosamente");
       }
     }
 
@@ -49,9 +50,9 @@ export const saveDraft = async (req, res) => {
       last_edited: new Date(),
     });
 
-    return success(res, "Borrador guardado exitosamente", newDraft);
-  } catch (error) {
-    console.error("Error saving draft:", error);
+    return success(res, newDraft, "Borrador guardado exitosamente");
+  } catch (err) {
+    console.error("Error saving draft:", err);
     return error(res, "Error interno del servidor", 500);
   }
 };
@@ -94,9 +95,9 @@ export const getUserDrafts = async (req, res) => {
       order: [['last_edited', 'DESC']]
     });
 
-    return success(res, "Borradores obtenidos exitosamente", drafts);
-  } catch (error) {
-    console.error("Error getting drafts:", error);
+    return success(res, drafts, "Borradores obtenidos exitosamente");
+  } catch (err) {
+    console.error("Error getting drafts:", err);
     return error(res, "Error interno del servidor", 500);
   }
 };
@@ -134,9 +135,9 @@ export const getDraftById = async (req, res) => {
       return error(res, "Borrador no encontrado", 404);
     }
 
-    return success(res, "Borrador obtenido exitosamente", draft);
-  } catch (error) {
-    console.error("Error getting draft:", error);
+    return success(res, draft, "Borrador obtenido exitosamente");
+  } catch (err) {
+    console.error("Error getting draft:", err);
     return error(res, "Error interno del servidor", 500);
   }
 };
@@ -176,9 +177,9 @@ export const updateDraft = async (req, res) => {
       last_edited: new Date(),
     });
 
-    return success(res, "Borrador actualizado exitosamente", draft);
-  } catch (error) {
-    console.error("Error updating draft:", error);
+    return success(res, draft, "Borrador actualizado exitosamente");
+  } catch (err) {
+    console.error("Error updating draft:", err);
     return error(res, "Error interno del servidor", 500);
   }
 };
@@ -204,9 +205,9 @@ export const deleteDraft = async (req, res) => {
 
     await draft.destroy();
 
-    return success(res, "Borrador eliminado exitosamente");
-  } catch (error) {
-    console.error("Error deleting draft:", error);
+    return success(res, null, "Borrador eliminado exitosamente");
+  } catch (err) {
+    console.error("Error deleting draft:", err);
     return error(res, "Error interno del servidor", 500);
   }
 };
@@ -264,9 +265,9 @@ export const publishFromDraft = async (req, res) => {
     // Eliminar el borrador después de publicar
     await draft.destroy();
 
-    return success(res, "Libro publicado exitosamente", publishedBook);
-  } catch (error) {
-    console.error("Error publishing from draft:", error);
+    return success(res, publishedBook, "Libro publicado exitosamente");
+  } catch (err) {
+    console.error("Error publishing from draft:", err);
     return error(res, "Error interno del servidor", 500);
   }
 };
