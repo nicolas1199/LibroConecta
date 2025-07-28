@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }) {
     };
   }, []);
 
-  // Sincronizar datos del usuario desde el servidor
+  // Sincronizar datos del usuario desde el servidor (cada 5 minutos)
   useEffect(() => {
     const syncUserData = async () => {
       if (user && user.user_id) {
@@ -44,8 +44,15 @@ export default function DashboardLayout({ children }) {
       }
     };
 
+    // Sincronizar al montar el componente
     syncUserData();
-  }, [user, updateUser]);
+    
+    // Configurar intervalo para sincronizar cada 5 minutos
+    const interval = setInterval(syncUserData, 5 * 60 * 1000);
+    
+    // Limpiar intervalo al desmontar
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
