@@ -176,12 +176,6 @@ export async function createPaymentPreference(req, res) {
       status: 'pending'
     });
 
-    // Verificar que las variables de entorno estén definidas
-    if (!FRONTEND_URL || !BACKEND_URL) {
-      console.error('❌ Variables de entorno no definidas:', { FRONTEND_URL, BACKEND_URL });
-      return error(res, 'Error en configuración de URLs', 500);
-    }
-
     // Preparar URLs de retorno según documentación de MercadoPago - mismo dominio que el frontend
     // Incluir external_reference para identificación posterior
     const successUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=success`;
@@ -303,12 +297,6 @@ export async function createPaymentPreference(req, res) {
 
     console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
 
-    // Verificar que las URLs de retorno estén definidas antes de crear la preferencia
-    if (!preferenceData.back_urls || !preferenceData.back_urls.success) {
-      console.error('❌ back_urls.success no está definida:', preferenceData.back_urls);
-      return error(res, 'Error: back_urls.success no está definida', 500);
-    }
-
     // Log específico para las URLs de retorno
     console.log('🔗 URLs de retorno en preferenceData:', {
       back_urls: preferenceData.back_urls,
@@ -335,10 +323,8 @@ export async function createPaymentPreference(req, res) {
       price: publishedBook.price
     });
 
-    // Crear preferencia en MercadoPago usando la estructura correcta
-    const mpPreference = await preference.create({
-      body: preferenceData
-    });
+    // Crear preferencia en MercadoPago
+    const mpPreference = await preference.create({ body: preferenceData });
 
     console.log('✅ Preferencia creada en MercadoPago:', {
       id: mpPreference.id,
