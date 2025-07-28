@@ -41,6 +41,24 @@ router.get("/test-cloudinary", async (req, res) => {
 router.get("/published-book/:publishedBookId", getImagesByPublishedBook)
 router.get("/:id", getPublishedBookImageById)
 
+// Ruta de prueba para verificar que el endpoint funciona
+router.get("/test/:id", (req, res) => {
+  res.json({ 
+    message: "Ruta de prueba funcionando", 
+    id: req.params.id,
+    method: "GET"
+  });
+})
+
+// Ruta de prueba para DELETE
+router.delete("/test/:id", authenticateToken, (req, res) => {
+  res.json({ 
+    message: "DELETE funcionando", 
+    id: req.params.id,
+    userId: req.user?.user_id
+  });
+})
+
 // Rutas protegidas (requieren autenticación)
 // Nueva ruta para subir archivos a Cloudinary
 router.post("/upload/:publishedBookId", authenticateToken, uploadBookImagesCloudinary, uploadImagesForPublishedBook)
