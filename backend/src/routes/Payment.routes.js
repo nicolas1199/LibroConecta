@@ -33,8 +33,16 @@ router.post(
  * @desc Webhook para notificaciones de MercadoPago
  * @access Public (sin autenticación, solo para MercadoPago)
  * @note Esta ruta debe estar configurada en MercadoPago
+ * Acepta tanto application/json como application/x-www-form-urlencoded
  */
 router.post("/webhook", handlePaymentWebhook);
+
+/**
+ * @route GET /api/payments/webhook
+ * @desc Webhook GET para notificaciones de MercadoPago (algunos eventos usan GET)
+ * @access Public
+ */
+router.get("/webhook", handlePaymentWebhook);
 
 /**
  * @route GET /api/payments/return/success

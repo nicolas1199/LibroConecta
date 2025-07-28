@@ -179,100 +179,35 @@ export async function createPaymentPreference(req, res) {
     // URLs hardcodeadas exactamente como en la documentación de MercadoPago
     console.log('🔗 Configurando URLs hardcodeadas para MercadoPago');
 
-    // Preparar datos para MercadoPago
+    // Preparar datos para MercadoPago - Estructura simplificada según referencia
     const preferenceData = {
       items: [
         {
           id: publishedBookId.toString(),
           title: publishedBook.Book.title,
           description: `${publishedBook.Book.title} por ${publishedBook.Book.author}`,
-          category_id: 'books',
           quantity: 1,
           currency_id: 'CLP',
           unit_price: parseFloat(publishedBook.price)
         }
       ],
+      external_reference: externalReference,
+      notification_url: `${BACKEND_URL}/api/payments/webhook`,
+      back_urls: {
+        success: `${FRONTEND_URL}/payment/success`,
+        failure: `${FRONTEND_URL}/payment/failure`,
+        pending: `${FRONTEND_URL}/payment/pending`
+      },
       payer: {
         name: buyerUser.first_name || buyerUser.username || 'Comprador',
         surname: buyerUser.last_name || 'LibroConecta',
-        email: buyerUser.email,
-        // Usar información más específica para identificación
-        identification: {
-          type: 'other',
-          number: `USER_${buyerUser.user_id.substring(0, 10)}_${Date.now().toString().slice(-6)}`
-        },
-        // Agregar información adicional del comprador
-        phone: {
-          area_code: '+56',
-          number: '000000000'
-        },
-        address: {
-          zip_code: '1234567',
-          street_name: 'No especificada'
-        }
+        email: buyerUser.email
       },
-      external_reference: externalReference,
-      notification_url: "http://146.83.198.35:1234/api/payments/webhook",
-      back_urls: {
-        "success": "http://146.83.198.35:1235/payment/success",
-        "failure": "http://146.83.198.35:1235/payment/failure",
-        "pending": "http://146.83.198.35:1235/payment/pending"
-      },
-      // auto_return: "approved", // DESHABILITADO: El usuario permanece en MercadoPago
       // Configuración de tiempo de expiración
+      expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-      statement_descriptor: 'LIBROCONECTA',
-      // Configuración mejorada para marketplace
-      binary_mode: false,
-      // Información adicional para diferenciar transacciones
-      additional_info: {
-        items: [
-          {
-            id: publishedBookId,
-            title: publishedBook.Book.title,
-            description: `Libro: ${publishedBook.Book.title} por ${publishedBook.Book.author}`,
-            picture_url: '',
-            category_id: 'books',
-            quantity: 1,
-            unit_price: parseFloat(publishedBook.price)
-          }
-        ],
-        payer: {
-          first_name: buyerUser.first_name || buyerUser.username,
-          last_name: buyerUser.last_name || 'Usuario',
-          phone: {
-            area_code: '+56',
-            number: '000000000'
-          },
-          address: {
-            street_name: 'Dirección no especificada',
-            street_number: 0,
-            zip_code: '1234567'
-          },
-          registration_date: buyerUser.createdAt || new Date().toISOString()
-        },
-        shipments: {
-          receiver_address: {
-            zip_code: '1234567',
-            street_name: 'Retiro en persona',
-            street_number: 0,
-            floor: '',
-            apartment: ''
-          }
-        }
-      },
-      metadata: {
-        transaction_id: paymentRecord.payment_id,
-        published_book_id: publishedBookId,
-        buyer_user_id: userId,
-        seller_user_id: publishedBook.user_id,
-        book_title: publishedBook.Book.title,
-        book_author: publishedBook.Book.author,
-        transaction_type: 'book_purchase',
-        platform: 'libroconecta',
-        timestamp: Date.now()
-      }
+      statement_descriptor: 'LIBROCONECTA'
     };
 
     console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
@@ -314,14 +249,14 @@ export async function createPaymentPreference(req, res) {
     // Actualizar registro con ID de preferencia
     await paymentRecord.update({
       mp_preference_id: mpPreference.id,
-      notification_url: "http://146.83.198.35:1234/api/payments/webhook",
-      success_url: "http://146.83.198.35:1235/payment/success",
-      failure_url: "http://146.83.198.35:1235/payment/failure",
-      pending_url: "http://146.83.198.35:1235/payment/pending"
+      notification_url: `${BACKEND_URL}/api/payments/webhook`,
+      success_url: `${FRONTEND_URL}/payment/success`,
+      failure_url: `${FRONTEND_URL}/payment/failure`,
+      pending_url: `${FRONTEND_URL}/payment/pending`
     });
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
-    console.log(`🎯 URL de éxito: http://146.83.198.35:1235/payment/success`);
+    console.log(`🎯 URL de éxito: ${FRONTEND_URL}/payment/success`);
 
     // Almacenar información del pago para redirección automática desde webhook
     pendingPayments.set(paymentRecord.payment_id, {
@@ -377,32 +312,43 @@ export async function createPaymentPreference(req, res) {
 
 /**
  * Webhook para notificaciones de MercadoPago
- * Documentación: https://www.mercadopago.cl/developers/es/guides/additional-content/notifications/webhooks
+ * Basado en la referencia: https://dev.to/jarraga/mercadopago-checkout-pro-postman-no-library-1kh3
  */
 export async function handlePaymentWebhook(req, res) {
   try {
     console.log('🔔 Webhook recibido de MercadoPago:', {
       headers: req.headers,
       body: req.body,
-      method: req.method,
-      url: req.url,
+      query: req.query,
       timestamp: new Date().toISOString()
     });
 
+    // MercadoPago puede enviar diferentes tipos de notificaciones
     const { type, data } = req.body;
+    const { id, topic } = req.query;
 
-    // Solo procesar notificaciones de pago
-    if (type === 'payment') {
-      const mpPaymentId = data.id;
-      
-      console.log(`💳 Procesando pago con ID: ${mpPaymentId}`);
+    // Responder inmediatamente con 200 para confirmar recepción
+    res.status(200).send('OK');
+
+    // Procesar solo notificaciones de pago
+    const paymentId = data?.id || id;
+    const notificationType = type || topic;
+
+    if (notificationType === 'payment' && paymentId) {
+      console.log(`💳 Procesando notificación de pago ID: ${paymentId}`);
       
       // Obtener información del pago desde MercadoPago
-      const mpPaymentInfo = await payment.get({ id: mpPaymentId });
+      const mpPaymentInfo = await payment.get({ id: paymentId });
       
-      console.log('💳 Información completa del pago de MercadoPago:', JSON.stringify(mpPaymentInfo, null, 2));
+      console.log('💳 Información del pago:', {
+        id: mpPaymentInfo.id,
+        status: mpPaymentInfo.status,
+        external_reference: mpPaymentInfo.external_reference,
+        payment_method_id: mpPaymentInfo.payment_method_id,
+        date_approved: mpPaymentInfo.date_approved
+      });
 
-      // Buscar el pago en nuestra base de datos usando external_reference
+      // Buscar el pago en nuestra base de datos
       const paymentRecord = await Payment.findOne({
         where: { 
           mp_external_reference: mpPaymentInfo.external_reference 
@@ -410,42 +356,25 @@ export async function handlePaymentWebhook(req, res) {
       });
 
       if (!paymentRecord) {
-        console.error(`❌ Pago no encontrado en BD con external_reference: ${mpPaymentInfo.external_reference}`);
-        
-        // Intentar buscar por mp_payment_id si existe
-        if (mpPaymentId) {
-          const altPaymentRecord = await Payment.findOne({
-            where: { mp_payment_id: mpPaymentId.toString() }
-          });
-          
-          if (altPaymentRecord) {
-            console.log(`✅ Pago encontrado por mp_payment_id: ${mpPaymentId}`);
-            await updatePaymentFromWebhook(altPaymentRecord, mpPaymentInfo, mpPaymentId);
-            return res.status(200).send('OK');
-          }
-        }
-        
-        return res.status(404).send('Payment not found');
+        console.error(`❌ Pago no encontrado con external_reference: ${mpPaymentInfo.external_reference}`);
+        return;
       }
 
-      console.log(`📋 Pago encontrado en BD: ${paymentRecord.payment_id}`);
+      console.log(`📋 Actualizando pago: ${paymentRecord.payment_id}`);
+      await updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, paymentId);
 
-      await updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentId);
-
-      console.log(`✅ Pago actualizado correctamente: ${paymentRecord.payment_id} - Estado: ${mpPaymentInfo.status}`);
+      console.log(`✅ Pago actualizado: ${paymentRecord.payment_id} - Estado: ${mpPaymentInfo.status}`);
     } else {
-      console.log(`ℹ️ Notificación no es de tipo 'payment', ignorando: ${type}`);
+      console.log(`ℹ️ Notificación no procesable - Tipo: ${notificationType}, ID: ${paymentId}`);
     }
 
-    return res.status(200).send('OK');
-
   } catch (error) {
-    console.error('❌ Error procesando webhook de MercadoPago:', {
+    console.error('❌ Error procesando webhook:', {
       error: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString()
     });
-    return res.status(500).send('Internal Server Error');
+    // No retornar error para evitar que MercadoPago reintente
   }
 }
 
@@ -757,6 +686,33 @@ export async function getPaymentStatus(req, res) {
 
     if (!paymentRecord) {
       return error(res, 'Pago no encontrado', 404);
+    }
+
+    // Si el pago está pendiente y tenemos mp_payment_id, verificar con MercadoPago
+    if (paymentRecord.status === 'pending' && paymentRecord.mp_payment_id) {
+      try {
+        console.log(`🔍 Verificando estado en MercadoPago para pago: ${paymentRecord.mp_payment_id}`);
+        const mpPaymentInfo = await payment.get({ id: paymentRecord.mp_payment_id });
+        
+        // Actualizar estado si cambió
+        if (mpPaymentInfo.status !== paymentRecord.mp_collection_status) {
+          console.log(`🔄 Actualizando estado de ${paymentRecord.mp_collection_status} a ${mpPaymentInfo.status}`);
+          
+          await paymentRecord.update({
+            mp_collection_status: mpPaymentInfo.status,
+            status: mapMercadoPagoStatus(mpPaymentInfo.status),
+            payment_date: mpPaymentInfo.date_approved || paymentRecord.payment_date
+          });
+
+          // Si se aprobó, crear transacción
+          if (mpPaymentInfo.status === 'approved') {
+            await createTransactionFromPayment(paymentRecord);
+          }
+        }
+      } catch (mpError) {
+        console.error('❌ Error verificando con MercadoPago:', mpError);
+        // Continuar con el estado local
+      }
     }
 
     return success(res, paymentRecord, 'Estado del pago obtenido');
