@@ -21,6 +21,11 @@ const Rating = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    match_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "ID del match asociado a esta calificación"
+    },
     sell_id: {
       type: DataTypes.INTEGER,
       allowNull: true,

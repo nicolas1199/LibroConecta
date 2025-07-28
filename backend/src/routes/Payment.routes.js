@@ -6,6 +6,7 @@ import {
   checkPaymentRedirect,
   checkPaymentRedirectByReference,
   getPaymentStatus,
+  getPaymentByReference,
   getUserPayments,
   processDirectPayment,
   getUserPurchaseHistory,
@@ -81,6 +82,16 @@ router.get(
   authenticateToken,
   validateUUIDParam("paymentId"),
   getPaymentStatus
+);
+
+/**
+ * @route GET /api/payments/reference/:externalReference
+ * @desc Obtener pago por external_reference
+ * @access Public (para las back_urls de MercadoPago)
+ */
+router.get(
+  "/reference/:externalReference",
+  getPaymentByReference
 );
 
 /**
