@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Home from "../icons/Home";
 import BookOpen from "../icons/BookOpen";
-import Heart from "../icons/Heart";
 import MessageCircle from "../icons/MessageCircle";
 import Users from "../icons/Users";
 import Settings from "../icons/Settings";
@@ -91,7 +90,6 @@ export default function DashboardSidebar({
       { icon: Plus, label: "Publicar libro", path: "/dashboard/publish" },
       { icon: Edit, label: "Mis publicaciones", path: "/my-publications" },
 
-      { icon: Heart, label: "Favoritos", path: "/dashboard/favorites" },
       { icon: List, label: "Lista de deseos", path: "/dashboard/wishlist" },
       { icon: Clock, label: "Historial", path: "/dashboard/history" },
     ],
