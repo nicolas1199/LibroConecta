@@ -108,18 +108,23 @@ export default function DashboardSidebar({
         path: "/dashboard/swipe",
         badge: "Hot",
       },
-      { icon: Users, label: "Matches", path: "/dashboard/matches", count: 0 },
+      { 
+        icon: Users, 
+        label: "Matches", 
+        path: "/dashboard/matches", 
+        count: notifications.newMatches 
+      },
       {
         icon: MessageCircle,
         label: "Mensajes",
         path: "/dashboard/messages",
-        count: 0,
+        count: notifications.unreadMessages,
       },
       {
         icon: Bell,
         label: "Solicitudes de Chat",
         path: "/chat-requests",
-        count: pendingRequestsCount,
+        count: notifications.chatRequests,
       },
     ],
     misLibros: [
@@ -131,7 +136,12 @@ export default function DashboardSidebar({
       { icon: Clock, label: "Historial", path: "/dashboard/history" },
     ],
     actividad: [
-      { icon: Star, label: "Calificaciones", path: "/dashboard/ratings" },
+      { 
+        icon: Star, 
+        label: "Calificaciones", 
+        path: "/dashboard/ratings",
+        count: notifications.pendingRatings
+      },
       { icon: FileText, label: "Reseñas", path: "/dashboard/reviews" },
       { icon: BarChart, label: "Estadísticas", path: "/dashboard/stats" },
       {

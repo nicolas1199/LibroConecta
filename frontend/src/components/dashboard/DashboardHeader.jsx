@@ -9,6 +9,7 @@ import Plus from "../icons/Plus"
 import Menu from "../icons/Menu"
 import NotificationDropdown from "../NotificationDropdown"
 import { searchPublishedBooks } from "../../api/publishedBooks"
+import { useNotifications } from "../../hooks/useNotifications"
 
 export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onSearchChange }) {
   const [showNotifications, setShowNotifications] = useState(false)
@@ -18,6 +19,9 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
   const searchTimeoutRef = useRef(null)
   const searchResultsRef = useRef(null)
   const navigate = useNavigate()
+  
+  // Usar el hook de notificaciones
+  const { notifications } = useNotifications()
 
   // Función para realizar la búsqueda
   const performSearch = async (query) => {
@@ -109,31 +113,35 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
           </button>
 
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center space-x-3">
+          <Link to="/dashboard" className="flex items-center space-x-2">
             <BookOpen className="h-8 w-8 text-blue-600" />
             <div className="hidden sm:block">
-              <span className="text-xl font-bold text-gray-900">LibroConecta</span>
-              <p className="text-xs text-gray-500 leading-none">Tu biblioteca conectada</p>
+              <h1 className="text-xl font-bold text-gray-900">LibroConecta</h1>
+              <p className="text-xs text-gray-500">Tu biblioteca conectada</p>
             </div>
           </Link>
         </div>
 
-        {/* Search Bar con resultados */}
-        <div className="search-container mx-8 relative" ref={searchResultsRef}>
-          <Search className="search-icon h-4 w-4" />
-          <input
-            type="text"
-            placeholder="Buscar libros, autores, usuarios..."
-            className="search-input"
-            value={searchTerm}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
-          />
+        {/* Centro - Barra de búsqueda */}
+        <div className="search-container" ref={searchResultsRef}>
+          <div className="relative">
+            <Search className="search-icon h-4 w-4" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Buscar libros, autores, usuarios..."
+              className="search-input"
+            />
+          </div>
 
-          {/* Indicador de carga */}
+          {/* Loading state */}
           {isSearching && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="p-4 text-center text-gray-500">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                Buscando...
+              </div>
             </div>
           )}
 
@@ -224,7 +232,11 @@ export default function DashboardHeader({ user, onToggleSidebar, searchTerm, onS
               className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
             >
               <Bell className="h-5 w-5" />
-              <span className="notification-badge">2</span>
+              {notifications.total > 0 && (
+                <span className="notification-badge">
+                  {notifications.total > 99 ? '99+' : notifications.total}
+                </span>
+              )}
             </button>
 
             <NotificationDropdown isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
