@@ -9,7 +9,9 @@ import MessageCircle from "../components/icons/MessageCircle"
 import BookOpen from "../components/icons/BookOpen"
 import PaymentButton from "../components/PaymentButton"
 import ProfileImage from "../components/ProfileImage"
+import ChatRequestModal from "../components/ChatRequestModal"
 import DashboardLayout from "../layouts/DashboardLayout"
+import { getMatches } from "../api/matches"
 
 export default function BookDetails() {
   const { bookId } = useParams()
@@ -19,6 +21,10 @@ export default function BookDetails() {
   const [error, setError] = useState(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [imageError, setImageError] = useState(false)
+  const [showChatModal, setShowChatModal] = useState(false)
+  const [hasMatch, setHasMatch] = useState(false)
+  const [checkingMatch, setCheckingMatch] = useState(false)
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}")
 
   useEffect(() => {
     const loadBook = async () => {
@@ -46,11 +52,56 @@ export default function BookDetails() {
     }
   }, [bookId])
 
-  const handleStartChat = () => {
+  // Verificar si hay match entre usuarios
+  useEffect(() => {
+    const checkMatch = async () => {
+      if (!currentUser.user_id || !book?.User?.user_id || currentUser.user_id === book.User.user_id) {
+        return;
+      }
+
+      try {
+        setCheckingMatch(true);
+        const response = await getMatches();
+        const matches = response.data || [];
+        
+        const hasMatchWithUser = matches.some(match => 
+          (match.user_id_1 === currentUser.user_id && match.user_id_2 === book.User.user_id) ||
+          (match.user_id_1 === book.User.user_id && match.user_id_2 === currentUser.user_id)
+        );
+        
+        setHasMatch(hasMatchWithUser);
+      } catch (error) {
+        console.error("Error checking match:", error);
+        setHasMatch(false);
+      } finally {
+        setCheckingMatch(false);
+      }
+    };
+
     if (book?.User?.user_id) {
-      navigate(`/dashboard/messages/new?user=${book.User.user_id}&book=${bookId}`)
+      checkMatch();
     }
-  }
+  }, [currentUser.user_id, book?.User?.user_id]);
+
+  const handleStartChat = () => {
+    // Si es el propio usuario, no hacer nada
+    if (currentUser.user_id === book?.User?.user_id) {
+      return;
+    }
+
+    // Si hay match, ir directamente al chat
+    if (hasMatch && book?.User?.user_id) {
+      navigate(`/dashboard/messages/new?user=${book.User.user_id}&book=${bookId}`);
+    } else {
+      // Si no hay match, mostrar modal de solicitud
+      setShowChatModal(true);
+    }
+  };
+
+  const handleChatRequestSuccess = () => {
+    // Opcional: mostrar notificación de éxito
+    console.log("Solicitud de chat enviada exitosamente");
+  };
 
   const renderStars = (rating = 4) => {
     return Array.from({ length: 5 }, (_, index) => (
@@ -350,5 +401,18 @@ export default function BookDetails() {
   }
 
   // Envolver todo el contenido en el DashboardLayout
-  return <DashboardLayout>{renderContent()}</DashboardLayout>
+  return (
+    <>
+      <DashboardLayout>{renderContent()}</DashboardLayout>
+      
+      {/* Modal de solicitud de chat */}
+      <ChatRequestModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        book={book}
+        receiverUser={book?.User}
+        onSuccess={handleChatRequestSuccess}
+      />
+    </>
+  )
 }
