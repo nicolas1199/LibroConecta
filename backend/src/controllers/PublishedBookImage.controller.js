@@ -192,17 +192,32 @@ export async function deletePublishedBookImage(req, res) {
 
     console.log(`🗑️ Eliminando imagen de la base de datos...`);
     
-    // Usar transacción para asegurar consistencia
-    const { sequelize } = PublishedBookImage;
-    const transaction = await sequelize.transaction();
-    
+    // DIAGNÓSTICO: Intentar eliminación simple primero
     try {
-      await image.destroy({ transaction });
-      await transaction.commit();
+      console.log(`🔄 Intentando eliminación directa sin transacción...`);
+      
+      // Verificar que la imagen existe antes de eliminar
+      const imageExists = await PublishedBookImage.findByPk(id);
+      console.log(`📸 Imagen existe antes de eliminar:`, !!imageExists);
+      
+      // Eliminar directamente
+      const deleteResult = await image.destroy();
+      console.log(`🗑️ Resultado de eliminación:`, deleteResult);
+      
+      // Verificar que la imagen ya no existe
+      const imageAfterDelete = await PublishedBookImage.findByPk(id);
+      console.log(`📸 Imagen existe después de eliminar:`, !!imageAfterDelete);
+      
+      if (imageAfterDelete) {
+        console.log(`❌ PROBLEMA: La imagen aún existe en la base de datos después de destroy()`);
+        throw new Error("La imagen no se eliminó de la base de datos");
+      }
+      
       console.log(`✅ Imagen eliminada exitosamente de la base de datos`);
     } catch (dbError) {
-      await transaction.rollback();
       console.error(`❌ Error al eliminar de la base de datos:`, dbError);
+      console.error(`❌ Tipo de error:`, dbError.name);
+      console.error(`❌ Mensaje de error:`, dbError.message);
       throw dbError;
     }
     
