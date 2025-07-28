@@ -56,23 +56,30 @@ export default function DashboardSidebar({
     // Cargar calificación del usuario actual
     const loadUserRating = async () => {
       if (user?.user_id) {
+        console.log("🔄 Cargando rating para usuario:", user.user_id);
         try {
           const response = await getUserRatings(user.user_id, { type: 'received', limit: 100 });
           const ratings = response.data || [];
           
+          console.log("📊 Ratings obtenidos:", ratings);
           setTotalRatings(ratings.length);
           
           if (ratings.length > 0) {
             const average = ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
-            setUserRating(Math.round(average * 10) / 10);
+            const roundedAverage = Math.round(average * 10) / 10;
+            console.log("⭐ Promedio calculado:", roundedAverage);
+            setUserRating(roundedAverage);
           } else {
+            console.log("❌ Sin ratings encontrados");
             setUserRating(0);
           }
         } catch (error) {
-          console.error("Error loading user rating:", error);
+          console.error("❌ Error loading user rating:", error);
           setUserRating(0);
           setTotalRatings(0);
         }
+      } else {
+        console.log("❌ No hay user_id disponible");
       }
     };
 
@@ -167,7 +174,7 @@ export default function DashboardSidebar({
                   <div className="user-rating">
                     <Star className="h-3 w-3 text-yellow-400 fill-current" />
                     <span className="text-xs text-gray-600">
-                      {userRating > 0 ? userRating.toFixed(1) : "N/A"}
+                      {userRating > 0 ? userRating.toFixed(1) : "N/A"} {/* Debug: {userRating} */}
                     </span>
                     <span className="user-badge">
                       {userRating >= 4.5 ? "Pro" : userRating >= 3.5 ? "Good" : userRating > 0 ? "New" : "Sin reseñas"}
