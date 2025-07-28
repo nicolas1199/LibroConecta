@@ -83,12 +83,10 @@ export default function EnhancedMessages() {
       setExchangeInfo(response.data);
       
       // Mostrar acciones de intercambio basado en can_complete
-      setShowExchangeActions(response.data.can_complete && !response.data.is_completed);
+      setShowExchangeActions(response.data.can_complete);
     } catch (error) {
       console.error("Error loading exchange info:", error);
       // No mostrar error si no es un intercambio
-      setExchangeInfo(null);
-      setShowExchangeActions(false);
     }
   };
 
@@ -172,35 +170,25 @@ export default function EnhancedMessages() {
   };
 
   const handleCompleteExchange = async () => {
-    if (!selectedConversation) return;
-    
     try {
       const response = await completeExchange(selectedConversation.match_id);
       
-      // Actualizar estados inmediatamente
       setShowExchangeActions(false);
       setExchangeInfo(prev => ({ 
         ...prev, 
         is_completed: true, 
         can_complete: false,
-        exchange_id: response.data?.match?.exchange_id || prev?.exchange_id
+        exchange_id: response.data?.match?.exchange_id || prev.exchange_id
       }));
       setExchangeCompleted(true);
       
-      // Ocultar mensaje de éxito después de 5 segundos si no se abre el modal
-      setTimeout(() => {
-        if (!showRatingModal) {
-          setExchangeCompleted(false);
-        }
-      }, 5000);
-      
-      // Mostrar modal de calificación después de un breve delay
+      // Mostrar modal de calificación después de completar
       setTimeout(() => {
         setShowRatingModal(true);
-      }, 500);
+      }, 1000);
       
       // Recargar información del intercambio
-      await loadExchangeInfo(selectedConversation.match_id);
+      loadExchangeInfo(selectedConversation.match_id);
     } catch (error) {
       console.error("Error completing exchange:", error);
       setError("Error al completar el intercambio");
@@ -213,13 +201,7 @@ export default function EnhancedMessages() {
 
   const handleRatingSubmitted = () => {
     setShowRatingModal(false);
-    setExchangeCompleted(false);
-    
-    // Mostrar mensaje de éxito
-    setTimeout(() => {
-      setError(null);
-      // Opcional: mostrar una notificación de que la calificación fue enviada
-    }, 100);
+    // Opcional: mostrar mensaje de éxito
   };
 
   const otherUser = React.useMemo(() => {
@@ -408,25 +390,22 @@ export default function EnhancedMessages() {
             </div>
             
             {/* Exchange Actions */}
-            {exchangeInfo && (
+            {showExchangeActions && exchangeInfo && (
               <div className="flex space-x-2">
-                {showExchangeActions ? (
-                  <button
-                    onClick={handleCompleteExchange}
-                    className="btn btn-success btn-sm flex items-center space-x-1"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Completar Intercambio</span>
-                  </button>
-                ) : exchangeInfo.is_completed ? (
-                  <button
-                    onClick={() => setShowRatingModal(true)}
-                    className="btn btn-primary btn-sm flex items-center space-x-1"
-                  >
-                    <Star className="h-4 w-4" />
-                    <span>Calificar</span>
-                  </button>
-                ) : null}
+                <button
+                  onClick={handleCompleteExchange}
+                  className="btn btn-success btn-sm flex items-center space-x-1"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Completar Intercambio</span>
+                </button>
+                <button
+                  onClick={() => setShowRatingModal(true)}
+                  className="btn btn-primary btn-sm flex items-center space-x-1"
+                >
+                  <Star className="h-4 w-4" />
+                  <span>Calificar</span>
+                </button>
               </div>
             )}
           </div>
@@ -509,8 +488,7 @@ export default function EnhancedMessages() {
           </form>
         </div>
       </div>
-    );
-  }, [selectedConversation, messages, currentUser, newMessage, sendingMessage, uploadingImage, handleSendMessage, formatDate, exchangeInfo, showExchangeActions]);
+    ), [selectedConversation, messages, currentUser, newMessage, sendingMessage, uploadingImage, handleSendMessage, formatDate, exchangeInfo, showExchangeActions]);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -535,30 +513,22 @@ export default function EnhancedMessages() {
       </div>
 
       {/* Modal de Calificación */}
-      {showRatingModal && otherUser && (
-        <WriteReviewModal
-          isOpen={showRatingModal}
-          onClose={handleRatingModalClose}
-          ratedUserId={otherUser.user_id}
-          ratedUserName={otherUserName}
-          exchangeId={exchangeInfo?.exchange_id || null}
-          matchId={exchangeInfo?.exchange_id ? null : selectedConversation?.match_id}
-          onReviewSubmitted={handleRatingSubmitted}
-        />
-      )}
+      <WriteReviewModal
+        isOpen={showRatingModal}
+        onClose={handleRatingModalClose}
+        ratedUserId={otherUser?.user_id}
+        ratedUserName={otherUserName}
+        exchangeId={exchangeInfo?.exchange_id}
+        matchId={exchangeInfo?.exchange_id ? null : selectedConversation?.match_id}
+        onReviewSubmitted={handleRatingSubmitted}
+      />
 
       {/* Success Message */}
       {exchangeCompleted && !showRatingModal && (
         <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-40">
           <div className="flex items-center space-x-2">
             <CheckCircle className="h-4 w-4" />
-            <span>¡Intercambio completado! Ahora puedes calificar al usuario.</span>
-            <button 
-              onClick={() => setExchangeCompleted(false)}
-              className="ml-2 text-green-200 hover:text-white"
-            >
-              ×
-            </button>
+            <span>¡Intercambio completado exitosamente!</span>
           </div>
         </div>
       )}
