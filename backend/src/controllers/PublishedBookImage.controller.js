@@ -149,26 +149,39 @@ export async function updatePublishedBookImage(req, res) {
 export async function deletePublishedBookImage(req, res) {
   try {
     const { id } = req.params;
+    console.log(`🗑️ Iniciando eliminación de imagen con ID: ${id}`);
+    console.log(`👤 Usuario autenticado: ${req.user?.user_id}`);
 
     const image = await PublishedBookImage.findByPk(id, {
       include: [{ model: PublishedBooks }],
     });
 
+    console.log(`📸 Imagen encontrada:`, image ? 'SÍ' : 'NO');
+    
     if (!image) {
+      console.log(`❌ Error: Imagen ${id} no encontrada`);
       return res.status(404).json({ error: "Imagen no encontrada" });
     }
 
+    console.log(`📖 Libro publicado asociado: ${image.PublishedBooks?.published_book_id}`);
+    console.log(`👤 Propietario del libro: ${image.PublishedBooks?.user_id}`);
+
     // Verificar permisos
     if (image.PublishedBooks.user_id !== req.user.user_id) {
+      console.log(`🚫 Error de permisos: usuario ${req.user.user_id} no es propietario`);
       return res
         .status(403)
         .json({ error: "No tienes permisos para eliminar esta imagen" });
     }
 
+    console.log(`🗑️ Eliminando imagen de la base de datos...`);
     await image.destroy();
+    console.log(`✅ Imagen eliminada exitosamente`);
+    
     res.json({ message: "Imagen eliminada correctamente" });
   } catch (error) {
-    console.error("Error en deletePublishedBookImage:", error);
+    console.error("❌ Error en deletePublishedBookImage:", error);
+    console.error("Stack trace:", error.stack);
     res.status(500).json({ error: "Error al eliminar imagen" });
   }
 }
