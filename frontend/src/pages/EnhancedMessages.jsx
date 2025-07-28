@@ -360,11 +360,16 @@ export default function EnhancedMessages() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <ProfileImage user={selectedConversation.other_user} size="md" />
+              <Link to={`/profile/${selectedConversation.other_user.user_id}`}>
+                <ProfileImage user={selectedConversation.other_user} size="md" />
+              </Link>
               <div>
-                <h3 className="font-semibold text-gray-900">
+                <Link 
+                  to={`/profile/${selectedConversation.other_user.user_id}`}
+                  className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                >
                   {selectedConversation.other_user.first_name} {selectedConversation.other_user.last_name}
-                </h3>
+                </Link>
                 <p className="text-sm text-gray-600">
                   Match desde {formatDate(selectedConversation.date_match)}
                 </p>

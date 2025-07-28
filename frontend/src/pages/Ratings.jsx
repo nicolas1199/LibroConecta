@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { 
   getMyRatings, 
@@ -134,7 +134,7 @@ export default function Ratings() {
     setShowRatingModal(true);
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setShowRatingModal(false);
     setSelectedPending(null);
     
@@ -142,9 +142,9 @@ export default function Ratings() {
     if (matchId) {
       navigate(`/dashboard/messages/${matchId}`);
     }
-  };
+  }, [matchId, navigate]);
 
-  const handleSubmitRating = async (e) => {
+  const handleSubmitRating = useCallback(async (e) => {
     e.preventDefault();
     if (!selectedPending) return;
 
@@ -187,7 +187,7 @@ export default function Ratings() {
     } finally {
       setActionLoading(null);
     }
-  };
+  }, [selectedPending, ratingForm, matchId, navigate]);
 
   const handleDeleteRating = async (ratingId) => {
     try {
@@ -342,7 +342,7 @@ export default function Ratings() {
     </div>
   );
 
-  const RatingModal = () => (
+  const RatingModal = useCallback(() => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -369,6 +369,7 @@ export default function Ratings() {
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Describe tu experiencia..."
+              autoFocus={false}
             />
           </div>
           
@@ -391,7 +392,7 @@ export default function Ratings() {
         </form>
       </div>
     </div>
-  );
+  ), [selectedPending, ratingForm, actionLoading, handleSubmitRating, handleCloseModal]);
 
   return (
     <div className="space-y-6">

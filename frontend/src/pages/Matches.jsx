@@ -83,12 +83,17 @@ export default function Matches() {
       <div className="card p-6 hover:shadow-lg transition-shadow">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
-            <ProfileImage user={user} size="lg" />
+            <Link to={`/profile/${user.user_id}`}>
+              <ProfileImage user={user} size="lg" />
+            </Link>
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
-                <h3 className="font-semibold text-gray-900">
+                <Link 
+                  to={`/profile/${user.user_id}`}
+                  className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                >
                   {user.first_name} {user.last_name}
-                </h3>
+                </Link>
                 {isAutoMatch && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                     <Heart className="h-3 w-3 mr-1" />

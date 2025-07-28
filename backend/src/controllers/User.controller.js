@@ -12,7 +12,10 @@ export const getUserPublicProfile = async (req, res) => {
         "first_name",
         "last_name",
         "username",
+        "email",
         "location",
+        "biography",
+        "profile_image_base64",
       ],
     });
 
@@ -27,7 +30,10 @@ export const getUserPublicProfile = async (req, res) => {
         first_name: user.get("first_name"),
         last_name: user.get("last_name"),
         username: user.get("username"),
+        email: user.get("email"),
         location: user.get("location"),
+        biography: user.get("biography"),
+        profile_image_base64: user.get("profile_image_base64"),
       },
     });
   } catch (error) {
