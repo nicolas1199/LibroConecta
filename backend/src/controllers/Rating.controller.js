@@ -157,12 +157,12 @@ export const createRating = async (req, res) => {
         {
           model: User,
           as: "Rater",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"],
         },
         {
           model: User,
           as: "Rated",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"],
         },
         {
           model: Exchange,
@@ -213,7 +213,7 @@ export const getUserRatings = async (req, res) => {
         {
           model: User,
           as: "Rater",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"],
         },
         {
           model: Exchange,
@@ -291,14 +291,14 @@ export const getMyRatings = async (req, res) => {
       includeClause.push({
         model: User,
         as: "Rater",
-        attributes: ["user_id", "first_name", "last_name"],
+        attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"],
       });
     } else if (type === "given") {
       whereClause.rater_id = user_id;
       includeClause.push({
         model: User,
         as: "Rated",
-        attributes: ["user_id", "first_name", "last_name"],
+        attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"],
       });
     } else {
       return res.status(400).json(
@@ -393,12 +393,12 @@ export const updateRating = async (req, res) => {
         {
           model: User,
           as: "Rater",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"],
         },
         {
           model: User,
           as: "Rated",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: ["user_id", "first_name", "last_name", "username", "profile_image_base64"],
         },
       ],
     });

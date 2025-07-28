@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { getUserProfileById, getUserProfile } from "../api/auth"
 import { getUserRatings } from "../api/ratings"
+import { getMatches } from "../api/matches"
+import { getPublishedBooksByUser } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Edit from "../components/icons/Edit"
 import MapPin from "../components/icons/MapPin"
@@ -24,6 +26,11 @@ export default function UserProfile() {
   const [ratingsLoading, setRatingsLoading] = useState(false)
   const [averageRating, setAverageRating] = useState(0)
   const [totalRatings, setTotalRatings] = useState(0)
+  const [stats, setStats] = useState({
+    publishedBooks: 0,
+    matches: 0,
+    exchanges: 0
+  })
 
   const loadUserRatings = async (targetUserId) => {
     try {
@@ -48,6 +55,41 @@ export default function UserProfile() {
       setTotalRatings(0)
     } finally {
       setRatingsLoading(false)
+    }
+  }
+
+  const loadUserStats = async (targetUserId) => {
+    try {
+      // Solo cargar matches si es el usuario actual (por privacidad)
+      const currentUserId = JSON.parse(localStorage.getItem("user") || "{}")?.user_id;
+      
+      // Cargar libros publicados (público)
+      const booksResponse = await getPublishedBooksByUser(targetUserId);
+      const publishedBooks = booksResponse.data?.length || 0;
+      
+      let matches = 0;
+      if (currentUserId && (currentUserId === targetUserId || !userId)) {
+        // Solo mostrar matches si es el perfil propio
+        try {
+          const matchesResponse = await getMatches();
+          matches = matchesResponse.data?.length || 0;
+        } catch (error) {
+          console.error("Error loading matches:", error);
+        }
+      }
+      
+      setStats({
+        publishedBooks,
+        matches,
+        exchanges: 0 // Por ahora, necesitaríamos una API específica para esto
+      });
+    } catch (error) {
+      console.error("Error loading user stats:", error);
+      setStats({
+        publishedBooks: 0,
+        matches: 0,
+        exchanges: 0
+      });
     }
   }
 
@@ -106,6 +148,9 @@ export default function UserProfile() {
             
             // Cargar calificaciones del usuario
             loadUserRatings(profileUser.user_id)
+            
+            // Cargar estadísticas del usuario
+            loadUserStats(profileUser.user_id)
           } catch (parseError) {
             console.error("❌ Error parseando datos del usuario:", parseError)
             setUser(null)
@@ -349,16 +394,18 @@ export default function UserProfile() {
                       <BookOpen className="h-4 w-4 text-blue-600" />
                       <span className="text-gray-600">Libros publicados</span>
                     </div>
-                    <span className="font-semibold text-gray-900">0</span>
+                    <span className="font-semibold text-gray-900">{stats.publishedBooks}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-purple-600" />
-                      <span className="text-gray-600">Matches</span>
+                  {(isOwnProfile || stats.matches > 0) && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Users className="h-4 w-4 text-purple-600" />
+                        <span className="text-gray-600">Matches</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">{stats.matches}</span>
                     </div>
-                    <span className="font-semibold text-gray-900">0</span>
-                  </div>
+                  )}
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
