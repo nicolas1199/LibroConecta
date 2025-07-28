@@ -14,7 +14,7 @@ import EditLibraryBook from "../pages/EditLibraryBook";
 import LibraryInsights from "../pages/LibraryInsights";
 import Matches from "../pages/Matches";
 import Messages from "../pages/Messages";
-import EnhancedMessages from "../pages/EnhancedMessages";
+import EnhancedMessages from "../components/EnhancedMessages";
 import Ratings from "../pages/Ratings";
 import ReviewsPage from "../pages/ReviewsPage";
 import Favorites from "../pages/Favorites";
