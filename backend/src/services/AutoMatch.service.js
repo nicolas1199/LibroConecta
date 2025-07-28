@@ -5,26 +5,26 @@ import {
   PublishedBooks,
   UserPublishedBookInteraction,
   Book,
-  MatchBooks,
 } from "../db/modelIndex.js";
 import { hasMutualLike } from "../utils/match.util.js";
 import { formatMatchNotification } from "../utils/notification.util.js";
 
-// Servicio principal para detección y creación automática de matches ESPECÍFICOS POR LIBRO
-// NUEVA LÓGICA:
+// Servicio principal para detección y creación automática de matches
+// FLUJO DE DATOS:
 // 1. Recibe user_id del usuario que hizo LIKE y published_book_id del libro
 // 2. Obtiene información del libro y su propietario
-// 3. Busca todos los libros del usuario actual que el dueño ha likeado
-// 4. Para cada libro que coincide: crea un MATCH ESPECÍFICO (libro A ↔ libro B)
-// 5. Popula automáticamente MatchBooks con los libros específicos
-// 6. Retorna información de todos los matches creados
+// 3. Busca si ya existe match entre estos usuarios
+// 4. Verifica si hay reciprocidad de likes entre los usuarios
+// 5. Si hay reciprocidad: crea Match automático en base de datos
+// 6. Retorna información del match para notificación en frontend
 export async function checkAndCreateAutoMatch(userId, publishedBookId) {
   try {
     console.log(
-      `🔍 Verificando auto-match específico para usuario ${userId} y libro ${publishedBookId}`
+      `Verificando posible auto-match para usuario ${userId} y libro ${publishedBookId}`
     );
 
     // PASO 1: Obtener información completa del libro que recibió el like
+    // Incluye datos del propietario y del libro para construir el match
     const likedBook = await PublishedBooks.findByPk(publishedBookId, {
       include: [
         {
@@ -44,7 +44,8 @@ export async function checkAndCreateAutoMatch(userId, publishedBookId) {
 
     const bookOwnerId = likedBook.user_id;
 
-    // PASO 2: Validación básica
+    // PASO 2: Validación de auto-match
+    // Un usuario no puede hacer match consigo mismo
     if (userId === bookOwnerId) {
       return {
         success: false,
@@ -52,144 +53,124 @@ export async function checkAndCreateAutoMatch(userId, publishedBookId) {
       };
     }
 
-    // PASO 3: Buscar todos los libros del usuario actual que el dueño ha likeado
-    const currentUserBooks = await PublishedBooks.findAll({
-      where: { 
-        user_id: userId,
-        status: 'available' // Solo libros disponibles
+    // PASO 3: Verificar si ya existe un match entre estos usuarios
+    // Buscar en ambas direcciones: user1->user2 o user2->user1
+    const existingMatch = await Match.findOne({
+      where: {
+        [Op.or]: [
+          { user_id_1: userId, user_id_2: bookOwnerId }, // userId es usuario_1
+          { user_id_1: bookOwnerId, user_id_2: userId }, // userId es usuario_2
+        ],
       },
+    });
+
+    if (existingMatch) {
+      console.log(
+        `Ya existe un match entre usuarios ${userId} y ${bookOwnerId}`
+      );
+      return {
+        success: false,
+        message: "Ya existe un match entre estos usuarios",
+      };
+    }
+
+    // PASO 4: Búsqueda de reciprocidad
+    // Obtener todos los libros del usuario actual que le gustaron al dueño del libro
+    // LÓGICA DE RECIPROCIDAD:
+    // - Usuario A le da like al libro de Usuario B
+    // - Se busca: ¿Usuario B le dio like a algún libro de Usuario A?
+    // - Si SÍ: hay reciprocidad → crear match automático
+    const currentUserBooks = await PublishedBooks.findAll({
+      where: { user_id: userId }, // Libros publicados por el usuario actual
       include: [
         {
+          // Buscar interacciones del dueño del libro con los libros del usuario actual
           model: UserPublishedBookInteraction,
-          as: "UserInteractions",
+          as: "UserInteractions", // Usar el alias correcto definido en relations.js
           where: {
-            user_id: bookOwnerId,
-            interaction_type: "like",
+            user_id: bookOwnerId, // El dueño del libro
+            interaction_type: "like", // Solo likes, no dislikes
           },
-          required: true,
+          required: true, // INNER JOIN - solo libros que tienen likes del dueño
         },
         {
-          model: Book,
+          model: Book, // Información del libro para logging
           attributes: ["title", "author"],
         },
       ],
     });
 
+    console.log(
+      `Libros del usuario ${userId} que le gustaron al dueño: ${currentUserBooks.length}`
+    );
+
+    // PASO 5: Validación de reciprocidad
     if (currentUserBooks.length === 0) {
-      console.log(`❌ No hay likes mutuos entre ${userId} y ${bookOwnerId}`);
+      console.log(`No hay likes mutuos entre ${userId} y ${bookOwnerId}`);
       return { success: false, message: "No hay likes mutuos" };
     }
 
-    console.log(`✅ Encontrados ${currentUserBooks.length} libros con reciprocidad`);
+    // PASO 6: CREACIÓN DEL MATCH AUTOMÁTICO
+    // Hay reciprocidad confirmada - crear match en base de datos
+    console.log(`MATCH AUTOMÁTICO DETECTADO! Entre ${userId} y ${bookOwnerId}`);
 
-    // PASO 4: CREAR MATCHES ESPECÍFICOS - UN MATCH POR CADA COMBINACIÓN DE LIBROS
-    const createdMatches = [];
-
-    for (const userBook of currentUserBooks) {
-      // Verificar si ya existe un match específico para esta combinación de libros
-      const existingSpecificMatch = await MatchBooks.findAll({
-        include: [
-          {
-            model: Match,
-            where: {
-              [Op.or]: [
-                { user_id_1: userId, user_id_2: bookOwnerId },
-                { user_id_1: bookOwnerId, user_id_2: userId },
-              ],
-            },
-          },
-        ],
-        where: {
-          [Op.or]: [
-            { published_book_id: publishedBookId },
-            { published_book_id: userBook.published_book_id },
-          ],
-        },
-      });
-
-      // Si ya existe un match que involucra alguno de estos libros específicos, saltar
-      if (existingSpecificMatch.length > 0) {
-        console.log(`⚠️ Ya existe match para libros ${publishedBookId} ↔ ${userBook.published_book_id}`);
-        continue;
-      }
-
-      // CREAR NUEVO MATCH ESPECÍFICO
-      const matchData = {
-        user_id_1: userId,
-        user_id_2: bookOwnerId,
-        date_match: new Date(),
-        match_type: "automatic",
-        triggered_by_books: {
-          user1_book: {
-            published_book_id: userBook.published_book_id,
-            title: userBook.Book.title,
-            author: userBook.Book.author,
-          },
-          user2_book: {
-            published_book_id: publishedBookId,
-            title: likedBook.Book.title,
-            author: likedBook.Book.author,
-          },
-        },
-      };
-
-      const newMatch = await Match.create(matchData);
-
-      // PASO 5: POBLAR MATCHBOOKS AUTOMÁTICAMENTE
-      await MatchBooks.bulkCreate([
-        {
-          match_id: newMatch.match_id,
-          published_book_id: userBook.published_book_id,
-          user_id: userId,
-        },
-        {
-          match_id: newMatch.match_id,
+    const matchData = {
+      user_id_1: userId, // Usuario que acaba de hacer like
+      user_id_2: bookOwnerId, // Propietario del libro
+      date_match: new Date(), // Timestamp del match
+      match_type: "automatic", // Tipo: automático (vs manual)
+      // PASO 7: Metadata del match para logging y notificaciones
+      triggered_by_books: {
+        // Información del libro que disparó el match (el que acaba de recibir like)
+        user1_liked_book: {
           published_book_id: publishedBookId,
-          user_id: bookOwnerId,
+          title: likedBook.Book.title,
+          author: likedBook.Book.author,
         },
-      ]);
+        // Información de todos los libros del usuario que el dueño había likeado
+        user2_liked_books: currentUserBooks.map((book) => ({
+          published_book_id: book.published_book_id,
+          title: book.Book.title,
+          author: book.Book.author,
+        })),
+      },
+    };
 
-      // Obtener match completo con información de usuarios
-      const completeMatch = await Match.findByPk(newMatch.match_id, {
-        include: [
-          {
-            model: User,
-            as: "User1",
-            attributes: ["user_id", "first_name", "last_name", "email"],
-          },
-          {
-            model: User,
-            as: "User2",
-            attributes: ["user_id", "first_name", "last_name", "email"],
-          },
-        ],
-      });
+    // PASO 7: Persistencia del match
+    const newMatch = await Match.create(matchData);
 
-      createdMatches.push(completeMatch);
+    // PASO 8: Obtener match completo con información de usuarios
+    // Incluir datos de ambos usuarios para notificaciones en frontend
+    const completeMatch = await Match.findByPk(newMatch.match_id, {
+      include: [
+        {
+          model: User,
+          as: "User1", // Usuario que hizo el like disparador
+          attributes: ["user_id", "first_name", "last_name", "email"],
+        },
+        {
+          model: User,
+          as: "User2", // Propietario del libro
+          attributes: ["user_id", "first_name", "last_name", "email"],
+        },
+      ],
+    });
 
-      console.log(`✅ Match específico creado: "${userBook.Book.title}" ↔ "${likedBook.Book.title}" (ID: ${newMatch.match_id})`);
-    }
+    console.log(`Match automático creado con ID: ${newMatch.match_id}`);
 
-    if (createdMatches.length === 0) {
-      return {
-        success: false,
-        message: "No se pudieron crear matches específicos (ya existen)",
-      };
-    }
-
-    // PASO 6: Respuesta con todos los matches creados
+    // PASO 9: Estructurar respuesta para frontend
+    // El frontend usará esta información para mostrar notificación de match
     return {
       success: true,
-      message: `${createdMatches.length} match(es) específico(s) creado(s)`,
-      matches: createdMatches,
-      matches_count: createdMatches.length,
+      message: "Match automático creado",
+      match: completeMatch, // Match completo con datos de usuarios
       trigger_info: {
-        trigger_book: likedBook.Book.title,
-        reciprocal_books: currentUserBooks.map(book => book.Book.title),
+        books_count: currentUserBooks.length, // Cuántos libros causaron el match
+        trigger_book: likedBook.Book.title, // Libro que disparó el match
       },
     };
   } catch (error) {
-    console.error("❌ Error en checkAndCreateAutoMatch:", error);
+    console.error("Error en checkAndCreateAutoMatch:", error);
     return {
       success: false,
       message: "Error al verificar auto-match",
