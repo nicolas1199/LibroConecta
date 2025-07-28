@@ -213,6 +213,12 @@ export async function createPaymentPreference(req, res) {
     console.log('✅ pending URL:', preferenceData.back_urls.pending);
     console.log('✅ notification URL:', preferenceData.notification_url);
     console.log('✅ auto_return:', preferenceData.auto_return);
+    
+    // Verificar formato específico para auto_return según documentación
+    console.log('🔧 Formato preparado para MercadoPago con auto_return:');
+    console.log('   - back_urls (plural):', !!preferenceData.back_urls);
+    console.log('   - auto_return configurado:', preferenceData.auto_return);
+    console.log('   - Estructura compatible con PHP docs:', true);
 
     // Verificar que las URLs sean válidas
     const isValidUrl = (string) => {
@@ -254,17 +260,29 @@ export async function createPaymentPreference(req, res) {
       price: publishedBook.price
     });
 
-    // Intentar con el SDK primero
+    // Intentar primero con API directa usando el formato correcto de la documentación
     let mpPreference;
-    try {
-      console.log('🔄 Creando preferencia con SDK de MercadoPago...');
-      mpPreference = await preference.create({ body: preferenceData });
-      console.log('✅ Preferencia creada con SDK exitosamente');
-    } catch (sdkError) {
-      console.log('❌ Error con SDK, intentando con API directa:', sdkError.message);
+    
+    console.log('🔄 Creando preferencia con API directa (formato oficial)...');
+    
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(preferenceData)
+    });
+    
+    if (response.ok) {
+      mpPreference = await response.json();
+      console.log('✅ Preferencia creada exitosamente con auto_return');
+    } else {
+      const errorData = await response.json();
+      console.log('❌ Error con formato estándar:', errorData);
       
-      // Fallback: usar API directa con estructura alternativa
-      console.log('🔄 Intentando con estructura alternativa (back_url en singular)...');
+      // Fallback 1: Intentar con back_url (singular) como indica el error
+      console.log('🔄 Intentando con back_url (singular)...');
       
       const alternativeData = {
         ...preferenceData,
@@ -276,9 +294,7 @@ export async function createPaymentPreference(req, res) {
       };
       delete alternativeData.back_urls;
       
-      console.log('📋 Estructura alternativa:', JSON.stringify(alternativeData, null, 2));
-      
-      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      const response2 = await fetch('https://api.mercadopago.com/checkout/preferences', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
@@ -287,16 +303,19 @@ export async function createPaymentPreference(req, res) {
         body: JSON.stringify(alternativeData)
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Error con estructura alternativa:', errorData);
+      if (response2.ok) {
+        mpPreference = await response2.json();
+        console.log('✅ Preferencia creada con back_url (singular) y auto_return');
+      } else {
+        const errorData2 = await response2.json();
+        console.log('❌ Error con back_url singular:', errorData2);
         
-        // Si también falla con back_url, intentar sin auto_return
-        console.log('🔄 Intentando sin auto_return...');
+        // Fallback 2: Sin auto_return como último recurso
+        console.log('🔄 Último intento: sin auto_return...');
         const noAutoReturnData = { ...preferenceData };
         delete noAutoReturnData.auto_return;
         
-        const response2 = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        const response3 = await fetch('https://api.mercadopago.com/checkout/preferences', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
@@ -305,17 +324,14 @@ export async function createPaymentPreference(req, res) {
           body: JSON.stringify(noAutoReturnData)
         });
         
-        if (!response2.ok) {
-          const errorData2 = await response2.json();
-          console.error('❌ Error final:', errorData2);
-          throw new Error(`MercadoPago API Error: ${JSON.stringify(errorData2)}`);
+        if (!response3.ok) {
+          const errorData3 = await response3.json();
+          console.error('❌ Error final:', errorData3);
+          throw new Error(`MercadoPago API Error: ${JSON.stringify(errorData3)}`);
         }
         
-        mpPreference = await response2.json();
+        mpPreference = await response3.json();
         console.log('✅ Preferencia creada SIN auto_return');
-      } else {
-        mpPreference = await response.json();
-        console.log('✅ Preferencia creada con back_url (singular)');
       }
     }
 
