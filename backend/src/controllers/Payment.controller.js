@@ -1182,4 +1182,4 @@ export async function processDirectPayment(req, res) {
     console.error('❌ Error procesando pago directo:', err);
     return error(res, `Error procesando pago: ${err.message}`, 500);
   }
-} 
+} es 
