@@ -321,7 +321,7 @@ export async function createPaymentPreference(req, res) {
     });
 
     console.log(`✅ Preferencia de pago creada: ${mpPreference.id} para libro ${publishedBookId}`);
-    console.log(`🎯 URL de éxito: https://146.83.198.35/payment/success`);
+    console.log(`🎯 URL de éxito: https://146.83.198.35:1235/payment/success`);
 
     // Almacenar información del pago para redirección automática desde webhook
     pendingPayments.set(paymentRecord.payment_id, {
@@ -1157,4 +1157,6 @@ export async function processDirectPayment(req, res) {
 
   } catch (err) {
     console.error('❌ Error procesando pago directo:', err);
-    return error(res, `Error procesando pago: ${err.messa
+    return error(res, `Error procesando pago: ${err.message}`, 500);
+  }
+} 
