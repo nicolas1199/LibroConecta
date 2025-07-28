@@ -201,3 +201,41 @@ export const searchPublishedBooks = async (params = {}) => {
   const res = await api.get("/published-books/search", { params });
   return res.data;
 };
+
+// FUNCIONES DE BORRADORES
+
+// Crear o actualizar borrador
+export const saveDraft = async (draftData) => {
+  const res = await api.post("/drafts", draftData);
+  return res.data;
+};
+
+// Obtener todos los borradores del usuario
+export const getDrafts = async () => {
+  const res = await api.get("/drafts");
+  return res.data;
+};
+
+// Obtener un borrador específico por ID
+export const getDraftById = async (draftId) => {
+  const res = await api.get(`/drafts/${draftId}`);
+  return res.data;
+};
+
+// Actualizar borrador existente
+export const updateDraft = async (draftId, draftData) => {
+  const res = await api.put(`/drafts/${draftId}`, draftData);
+  return res.data;
+};
+
+// Eliminar borrador
+export const deleteDraft = async (draftId) => {
+  const res = await api.delete(`/drafts/${draftId}`);
+  return res.data;
+};
+
+// Publicar desde borrador (convierte borrador en publicación y elimina el borrador)
+export const publishFromDraft = async (draftId) => {
+  const res = await api.post(`/drafts/${draftId}/publish`);
+  return res.data;
+};
