@@ -17,6 +17,7 @@ import userRoutes from "./User.routes.js";
 import paymentRoutes from "./Payment.routes.js";
 import exchangeRoutes from "./Exchange.routes.js";
 import chatRequestRoutes from "./ChatRequest.routes.js";
+import draftsRoutes from "./drafts.routes.js";
 
 const router = Router();
 
@@ -67,6 +68,9 @@ router.use("/payments", paymentRoutes);
 
 // Rutas de solicitudes de chat
 router.use("/chat-requests", chatRequestRoutes);
+
+// Rutas de borradores
+router.use("/drafts", draftsRoutes);
 
 // Rutas de intercambios
 router.use("/exchanges", exchangeRoutes);
