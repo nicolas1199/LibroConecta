@@ -15,12 +15,10 @@ export default function NotificationDropdown({ isOpen, onClose }) {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    // Solo cargar notificaciones cuando se abre el dropdown
-    // y solo si hay notificaciones disponibles
-    if (isOpen && !loadingNotifications && notificationCounts) {
+    if (isOpen) {
       fetchNotifications();
     }
-  }, [isOpen, notificationCounts]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -245,4 +243,4 @@ export default function NotificationDropdown({ isOpen, onClose }) {
       )}
     </div>
   );
-}
+} 

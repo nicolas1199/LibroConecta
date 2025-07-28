@@ -19,6 +19,7 @@ import Ratings from "../pages/Ratings";
 import ReviewsPage from "../pages/ReviewsPage";
 import Favorites from "../pages/Favorites";
 import Wishlist from "../pages/Wishlist";
+import Drafts from "../pages/Drafts";
 import History from "../pages/History";
 import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
@@ -252,6 +253,18 @@ export default function AppRouter() {
             <PrivateRoute>
               <DashboardLayout>
                 <Wishlist />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Drafts routes */}
+        <Route
+          path="/dashboard/drafts"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Drafts />
               </DashboardLayout>
             </PrivateRoute>
           }

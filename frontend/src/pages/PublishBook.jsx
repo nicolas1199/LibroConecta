@@ -10,6 +10,7 @@ import Upload from "../components/icons/Upload"
 import X from "../components/icons/X"
 import Search from "../components/icons/Search"
 import Plus from "../components/icons/Plus"
+import Save from "../components/icons/Save"
 import LocationSelect from "../components/LocationSelect";
 import {
   getTransactionTypes,
@@ -20,6 +21,10 @@ import {
   publishBook,
   uploadBookImages,
   uploadBookImagesBase64,
+  saveDraft,
+  getDraftById,
+  updateDraft,
+  deleteDraft,
 } from "../api/publishedBooks"
 
 const STEPS = [
@@ -32,9 +37,12 @@ const STEPS = [
 export default function PublishBook() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const draftId = searchParams.get('draft')
   
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [currentDraftId, setCurrentDraftId] = useState(draftId)
   const [errors, setErrors] = useState({})
   const [imageStorageType, setImageStorageType] = useState("base64") // 'cloudinary' o 'base64'
 
@@ -88,13 +96,51 @@ export default function PublishBook() {
         setBookConditions(bookConditionsData)
         setLocations(locationsData)
         setCategories(categoriesData)
+
+        // Si hay un draftId, cargar el borrador
+        if (draftId) {
+          await loadDraft(draftId)
+        }
       } catch (error) {
         console.error("Error loading data:", error)
       }
     }
 
     loadData()
-  }, [])
+  }, [draftId])
+
+  const loadDraft = async (id) => {
+    try {
+      const draft = await getDraftById(id)
+      setFormData({
+        title: draft.title || "",
+        author: draft.author || "",
+        category_ids: draft.category_ids || [],
+        date_of_pub: draft.date_of_pub || "",
+        condition_id: draft.condition_id?.toString() || "",
+        transaction_type_id: draft.transaction_type_id?.toString() || "",
+        price: draft.price || "",
+        look_for: draft.look_for || "",
+        description: draft.description || "",
+        location_id: draft.location_id?.toString() || "",
+        images: [], // Las imágenes se manejarán por separado en borradores
+      })
+      
+      // Determinar en qué paso debería estar basado en los datos completados
+      if (draft.description && draft.location_id) {
+        setCurrentStep(4)
+      } else if (draft.condition_id && draft.transaction_type_id) {
+        setCurrentStep(3)
+      } else if (draft.title && draft.author) {
+        setCurrentStep(2)
+      } else {
+        setCurrentStep(1)
+      }
+    } catch (error) {
+      console.error("Error loading draft:", error)
+      alert("Error al cargar el borrador")
+    }
+  }
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -108,6 +154,41 @@ export default function PublishBook() {
         ...prev,
         [field]: "",
       }))
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    try {
+      setIsSavingDraft(true)
+      
+      const draftData = {
+        title: formData.title,
+        author: formData.author,
+        category_ids: formData.category_ids,
+        date_of_pub: formData.date_of_pub || null,
+        condition_id: formData.condition_id ? parseInt(formData.condition_id) : null,
+        transaction_type_id: formData.transaction_type_id ? parseInt(formData.transaction_type_id) : null,
+        price: formData.price ? parseFloat(formData.price) : null,
+        look_for: formData.look_for || null,
+        description: formData.description,
+        location_id: formData.location_id ? parseInt(formData.location_id) : null,
+        current_step: currentStep,
+      }
+
+      let response
+      if (currentDraftId) {
+        response = await updateDraft(currentDraftId, draftData)
+      } else {
+        response = await saveDraft(draftData)
+        setCurrentDraftId(response.draft_id)
+      }
+
+      alert("Borrador guardado exitosamente")
+    } catch (error) {
+      console.error("Error saving draft:", error)
+      alert("Error al guardar el borrador")
+    } finally {
+      setIsSavingDraft(false)
     }
   }
 
@@ -535,6 +616,25 @@ export default function PublishBook() {
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Anterior
+            </button>
+
+            {/* Botón de guardar borrador */}
+            <button
+              onClick={handleSaveDraft}
+              disabled={isSavingDraft}
+              className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-lg text-sm flex items-center transition-colors disabled:opacity-50"
+            >
+              {isSavingDraft ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-800 mr-2" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar borrador
+                </>
+              )}
             </button>
 
             {currentStep < 4 ? (

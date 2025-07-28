@@ -18,12 +18,12 @@ import FileText from "../icons/FileText";
 import Calendar from "../icons/Calendar";
 import Clock from "../icons/Clock";
 import Bell from "../icons/Bell";
+import { getPendingChatRequestsCount } from "../../api/chatRequests";
 import ProfileImage from "../ProfileImage";
 import Search from "../icons/Search";
 import ArrowLeftRight from "../icons/ArrowLeftRight";
 import Plus from "../icons/Plus";
 import List from "../icons/List";
-import { useNotifications } from "../../hooks/useNotifications";
 
 export default function DashboardSidebar({
   user,
@@ -40,15 +40,27 @@ export default function DashboardSidebar({
   });
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
-  // Usar el hook de notificaciones en lugar de hacer peticiones adicionales
-  const { notifications } = useNotifications();
-
   useEffect(() => {
-    // Actualizar el contador de solicitudes pendientes desde el hook de notificaciones
-    if (notifications) {
-      setPendingRequestsCount(notifications.chatRequests || 0);
+    const loadPendingRequestsCount = async () => {
+      try {
+        const response = await getPendingChatRequestsCount();
+        setPendingRequestsCount(response.data?.count || 0);
+      } catch (error) {
+        console.error("Error loading pending requests count:", error);
+        // Si hay error, establecer en 0 para evitar problemas
+        setPendingRequestsCount(0);
+      }
+    };
+
+    // Solo cargar si el usuario está autenticado
+    if (user && user.user_id) {
+      loadPendingRequestsCount();
+
+      // Recargar cada 30 segundos
+      const interval = setInterval(loadPendingRequestsCount, 30000);
+      return () => clearInterval(interval);
     }
-  }, [notifications]);
+  }, [user]);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
