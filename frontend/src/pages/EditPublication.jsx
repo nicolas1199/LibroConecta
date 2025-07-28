@@ -11,6 +11,7 @@ import {
   updatePublishedBook,
   uploadBookImages,
   uploadBookImagesBase64,
+  deletePublishedBookImage,
 } from "../api/publishedBooks"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import BookOpen from "../components/icons/BookOpen"
@@ -142,14 +143,22 @@ export default function EditPublication() {
     }))
   }
 
-  const removeExistingImage = (imageId) => {
+  const removeExistingImage = async (imageId) => {
     if (confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
-      // TODO: Implementar API para eliminar imagen
-      console.log("Eliminar imagen:", imageId)
-      setFormData((prev) => ({
-        ...prev,
-        existingImages: prev.existingImages.filter((img) => img.published_book_image_id !== imageId),
-      }))
+      try {
+        // Llamar a la API para eliminar la imagen del servidor
+        await deletePublishedBookImage(imageId)
+        console.log("Imagen eliminada exitosamente:", imageId)
+        
+        // Eliminar la imagen del estado local solo si la API fue exitosa
+        setFormData((prev) => ({
+          ...prev,
+          existingImages: prev.existingImages.filter((img) => img.published_book_image_id !== imageId),
+        }))
+      } catch (error) {
+        console.error("Error eliminando imagen:", error)
+        alert("Error al eliminar la imagen. Inténtalo de nuevo.")
+      }
     }
   }
 
