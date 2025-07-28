@@ -80,6 +80,19 @@ export default function EditPublication() {
         // Llenar formulario con datos existentes
         const publication = publicationData
         setPublication(publication)
+        
+        console.log("🔍 DEBUG - Datos de publicación cargados:", {
+          publication: publication,
+          hasImages: !!(publication.PublishedBookImages),
+          imageCount: publication.PublishedBookImages?.length || 0,
+          imageDetails: publication.PublishedBookImages?.map(img => ({
+            id: img.published_book_image_id,
+            hasImageData: !!img.image_data,
+            hasImageUrl: !!img.image_url,
+            isPrimary: img.is_primary
+          })) || []
+        });
+        
         setFormData({
           title: publication.Book?.title || "",
           author: publication.Book?.author || "",
@@ -94,6 +107,11 @@ export default function EditPublication() {
           images: [],
           existingImages: publication.PublishedBookImages || [],
         })
+        
+        console.log("🔍 DEBUG - FormData actualizado:", {
+          existingImagesCount: (publication.PublishedBookImages || []).length,
+          existingImages: publication.PublishedBookImages || []
+        });
       } catch (error) {
         console.error("Error loading data:", error)
         alert("Error al cargar los datos de la publicación")
@@ -646,7 +664,11 @@ export default function EditPublication() {
                   <h4 className="text-sm font-medium text-gray-900 mb-3">Imágenes actuales</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {formData.existingImages.map((image, index) => (
-                      <div key={image.published_book_image_id} className="relative group">
+                      <div 
+                        key={image.published_book_image_id} 
+                        className="relative group"
+                        data-image-id={image.published_book_image_id}
+                      >
                         <img
                           src={getImageUrl(image) || "/placeholder.svg"}
                           alt={`Imagen ${index + 1}`}
@@ -666,6 +688,7 @@ export default function EditPublication() {
                             type="button"
                             onClick={() => removeExistingImage(image.published_book_image_id)}
                             className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
+                            title={`Eliminar imagen ${image.published_book_image_id}`}
                           >
                             <X className="h-3 w-3" />
                           </button>
