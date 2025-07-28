@@ -17,6 +17,7 @@ import userRoutes from "./User.routes.js";
 import paymentRoutes from "./Payment.routes.js";
 import exchangeRoutes from "./Exchange.routes.js";
 import chatRequestRoutes from "./ChatRequest.routes.js";
+import notificationRoutes from "./Notification.routes.js";
 
 const router = Router();
 
@@ -70,5 +71,8 @@ router.use("/chat-requests", chatRequestRoutes);
 
 // Rutas de intercambios
 router.use("/exchanges", exchangeRoutes);
+
+// Rutas de notificaciones
+router.use("/notifications", notificationRoutes);
 
 export default router;
