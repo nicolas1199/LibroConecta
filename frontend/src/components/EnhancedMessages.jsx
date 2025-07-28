@@ -82,8 +82,8 @@ export default function EnhancedMessages() {
       const response = await getExchangeInfo(matchId);
       setExchangeInfo(response.data);
       
-      // Mostrar acciones de intercambio si es un intercambio activo
-      setShowExchangeActions(!response.data.is_completed);
+      // Mostrar acciones de intercambio basado en can_complete
+      setShowExchangeActions(response.data.can_complete);
     } catch (error) {
       console.error("Error loading exchange info:", error);
       // No mostrar error si no es un intercambio
@@ -171,10 +171,15 @@ export default function EnhancedMessages() {
 
   const handleCompleteExchange = async () => {
     try {
-      await completeExchange(selectedConversation.match_id);
+      const response = await completeExchange(selectedConversation.match_id);
       
       setShowExchangeActions(false);
-      setExchangeInfo(prev => ({ ...prev, is_completed: true }));
+      setExchangeInfo(prev => ({ 
+        ...prev, 
+        is_completed: true, 
+        can_complete: false,
+        exchange_id: response.data?.match?.exchange_id || prev.exchange_id
+      }));
       setExchangeCompleted(true);
       
       // Mostrar modal de calificación después de completar
@@ -199,20 +204,19 @@ export default function EnhancedMessages() {
     // Opcional: mostrar mensaje de éxito
   };
 
-  const getOtherUser = () => {
+  const otherUser = React.useMemo(() => {
     if (exchangeInfo && exchangeInfo.users) {
       return exchangeInfo.users.find(user => user.user_id !== currentUser.user_id);
     }
     return selectedConversation?.other_user;
-  };
+  }, [exchangeInfo, selectedConversation, currentUser.user_id]);
 
-  const getOtherUserName = () => {
-    const otherUser = getOtherUser();
+  const otherUserName = React.useMemo(() => {
     if (otherUser) {
       return `${otherUser.first_name} ${otherUser.last_name}`;
     }
     return "Usuario";
-  };
+  }, [otherUser]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -512,8 +516,8 @@ export default function EnhancedMessages() {
       <WriteReviewModal
         isOpen={showRatingModal}
         onClose={handleRatingModalClose}
-        ratedUserId={getOtherUser()?.user_id}
-        ratedUserName={getOtherUserName()}
+        ratedUserId={otherUser?.user_id}
+        ratedUserName={otherUserName}
         exchangeId={exchangeInfo?.exchange_id}
         matchId={exchangeInfo?.exchange_id ? null : selectedConversation?.match_id}
         onReviewSubmitted={handleRatingSubmitted}

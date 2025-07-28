@@ -175,6 +175,34 @@ export async function getExchangeInfoService(matchId, userId) {
       throw new Error("Match no encontrado o no autorizado");
     }
 
+    // Verificar si ya existe un Exchange completado para este match
+    const existingExchange = await Exchange.findOne({
+      where: {
+        [Op.or]: [
+          {
+            "$Book1.user_id$": match.user_id_1,
+            "$Book2.user_id$": match.user_id_2
+          },
+          {
+            "$Book1.user_id$": match.user_id_2,
+            "$Book2.user_id$": match.user_id_1
+          }
+        ]
+      },
+      include: [
+        {
+          model: UserBook,
+          as: "Book1",
+          attributes: ["user_id"],
+        },
+        {
+          model: UserBook,
+          as: "Book2",
+          attributes: ["user_id"],
+        }
+      ]
+    });
+
     // Intentar obtener libros específicos del match
     let matchBooks = await getMatchBooks(matchId);
 
@@ -187,9 +215,9 @@ export async function getExchangeInfoService(matchId, userId) {
 
       return {
         match_id: match.match_id,
-        exchange_id: null, // No hay exchange hasta que se complete
+        exchange_id: existingExchange?.exchange_id || null,
         date_match: match.date_match,
-        is_completed: false,
+        is_completed: !!existingExchange,
         has_specific_books: true,
         users: [
           {
@@ -221,13 +249,13 @@ export async function getExchangeInfoService(matchId, userId) {
             }))
           }
         ],
-        can_complete: true,
+        can_complete: !existingExchange,
         total_books: matchBooks.length
       };
     } else {
       // Fallback a la lógica anterior
       console.log("🔄 Usando lógica de fallback para obtener info del match");
-      return await getExchangeInfoServiceFallback(matchId, userId, match);
+      return await getExchangeInfoServiceFallback(matchId, userId, match, existingExchange);
     }
 
   } catch (error) {
@@ -237,7 +265,7 @@ export async function getExchangeInfoService(matchId, userId) {
 }
 
 // Función de fallback para matches sin libros específicos
-async function getExchangeInfoServiceFallback(matchId, userId, match) {
+async function getExchangeInfoServiceFallback(matchId, userId, match, existingExchange) {
   try {
     // Obtener información de los dos usuarios del match
     const [user1, user2] = await Promise.all([
@@ -251,9 +279,9 @@ async function getExchangeInfoServiceFallback(matchId, userId, match) {
 
     return {
       match_id: match.match_id,
-      exchange_id: null,
+      exchange_id: existingExchange?.exchange_id || null,
       date_match: match.date_match,
-      is_completed: false,
+      is_completed: !!existingExchange,
       has_specific_books: false,
       users: [
         {
@@ -273,7 +301,7 @@ async function getExchangeInfoServiceFallback(matchId, userId, match) {
           books: []
         }
       ],
-      can_complete: true,
+      can_complete: !existingExchange,
       total_books: 0
     };
   } catch (error) {
