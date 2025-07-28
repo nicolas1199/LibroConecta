@@ -212,40 +212,23 @@ export default function EditPublication() {
   const removeExistingImage = async (imageId) => {
     if (confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
       try {
-        console.log("🗑️ Iniciando eliminación de imagen desde frontend, ID:", imageId);
-        console.log("👤 Usuario actual:", localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).user_id : 'No encontrado');
+        console.log("🗑️ [FRONTEND] Eliminando imagen Base64, ID:", imageId);
         
-        // Llamar a la API para eliminar la imagen del servidor
-        await deletePublishedBookImage(imageId)
-        console.log("✅ Imagen eliminada exitosamente desde frontend:", imageId)
-        
-        // Eliminar la imagen del estado local solo si la API fue exitosa
+        // Para imágenes Base64, eliminamos directamente del estado local
+        // No necesitamos llamar al servidor ya que están almacenadas en Base64
         setFormData((prev) => ({
           ...prev,
           existingImages: prev.existingImages.filter((img) => img.published_book_image_id !== imageId),
-        }))
+        }));
+        
+        console.log("✅ [FRONTEND] Imagen Base64 eliminada del estado local:", imageId);
+        
+        // Opcional: Mostrar mensaje de éxito
+        // alert("Imagen eliminada correctamente");
+        
       } catch (error) {
-        console.error("❌ Error eliminando imagen desde frontend:", error)
-        console.error("❌ Información adicional del error:", {
-          imageId,
-          errorMessage: error.message,
-          responseStatus: error.response?.status,
-          responseData: error.response?.data,
-          stack: error.stack
-        });
-        
-        let errorMessage = "Error al eliminar la imagen. ";
-        if (error.response?.status === 404) {
-          errorMessage += "La imagen no fue encontrada.";
-        } else if (error.response?.status === 403) {
-          errorMessage += "No tienes permisos para eliminar esta imagen.";
-        } else if (error.response?.status === 500) {
-          errorMessage += "Error interno del servidor. Por favor, verifica la consola.";
-        } else {
-          errorMessage += "Inténtalo de nuevo.";
-        }
-        
-        alert(errorMessage)
+        console.error("❌ [FRONTEND] Error eliminando imagen Base64:", error);
+        alert("Error al eliminar la imagen. Inténtalo de nuevo.");
       }
     }
   }
