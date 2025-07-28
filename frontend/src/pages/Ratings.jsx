@@ -141,6 +141,8 @@ export default function Ratings() {
 
       if (selectedPending.transaction_type === "exchange") {
         ratingData.exchange_id = selectedPending.exchange_id;
+      } else if (selectedPending.transaction_type === "match") {
+        ratingData.match_id = selectedPending.match_id;
       } else if (selectedPending.transaction_type === "sell") {
         ratingData.sell_id = selectedPending.sell_id;
       }
@@ -228,7 +230,8 @@ export default function Ratings() {
                     {pending.other_user_first_name} {pending.other_user_last_name}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {pending.transaction_type === "exchange" ? "Intercambio" : "Venta"}
+                    {pending.transaction_type === "exchange" ? "Intercambio" : 
+                     pending.transaction_type === "match" ? "Match/Intercambio" : "Venta"}
                   </p>
                   <p className="text-sm text-gray-500">
                     {new Date(pending.transaction_date).toLocaleDateString()}

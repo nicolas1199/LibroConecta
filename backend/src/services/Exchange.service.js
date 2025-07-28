@@ -1,4 +1,4 @@
-import { PublishedBooks, Match, User, Book, MatchBooks } from "../db/modelIndex.js";
+import { PublishedBooks, Match, User, Book, MatchBooks, Exchange, State } from "../db/modelIndex.js";
 import { Op } from "sequelize";
 import { sequelize } from "../config/configDb.js";
 import { populateExistingMatch, getMatchBooks } from "./MatchBooks.service.js";
@@ -38,6 +38,32 @@ export async function completeExchangeService(matchId, userId) {
       // Lógica con libros específicos
       console.log(`🎯 Completando intercambio con ${matchBooks.length} libros específicos`);
 
+      // Crear Exchange real en la base de datos
+      let exchange = null;
+      try {
+        // Buscar estado "Completado"
+        const completedState = await State.findOne({ where: { name: 'Completado' } });
+        const stateId = completedState ? completedState.state_id : 1; // fallback
+
+        // Obtener los primeros UserBook de cada usuario para el Exchange
+        const user1Books = matchBooks.filter(mb => mb.user_id === match.user_id_1);
+        const user2Books = matchBooks.filter(mb => mb.user_id === match.user_id_2);
+        
+        const userBook1 = user1Books[0]?.published_book_id;
+        const userBook2 = user2Books[0]?.published_book_id;
+
+        exchange = await Exchange.create({
+          user_book_id_1: userBook1,
+          user_book_id_2: userBook2,
+          date_exchange: new Date(),
+          state_id: stateId
+        });
+
+        console.log(`✅ Exchange creado con ID: ${exchange.exchange_id}`);
+      } catch (exchangeError) {
+        console.log("⚠️ Error al crear Exchange:", exchangeError.message);
+      }
+
       // Actualizar status solo de los libros específicos del intercambio
       const bookIds = matchBooks.map(mb => mb.published_book_id);
       
@@ -64,6 +90,7 @@ export async function completeExchangeService(matchId, userId) {
         message: "Intercambio completado exitosamente",
         match: {
           match_id: match.match_id,
+          exchange_id: exchange?.exchange_id || null,
           users: [
             {
               user_id: match.user_id_1,
@@ -107,6 +134,7 @@ export async function completeExchangeService(matchId, userId) {
         message: "Intercambio completado (modo compatibilidad)",
         match: {
           match_id: match.match_id,
+          exchange_id: null,
           users: [
             {
               user_id: user1.user_id,
@@ -159,6 +187,7 @@ export async function getExchangeInfoService(matchId, userId) {
 
       return {
         match_id: match.match_id,
+        exchange_id: null, // No hay exchange hasta que se complete
         date_match: match.date_match,
         is_completed: false,
         has_specific_books: true,
@@ -166,6 +195,8 @@ export async function getExchangeInfoService(matchId, userId) {
           {
             user_id: match.user_id_1,
             name: user1Books[0]?.User ? `${user1Books[0].User.first_name} ${user1Books[0].User.last_name}` : "Usuario 1",
+            first_name: user1Books[0]?.User?.first_name || "Usuario",
+            last_name: user1Books[0]?.User?.last_name || "1",
             location: user1Books[0]?.User?.location_id,
             books: user1Books.map(mb => ({
               published_book_id: mb.published_book_id,
@@ -178,6 +209,8 @@ export async function getExchangeInfoService(matchId, userId) {
           {
             user_id: match.user_id_2,
             name: user2Books[0]?.User ? `${user2Books[0].User.first_name} ${user2Books[0].User.last_name}` : "Usuario 2",
+            first_name: user2Books[0]?.User?.first_name || "Usuario",
+            last_name: user2Books[0]?.User?.last_name || "2",
             location: user2Books[0]?.User?.location_id,
             books: user2Books.map(mb => ({
               published_book_id: mb.published_book_id,
@@ -218,6 +251,7 @@ async function getExchangeInfoServiceFallback(matchId, userId, match) {
 
     return {
       match_id: match.match_id,
+      exchange_id: null,
       date_match: match.date_match,
       is_completed: false,
       has_specific_books: false,
@@ -225,12 +259,16 @@ async function getExchangeInfoServiceFallback(matchId, userId, match) {
         {
           user_id: user1.user_id,
           name: `${user1.first_name} ${user1.last_name}`,
+          first_name: user1.first_name,
+          last_name: user1.last_name,
           location: user1.location_id,
           books: []
         },
         {
           user_id: user2.user_id,
           name: `${user2.first_name} ${user2.last_name}`,
+          first_name: user2.first_name,
+          last_name: user2.last_name,
           location: user2.location_id,
           books: []
         }

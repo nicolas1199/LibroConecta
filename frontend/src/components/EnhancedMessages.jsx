@@ -515,6 +515,7 @@ export default function EnhancedMessages() {
         ratedUserId={getOtherUser()?.user_id}
         ratedUserName={getOtherUserName()}
         exchangeId={exchangeInfo?.exchange_id}
+        matchId={exchangeInfo?.exchange_id ? null : selectedConversation?.match_id}
         onReviewSubmitted={handleRatingSubmitted}
       />
 

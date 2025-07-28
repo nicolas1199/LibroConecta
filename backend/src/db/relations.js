@@ -154,6 +154,10 @@ export default ({
   Exchange.hasMany(Rating, { foreignKey: "exchange_id" });
   Rating.belongsTo(Exchange, { foreignKey: "exchange_id" });
 
+  // Match 1:N Rating
+  Match.hasMany(Rating, { foreignKey: "match_id" });
+  Rating.belongsTo(Match, { foreignKey: "match_id" });
+
   // Sell 1:N Rating
   Sell.hasMany(Rating, { foreignKey: "sell_id" });
   Rating.belongsTo(Sell, { foreignKey: "sell_id" });

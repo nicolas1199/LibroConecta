@@ -7,6 +7,7 @@ const WriteReviewModal = ({
   ratedUserId, 
   ratedUserName,
   exchangeId = null,
+  matchId = null,
   sellId = null,
   transactionId = null,
   onReviewSubmitted 
@@ -36,6 +37,7 @@ const WriteReviewModal = ({
 
       // Agregar IDs de transacción según corresponda
       if (exchangeId) reviewData.exchange_id = exchangeId;
+      if (matchId) reviewData.match_id = matchId;
       if (sellId) reviewData.sell_id = sellId;
       if (transactionId) reviewData.transaction_id = transactionId;
 

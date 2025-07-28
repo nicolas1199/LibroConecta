@@ -5,6 +5,7 @@ import {
   Exchange,
   Sell,
   UserBook,
+  Match,
   sequelize,
 } from "../db/modelIndex.js";
 import { createResponse } from "../utils/responses.util.js";
@@ -12,7 +13,7 @@ import { createResponse } from "../utils/responses.util.js";
 export const createRating = async (req, res) => {
   try {
     const { user_id } = req.user;
-    const { rated_user_id, rating, comment, exchange_id, sell_id } = req.body;
+    const { rated_user_id, rating, comment, exchange_id, match_id, sell_id } = req.body;
 
     // Validaciones básicas
     if (!rated_user_id || !rating) {
@@ -80,6 +81,23 @@ export const createRating = async (req, res) => {
       }
     }
 
+    if (match_id && !transactionExists) {
+      const match = await Match.findOne({
+        where: {
+          match_id,
+          [Op.or]: [
+            { user_id_1: user_id, user_id_2: rated_user_id },
+            { user_id_1: rated_user_id, user_id_2: user_id }
+          ]
+        }
+      });
+
+      if (match) {
+        transactionExists = true;
+        transactionType = "match";
+      }
+    }
+
     if (sell_id && !transactionExists) {
       const sell = await Sell.findOne({
         where: {
@@ -109,6 +127,7 @@ export const createRating = async (req, res) => {
         rater_id: user_id,
         rated_id: rated_user_id,
         ...(exchange_id && { exchange_id }),
+        ...(match_id && { match_id }),
         ...(sell_id && { sell_id }),
       },
     });
@@ -126,6 +145,7 @@ export const createRating = async (req, res) => {
       rating,
       comment: comment?.trim() || null,
       exchange_id: exchange_id || null,
+      match_id: match_id || null,
       sell_id: sell_id || null,
       created_at: new Date(),
       updated_at: new Date(),
@@ -143,6 +163,21 @@ export const createRating = async (req, res) => {
           model: User,
           as: "Rated",
           attributes: ["user_id", "first_name", "last_name"],
+        },
+        {
+          model: Exchange,
+          required: false,
+          attributes: ["exchange_id", "date_exchange"],
+        },
+        {
+          model: Match,
+          required: false,
+          attributes: ["match_id", "date_match"],
+        },
+        {
+          model: Sell,
+          required: false,
+          attributes: ["sell_id", "date_sell"],
         },
       ],
     });
@@ -184,6 +219,11 @@ export const getUserRatings = async (req, res) => {
           model: Exchange,
           required: false,
           attributes: ["exchange_id", "date_exchange"],
+        },
+        {
+          model: Match,
+          required: false,
+          attributes: ["match_id", "date_match"],
         },
         {
           model: Sell,
@@ -274,6 +314,11 @@ export const getMyRatings = async (req, res) => {
           model: Exchange,
           required: false,
           attributes: ["exchange_id", "date_exchange"],
+        },
+        {
+          model: Match,
+          required: false,
+          attributes: ["match_id", "date_match"],
         },
         {
           model: Sell,
@@ -444,6 +489,49 @@ export const getPendingRatings = async (req, res) => {
       type: sequelize.QueryTypes.SELECT
     });
 
+    // Obtener matches completados (intercambios sin exchange formal)
+    const pendingFromMatches = await sequelize.query(`
+      SELECT DISTINCT
+        m.match_id,
+        m.date_match as transaction_date,
+        'match' as transaction_type,
+        CASE 
+          WHEN m.user_id_1 = :userId THEN m.user_id_2
+          ELSE m.user_id_1
+        END as other_user_id,
+        CASE 
+          WHEN m.user_id_1 = :userId THEN u2.first_name
+          ELSE u1.first_name
+        END as other_user_first_name,
+        CASE 
+          WHEN m.user_id_1 = :userId THEN u2.last_name
+          ELSE u1.last_name
+        END as other_user_last_name
+      FROM "Match" m
+      JOIN "Users" u1 ON m.user_id_1 = u1.user_id
+      JOIN "Users" u2 ON m.user_id_2 = u2.user_id
+      WHERE (m.user_id_1 = :userId OR m.user_id_2 = :userId)
+        AND NOT EXISTS (
+          SELECT 1 FROM "Rating" r 
+          WHERE r.rater_id = :userId 
+            AND r.match_id = m.match_id
+            AND r.rated_id = CASE 
+              WHEN m.user_id_1 = :userId THEN m.user_id_2
+              ELSE m.user_id_1
+            END
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM "Exchange" e
+          JOIN "UserBooks" ub1 ON e.user_book_id_1 = ub1.user_book_id
+          JOIN "UserBooks" ub2 ON e.user_book_id_2 = ub2.user_book_id
+          WHERE (ub1.user_id = m.user_id_1 AND ub2.user_id = m.user_id_2)
+             OR (ub1.user_id = m.user_id_2 AND ub2.user_id = m.user_id_1)
+        )
+    `, {
+      replacements: { userId: user_id },
+      type: sequelize.QueryTypes.SELECT
+    });
+
     const pendingFromSells = await sequelize.query(`
       SELECT DISTINCT
         s.sell_id,
@@ -481,7 +569,7 @@ export const getPendingRatings = async (req, res) => {
       type: sequelize.QueryTypes.SELECT
     });
 
-    const pendingRatings = [...pendingFromExchanges, ...pendingFromSells];
+    const pendingRatings = [...pendingFromExchanges, ...pendingFromMatches, ...pendingFromSells];
 
     return res.json(
       createResponse(

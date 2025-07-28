@@ -1,6 +1,6 @@
 // Middleware para validar datos de calificaciones
 export const validateRatingCreation = (req, res, next) => {
-  const { rated_id, rating, comment, exchange_id, sell_id } = req.body;
+  const { rated_id, rating, comment, exchange_id, match_id, sell_id } = req.body;
 
   // Validar que se proporcionen los datos necesarios
   if (!rated_id || !rating) {
@@ -34,19 +34,20 @@ export const validateRatingCreation = (req, res, next) => {
     });
   }
 
-  // Validar que al menos uno de exchange_id o sell_id esté presente
-  if (!exchange_id && !sell_id) {
+  // Validar que al menos uno de exchange_id, match_id o sell_id esté presente
+  if (!exchange_id && !match_id && !sell_id) {
     return res.status(400).json({
       error: "Datos incompletos",
-      message: "Se requiere al menos exchange_id o sell_id",
+      message: "Se requiere al menos exchange_id, match_id o sell_id",
     });
   }
 
-  // Validar que solo uno de exchange_id o sell_id esté presente
-  if (exchange_id && sell_id) {
+  // Validar que solo uno esté presente
+  const provided = [exchange_id, match_id, sell_id].filter(Boolean);
+  if (provided.length > 1) {
     return res.status(400).json({
       error: "Datos conflictivos",
-      message: "No se puede proporcionar tanto exchange_id como sell_id",
+      message: "Solo se puede proporcionar uno de: exchange_id, match_id o sell_id",
     });
   }
 
@@ -55,6 +56,13 @@ export const validateRatingCreation = (req, res, next) => {
     return res.status(400).json({
       error: "ID inválido",
       message: "El exchange_id debe ser un número entero válido",
+    });
+  }
+
+  if (match_id && !Number.isInteger(match_id)) {
+    return res.status(400).json({
+      error: "ID inválido",
+      message: "El match_id debe ser un número entero válido",
     });
   }
 
