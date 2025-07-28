@@ -194,9 +194,12 @@ export default function EditPublication() {
   const removeExistingImage = async (imageId) => {
     if (confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
       try {
+        console.log("🗑️ Iniciando eliminación de imagen desde frontend, ID:", imageId);
+        console.log("👤 Usuario actual:", localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).user_id : 'No encontrado');
+        
         // Llamar a la API para eliminar la imagen del servidor
         await deletePublishedBookImage(imageId)
-        console.log("Imagen eliminada exitosamente:", imageId)
+        console.log("✅ Imagen eliminada exitosamente desde frontend:", imageId)
         
         // Eliminar la imagen del estado local solo si la API fue exitosa
         setFormData((prev) => ({
@@ -204,8 +207,27 @@ export default function EditPublication() {
           existingImages: prev.existingImages.filter((img) => img.published_book_image_id !== imageId),
         }))
       } catch (error) {
-        console.error("Error eliminando imagen:", error)
-        alert("Error al eliminar la imagen. Inténtalo de nuevo.")
+        console.error("❌ Error eliminando imagen desde frontend:", error)
+        console.error("❌ Información adicional del error:", {
+          imageId,
+          errorMessage: error.message,
+          responseStatus: error.response?.status,
+          responseData: error.response?.data,
+          stack: error.stack
+        });
+        
+        let errorMessage = "Error al eliminar la imagen. ";
+        if (error.response?.status === 404) {
+          errorMessage += "La imagen no fue encontrada.";
+        } else if (error.response?.status === 403) {
+          errorMessage += "No tienes permisos para eliminar esta imagen.";
+        } else if (error.response?.status === 500) {
+          errorMessage += "Error interno del servidor. Por favor, verifica la consola.";
+        } else {
+          errorMessage += "Inténtalo de nuevo.";
+        }
+        
+        alert(errorMessage)
       }
     }
   }

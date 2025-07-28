@@ -186,8 +186,22 @@ export const deletePublishedBook = async (publishedBookId) => {
 
 // Eliminar una imagen específica de una publicación
 export const deletePublishedBookImage = async (imageId) => {
-  const res = await api.delete(`/published-book-images/${imageId}`);
-  return res.data;
+  try {
+    console.log("🗑️ Intentando eliminar imagen con ID:", imageId);
+    const res = await api.delete(`/published-book-images/${imageId}`);
+    console.log("✅ Imagen eliminada exitosamente, respuesta:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("❌ Error al eliminar imagen:", error);
+    console.error("❌ Detalles del error:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      imageId: imageId
+    });
+    throw error;
+  }
 };
 
 // Obtener mis publicaciones (libros del usuario autenticado)
