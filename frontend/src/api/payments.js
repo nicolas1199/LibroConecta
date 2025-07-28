@@ -55,21 +55,6 @@ export async function getPaymentStatus(paymentId) {
 }
 
 /**
- * Obtener pago por external_reference
- * @param {string} externalReference - External reference del pago
- * @returns {Promise<Object>} Datos del pago
- */
-export async function getPaymentByReference(externalReference) {
-  try {
-    const response = await api.get(`/payments/reference/${externalReference}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error obteniendo pago por referencia:', error);
-    throw error;
-  }
-}
-
-/**
  * Obtener historial de pagos del usuario
  * @param {Object} params - Parámetros de consulta
  * @param {string} params.type - Tipo: 'purchases', 'sales', 'all'

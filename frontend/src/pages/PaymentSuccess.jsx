@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getPaymentStatus, getPaymentByReference } from '../api/payments.js';
+import { getPaymentStatus } from '../api/payments.js';
 
 // Icons - importación individual
 import CheckCircle from '../components/icons/CheckCircle';
@@ -19,7 +19,7 @@ export default function PaymentSuccess() {
   const collectionId = searchParams.get('collection_id');
   const collectionStatus = searchParams.get('collection_status');
   const preference_id = searchParams.get('preference_id');
-  const externalReference = searchParams.get('external_reference'); // De MercadoPago back_urls
+  const externalRef = searchParams.get('ref'); // Nueva forma de identificación
 
   // Log de debug para ver todos los parámetros
   useEffect(() => {
@@ -32,25 +32,15 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     const fetchPaymentData = async () => {
-      if (!paymentId && !externalReference) {
+      if (!paymentId && !externalRef) {
         setError('No se encontró información del pago');
         setLoading(false);
         return;
       }
 
       try {
-        let payment;
-        
-        if (paymentId) {
-          console.log('🔍 Obteniendo estado del pago por ID:', paymentId);
-          const response = await getPaymentStatus(paymentId);
-          payment = response.data;
-        } else if (externalReference) {
-          console.log('🔍 Obteniendo pago por external_reference:', externalReference);
-          const response = await getPaymentByReference(externalReference);
-          payment = response.data;
-        }
-        
+        console.log('🔍 Obteniendo estado del pago:', paymentId);
+        const { data: payment } = await getPaymentStatus(paymentId);
         console.log('💳 Datos del pago recibidos:', payment);
         setPaymentData(payment);
         
@@ -80,10 +70,10 @@ export default function PaymentSuccess() {
     };
 
     fetchPaymentData();
-  }, [paymentId, externalReference]);
+  }, [paymentId]);
 
-  // Redireccionar si no hay payment_id ni external_reference
-  if (!paymentId && !externalReference) {
+  // Redireccionar si no hay payment_id
+  if (!paymentId) {
     return <Navigate to="/dashboard" replace />;
   }
 

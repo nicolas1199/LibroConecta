@@ -182,35 +182,12 @@ export async function createPaymentPreference(req, res) {
       return error(res, 'Error en configuración de URLs', 500);
     }
 
-    const preferenceData = {
-      items: [
-        {
-          id: publishedBookId.toString(),
-          title: publishedBook.Book.title,
-          description: `${publishedBook.Book.title} por ${publishedBook.Book.author}`,
-          quantity: 1,
-          currency_id: 'CLP',
-          unit_price: parseFloat(publishedBook.price)
-        }
-      ],
-      payer: {
-        email: buyerUser.email  // Solo email requerido
-      },
-      external_reference: externalReference,
-      notification_url: `${BACKEND_URL}/api/payments/webhook`,
-      back_urls: {
-        success: `http://146.83.198.35:1235/payment/success?external_reference=${externalReference}`,
-        failure: `http://146.83.198.35:1235/payment/failure?external_reference=${externalReference}`,
-        pending: `http://146.83.198.35:1235/payment/pending?external_reference=${externalReference}`
-      },
-      auto_return: "approved"
-    };
-
-    // Extraer URLs para validación
-    const successUrl = preferenceData.back_urls.success;
-    const failureUrl = preferenceData.back_urls.failure;
-    const pendingUrl = preferenceData.back_urls.pending;
-    const notificationUrl = preferenceData.notification_url;
+    // Preparar URLs de retorno según documentación de MercadoPago
+    // Usar external_reference en la URL path en lugar de query parameters
+    const successUrl = `${FRONTEND_URL}/payment/success?ref=${externalReference}`;
+    const failureUrl = `${FRONTEND_URL}/payment/failure?ref=${externalReference}`; 
+    const pendingUrl = `${FRONTEND_URL}/payment/pending?ref=${externalReference}`;
+    const notificationUrl = `${BACKEND_URL}/api/payments/webhook`;
     
     // Verificar que las URLs no estén corruptas
     const urlsAreValid = [successUrl, failureUrl, pendingUrl, notificationUrl].every(url => 
@@ -234,6 +211,108 @@ export async function createPaymentPreference(req, res) {
       sin_auto_return: 'usamos_webhook_y_polling'
     });
 
+    // Validar que las URLs estén bien formadas
+    if (!successUrl || successUrl.includes('undefined')) {
+      console.error('❌ successUrl está mal formada:', successUrl);
+      return error(res, 'Error en configuración de URLs de retorno', 500);
+    }
+
+    // Preparar datos para MercadoPago
+    const preferenceData = {
+      items: [
+        {
+          id: publishedBookId.toString(),
+          title: publishedBook.Book.title,
+          description: `${publishedBook.Book.title} por ${publishedBook.Book.author}`,
+          category_id: 'books',
+          quantity: 1,
+          currency_id: 'CLP',
+          unit_price: parseFloat(publishedBook.price)
+        }
+      ],
+      payer: {
+        name: buyerUser.first_name || buyerUser.username || 'Comprador',
+        surname: buyerUser.last_name || 'LibroConecta',
+        email: buyerUser.email,
+        // Usar información más específica para identificación
+        identification: {
+          type: 'other',
+          number: `USER_${buyerUser.user_id.substring(0, 10)}_${Date.now().toString().slice(-6)}`
+        },
+        // Agregar información adicional del comprador
+        phone: {
+          area_code: '+56',
+          number: '000000000'
+        },
+        address: {
+          zip_code: '1234567',
+          street_name: 'No especificada'
+        }
+      },
+      external_reference: externalReference,
+      notification_url: notificationUrl,
+      back_urls: {
+        success: successUrl,
+        failure: failureUrl,
+        pending: pendingUrl
+      },
+      auto_return: "approved",
+      // Configuración de tiempo de expiración
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
+      statement_descriptor: 'LIBROCONECTA',
+      // Configuración mejorada para marketplace
+      binary_mode: false,
+      // Información adicional para diferenciar transacciones
+      additional_info: {
+        items: [
+          {
+            id: publishedBookId,
+            title: publishedBook.Book.title,
+            description: `Libro: ${publishedBook.Book.title} por ${publishedBook.Book.author}`,
+            picture_url: '',
+            category_id: 'books',
+            quantity: 1,
+            unit_price: parseFloat(publishedBook.price)
+          }
+        ],
+        payer: {
+          first_name: buyerUser.first_name || buyerUser.username,
+          last_name: buyerUser.last_name || 'Usuario',
+          phone: {
+            area_code: '+56',
+            number: '000000000'
+          },
+          address: {
+            street_name: 'Dirección no especificada',
+            street_number: 0,
+            zip_code: '1234567'
+          },
+          registration_date: buyerUser.createdAt || new Date().toISOString()
+        },
+        shipments: {
+          receiver_address: {
+            zip_code: '1234567',
+            street_name: 'Retiro en persona',
+            street_number: 0,
+            floor: '',
+            apartment: ''
+          }
+        }
+      },
+      metadata: {
+        transaction_id: paymentRecord.payment_id,
+        published_book_id: publishedBookId,
+        buyer_user_id: userId,
+        seller_user_id: publishedBook.user_id,
+        book_title: publishedBook.Book.title,
+        book_author: publishedBook.Book.author,
+        transaction_type: 'book_purchase',
+        platform: 'libroconecta',
+        timestamp: Date.now()
+      }
+    };
+
     console.log('📋 Datos de preferencia a enviar:', JSON.stringify(preferenceData, null, 2));
 
     // Verificar que las URLs de retorno estén definidas antes de crear la preferencia
@@ -248,6 +327,13 @@ export async function createPaymentPreference(req, res) {
     console.log('back_urls.success existe?', !!preferenceData.back_urls.success);
     console.log('back_urls.success valor:', preferenceData.back_urls.success);
     console.log('auto_return valor:', preferenceData.auto_return);
+    
+    // Verificar que las URLs no contengan caracteres problemáticos
+    console.log('🔍 VERIFICANDO URLs:');
+    console.log('successUrl length:', successUrl.length);
+    console.log('successUrl contiene espacios?', successUrl.includes(' '));
+    console.log('successUrl contiene undefined?', successUrl.includes('undefined'));
+    console.log('successUrl encoded:', encodeURI(successUrl));
 
     // Log específico para las URLs de retorno
     console.log('🔗 URLs de retorno en preferenceData:', {
@@ -1182,4 +1268,4 @@ export async function processDirectPayment(req, res) {
     console.error('❌ Error procesando pago directo:', err);
     return error(res, `Error procesando pago: ${err.message}`, 500);
   }
-} es 
+} 
