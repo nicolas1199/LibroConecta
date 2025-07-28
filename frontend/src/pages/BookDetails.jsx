@@ -54,7 +54,7 @@ export default function BookDetails() {
 
   const renderStars = (rating = 4) => {
     return Array.from({ length: 5 }, (_, index) => (
-      <Star key={index} className={`h-4 w-4 ${index < rating ? "text-yellow-400 fill-current" : "text-gray-300"}`} />
+      <Star key={index} className={`h-3.5 w-3.5 ${index < rating ? "text-yellow-400 fill-current" : "text-gray-300"}`} />
     ))
   }
 
@@ -112,8 +112,8 @@ export default function BookDetails() {
     return (
       <div className="container mx-auto px-4 py-6">
         {/* Header con breadcrumb */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
+        <div className="mb-4">
+          <div className="flex items-center space-x-2 text-xs text-gray-500 mb-3">
             <button onClick={() => navigate("/dashboard")} className="hover:text-blue-600 transition-colors">
               Dashboard
             </button>
@@ -126,11 +126,11 @@ export default function BookDetails() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Imágenes */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Imagen principal */}
-            <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden shadow-md">
+            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden shadow-sm">
               <img
                 src={imageError ? "/placeholder.svg?height=400&width=400&text=Libro" : getImageUrl(images)}
                 alt={bookInfo?.title || "Libro"}
@@ -153,8 +153,8 @@ export default function BookDetails() {
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                      index === currentImageIndex ? "border-blue-500" : "border-gray-200"
+                    className={`w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
+                      index === currentImageIndex ? "border-blue-500" : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <img
@@ -183,16 +183,16 @@ export default function BookDetails() {
           </div>
 
           {/* Información del libro */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Título y autor */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{bookInfo?.title}</h1>
-              <p className="text-xl text-gray-600 mb-4">por {bookInfo?.author}</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">{bookInfo?.title}</h1>
+              <p className="text-lg text-gray-600 mb-3">por {bookInfo?.author}</p>
 
               {/* Badge del tipo de transacción */}
-              <div className="flex items-center space-x-2 mb-4">
+              <div className="flex items-center space-x-3 mb-3">
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                     transactionType?.description === "Regalo"
                       ? "bg-blue-100 text-blue-800"
                       : transactionType?.description === "Intercambio"
@@ -206,22 +206,22 @@ export default function BookDetails() {
                 </span>
 
                 {transactionType?.description === "Venta" && price && (
-                  <span className="text-2xl font-bold text-green-600">${Number(price).toLocaleString()}</span>
+                  <span className="text-xl font-bold text-green-600">${Number(price).toLocaleString()}</span>
                 )}
               </div>
             </div>
 
             {/* Precio y acciones */}
             {transactionType?.description === "Venta" && price && (
-              <div className="bg-green-50 rounded-lg p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-green-50 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-sm text-green-600 font-medium">Precio</p>
-                    <p className="text-3xl font-bold text-green-900">${Number(price).toLocaleString()}</p>
+                    <p className="text-xs text-green-600 font-medium uppercase tracking-wide">Precio</p>
+                    <p className="text-2xl font-bold text-green-900">${Number(price).toLocaleString()}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">Estado</p>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <p className="text-xs text-gray-600 uppercase tracking-wide">Estado</p>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       Disponible
                     </span>
                   </div>
@@ -244,22 +244,22 @@ export default function BookDetails() {
 
             {/* Información del usuario */}
             <div className="bg-white p-4 rounded-lg border shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-3">Propietario</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Propietario</h3>
               <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-3">
-                <ProfileImage user={user} size="lg" />
+                <ProfileImage user={user} size="md" />
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900">
                       {user?.first_name} {user?.last_name}
                     </p>
                     <div className="flex items-center space-x-1">
                       {renderStars()}
-                      <span className="text-sm text-gray-500 ml-1">(4/5)</span>
+                      <span className="text-xs text-gray-500 ml-1">(4/5)</span>
                     </div>
                   </div>
                 </div>
 
-                <button onClick={handleStartChat} className="btn btn-primary flex items-center space-x-2">
+                <button onClick={handleStartChat} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
                   <MessageCircle className="h-4 w-4" />
                   <span>Contactar</span>
                 </button>
@@ -269,10 +269,10 @@ export default function BookDetails() {
             {/* Ubicación */}
             {location && (
               <div className="bg-white p-4 rounded-lg border shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-2">Ubicación</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">Ubicación</h3>
                 <div className="flex items-center text-gray-600">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  <span>
+                  <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                  <span className="text-sm">
                     {location.comuna}, {location.region}
                   </span>
                 </div>
@@ -281,46 +281,46 @@ export default function BookDetails() {
 
             {/* Descripción */}
             <div className="bg-white p-4 rounded-lg border shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-2">Descripción</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{description || "Sin descripción disponible"}</p>
+              <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">Descripción</h3>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{description || "Sin descripción disponible"}</p>
             </div>
 
             {/* Detalles adicionales */}
             <div className="bg-white p-4 rounded-lg border shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-3">Detalles</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Detalles</h3>
               <div className="space-y-2">
                 {condition && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Estado:</span>
-                    <span className="font-medium">{condition.condition}</span>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-gray-600 uppercase tracking-wide">Estado:</span>
+                    <span className="text-sm font-medium text-gray-900">{condition.condition}</span>
                   </div>
                 )}
 
                 {date_published && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Publicado:</span>
-                    <span className="font-medium">{new Date(date_published).toLocaleDateString()}</span>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-gray-600 uppercase tracking-wide">Publicado:</span>
+                    <span className="text-sm font-medium text-gray-900">{new Date(date_published).toLocaleDateString()}</span>
                   </div>
                 )}
 
                 {bookInfo?.isbn && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">ISBN:</span>
-                    <span className="font-medium">{bookInfo.isbn}</span>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-gray-600 uppercase tracking-wide">ISBN:</span>
+                    <span className="text-sm font-medium text-gray-900">{bookInfo.isbn}</span>
                   </div>
                 )}
 
                 {bookInfo?.editorial && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Editorial:</span>
-                    <span className="font-medium">{bookInfo.editorial}</span>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-gray-600 uppercase tracking-wide">Editorial:</span>
+                    <span className="text-sm font-medium text-gray-900">{bookInfo.editorial}</span>
                   </div>
                 )}
 
                 {bookInfo?.publication_year && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Año:</span>
-                    <span className="font-medium">{bookInfo.publication_year}</span>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-gray-600 uppercase tracking-wide">Año:</span>
+                    <span className="text-sm font-medium text-gray-900">{bookInfo.publication_year}</span>
                   </div>
                 )}
               </div>
