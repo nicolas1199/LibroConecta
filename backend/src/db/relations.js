@@ -69,11 +69,11 @@ export default ({
   State.hasMany(Sell, { foreignKey: "state_id" });
   Sell.belongsTo(State, { foreignKey: "state_id" });
 
-  //  Exchange 1:1 con cada PublishedBooks (no UserBook)
-  PublishedBooks.hasOne(Exchange, { as: "AsBook1", foreignKey: "user_book_id_1" });
-  PublishedBooks.hasOne(Exchange, { as: "AsBook2", foreignKey: "user_book_id_2" });
-  Exchange.belongsTo(PublishedBooks, { as: "Book1", foreignKey: "user_book_id_1" });
-  Exchange.belongsTo(PublishedBooks, { as: "Book2", foreignKey: "user_book_id_2" });
+  //  Exchange 1:1 con cada UserBook
+  UserBook.hasOne(Exchange, { as: "AsBook1", foreignKey: "user_book_id_1" });
+  UserBook.hasOne(Exchange, { as: "AsBook2", foreignKey: "user_book_id_2" });
+  Exchange.belongsTo(UserBook, { as: "Book1", foreignKey: "user_book_id_1" });
+  Exchange.belongsTo(UserBook, { as: "Book2", foreignKey: "user_book_id_2" });
 
   //  State 1:N Exchange
   State.hasMany(Exchange, { foreignKey: "state_id" });
