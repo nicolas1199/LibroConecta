@@ -45,21 +45,73 @@ export async function completeExchangeService(matchId, userId) {
         const completedState = await State.findOne({ where: { name: 'Completado' } });
         const stateId = completedState ? completedState.state_id : 1; // fallback
 
-        // Obtener los primeros UserBook de cada usuario para el Exchange
+        // Obtener los primeros libros de cada usuario para el Exchange
         const user1Books = matchBooks.filter(mb => mb.user_id === match.user_id_1);
         const user2Books = matchBooks.filter(mb => mb.user_id === match.user_id_2);
         
-        const userBook1 = user1Books[0]?.published_book_id;
-        const userBook2 = user2Books[0]?.published_book_id;
+        // Buscar o crear UserBooks correspondientes a los PublishedBooks
+        let userBook1Id = null;
+        let userBook2Id = null;
+        
+        if (user1Books[0]) {
+          const publishedBook1 = user1Books[0].PublishedBooks;
+          if (publishedBook1) {
+            // Buscar UserBook existente o crear uno nuevo
+            let userBook1 = await UserBook.findOne({
+              where: {
+                user_id: match.user_id_1,
+                book_id: publishedBook1.book_id
+              }
+            });
+            
+            if (!userBook1) {
+              userBook1 = await UserBook.create({
+                user_id: match.user_id_1,
+                book_id: publishedBook1.book_id,
+                is_for_sale: false,
+                liked: true
+              });
+            }
+            userBook1Id = userBook1.user_book_id;
+          }
+        }
+        
+        if (user2Books[0]) {
+          const publishedBook2 = user2Books[0].PublishedBooks;
+          if (publishedBook2) {
+            // Buscar UserBook existente o crear uno nuevo
+            let userBook2 = await UserBook.findOne({
+              where: {
+                user_id: match.user_id_2,
+                book_id: publishedBook2.book_id
+              }
+            });
+            
+            if (!userBook2) {
+              userBook2 = await UserBook.create({
+                user_id: match.user_id_2,
+                book_id: publishedBook2.book_id,
+                is_for_sale: false,
+                liked: true
+              });
+            }
+            userBook2Id = userBook2.user_book_id;
+          }
+        }
 
-        exchange = await Exchange.create({
-          user_book_id_1: userBook1,
-          user_book_id_2: userBook2,
-          date_exchange: new Date(),
-          state_id: stateId
-        });
-
-        console.log(`✅ Exchange creado con ID: ${exchange.exchange_id}`);
+        // Solo crear Exchange si tenemos ambos UserBooks
+        if (userBook1Id && userBook2Id) {
+          exchange = await Exchange.create({
+            user_book_id_1: userBook1Id,
+            user_book_id_2: userBook2Id,
+            date_exchange: new Date(),
+            state_id: stateId
+          });
+          
+          console.log(`✅ Exchange creado con ID: ${exchange.exchange_id}`);
+        } else {
+          console.log("⚠️ No se pudo crear Exchange: faltan UserBooks");
+        }
       } catch (exchangeError) {
         console.log("⚠️ Error al crear Exchange:", exchangeError.message);
       }

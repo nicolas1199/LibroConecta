@@ -509,7 +509,8 @@ export default function EnhancedMessages() {
           </form>
         </div>
       </div>
-    ), [selectedConversation, messages, currentUser, newMessage, sendingMessage, uploadingImage, handleSendMessage, formatDate, exchangeInfo, showExchangeActions]);
+    );
+  }, [selectedConversation, messages, currentUser, newMessage, sendingMessage, uploadingImage, handleSendMessage, formatDate, exchangeInfo, showExchangeActions]);
 
   return (
     <div className="flex h-screen bg-gray-50">
