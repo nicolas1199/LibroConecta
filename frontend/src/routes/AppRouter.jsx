@@ -20,6 +20,7 @@ import ReviewsPage from "../pages/ReviewsPage";
 import Wishlist from "../pages/Wishlist";
 
 import History from "../pages/History";
+import Stats from "../pages/Stats";
 import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
@@ -254,6 +255,18 @@ export default function AppRouter() {
             <PrivateRoute>
               <DashboardLayout>
                 <History />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Stats routes */}
+        <Route
+          path="/dashboard/stats"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <Stats />
               </DashboardLayout>
             </PrivateRoute>
           }

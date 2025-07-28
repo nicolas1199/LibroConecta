@@ -309,3 +309,89 @@ async function getExchangeInfoServiceFallback(matchId, userId, match, existingEx
     throw error;
   }
 }
+
+// Servicio para obtener historial de intercambios del usuario
+export async function getExchangeHistoryService(userId) {
+  try {
+    // Obtener todos los intercambios completados donde el usuario participó
+    const exchanges = await Exchange.findAll({
+      include: [
+        {
+          model: UserBook,
+          as: "Book1",
+          include: [
+            {
+              model: User,
+              attributes: ["user_id", "first_name", "last_name"]
+            },
+            {
+              model: PublishedBooks,
+              include: [
+                {
+                  model: Book,
+                  attributes: ["title", "author"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          model: UserBook,
+          as: "Book2", 
+          include: [
+            {
+              model: User,
+              attributes: ["user_id", "first_name", "last_name"]
+            },
+            {
+              model: PublishedBooks,
+              include: [
+                {
+                  model: Book,
+                  attributes: ["title", "author"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          model: State,
+          attributes: ["name"]
+        }
+      ],
+      where: {
+        [Op.or]: [
+          { "$Book1.user_id$": userId },
+          { "$Book2.user_id$": userId }
+        ]
+      },
+      order: [["date_exchange", "DESC"]]
+    });
+
+    const formattedHistory = exchanges.map(exchange => {
+      const isUser1 = exchange.Book1.user_id === userId;
+      const myBook = isUser1 ? exchange.Book1 : exchange.Book2;
+      const otherBook = isUser1 ? exchange.Book2 : exchange.Book1;
+      const otherUser = isUser1 ? exchange.Book2.User : exchange.Book1.User;
+
+      return {
+        id: exchange.exchange_id,
+        type: "exchange",
+        book_title: myBook.PublishedBooks?.Book?.title || "Libro desconocido",
+        book_author: myBook.PublishedBooks?.Book?.author || "Autor desconocido",
+        other_book_title: otherBook.PublishedBooks?.Book?.title || "Libro desconocido",
+        other_book_author: otherBook.PublishedBooks?.Book?.author || "Autor desconocido",
+        other_user_name: `${otherUser.first_name} ${otherUser.last_name}`,
+        other_user_id: otherUser.user_id,
+        date: exchange.date_exchange,
+        status: "completed", // Todos los exchanges en la tabla están completados
+        notes: `Intercambié "${myBook.PublishedBooks?.Book?.title}" por "${otherBook.PublishedBooks?.Book?.title}"`
+      };
+    });
+
+    return formattedHistory;
+  } catch (error) {
+    console.error("Error en getExchangeHistoryService:", error);
+    throw error;
+  }
+}

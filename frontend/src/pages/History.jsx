@@ -21,14 +21,24 @@ export default function History() {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      // TODO: Implementar API call para obtener historial
-      // const response = await api.get('/api/history');
-      // setHistory(response.data);
+      // Obtener intercambios completados
+      const response = await fetch('/api/exchanges/history', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
       
-      // Datos de ejemplo mientras se implementa la API
-      setHistory([]);
+      if (response.ok) {
+        const data = await response.json();
+        setHistory(data.data || []);
+      } else {
+        console.error("Error al obtener historial:", response.statusText);
+        setHistory([]);
+      }
     } catch (error) {
       console.error("Error al cargar historial:", error);
+      setHistory([]);
     } finally {
       setLoading(false);
     }

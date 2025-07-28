@@ -1,4 +1,4 @@
-import { completeExchangeService, getExchangeInfoService } from "../services/Exchange.service.js";
+import { completeExchangeService, getExchangeInfoService, getExchangeHistoryService } from "../services/Exchange.service.js";
 import { createResponse } from "../utils/responses.util.js";
 
 // Completar un intercambio
@@ -45,6 +45,31 @@ export const getExchangeInfo = async (req, res) => {
     );
   } catch (error) {
     console.error("Error al obtener información del intercambio:", error);
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error interno del servidor", null, error.message)
+      );
+  }
+};
+
+// Obtener historial de intercambios del usuario
+export const getExchangeHistory = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+
+    const history = await getExchangeHistoryService(user_id);
+
+    return res.json(
+      createResponse(
+        200,
+        "Historial de intercambios obtenido exitosamente",
+        history,
+        null
+      )
+    );
+  } catch (error) {
+    console.error("Error al obtener historial de intercambios:", error);
     return res
       .status(500)
       .json(
