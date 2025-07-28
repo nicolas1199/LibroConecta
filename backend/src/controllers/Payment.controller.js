@@ -176,11 +176,12 @@ export async function createPaymentPreference(req, res) {
       status: 'pending'
     });
 
-    // Preparar URLs de retorno según documentación de MercadoPago - mismo dominio que el frontend
-    // Incluir external_reference para identificación posterior
-    const successUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=success`;
-    const failureUrl = `${FRONTEND_URL}/payment/failure?external_reference=${externalReference}&status=failure`; 
-    const pendingUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=pending`;
+    // URLs de retorno según documentación oficial de MercadoPago
+    // Deben usar HTTPS según la documentación, pero para desarrollo usamos HTTP
+    const baseUrl = "http://146.83.198.35:1235";
+    const successUrl = `${baseUrl}/payment/success?external_reference=${externalReference}`;
+    const failureUrl = `${baseUrl}/payment/failure?external_reference=${externalReference}`; 
+    const pendingUrl = `${baseUrl}/payment/pending?external_reference=${externalReference}`;
     const notificationUrl = `${BACKEND_URL}/api/payments/webhook`;
 
     console.log('🔗 URLs configuradas:', {
