@@ -176,29 +176,8 @@ export async function createPaymentPreference(req, res) {
       status: 'pending'
     });
 
-    // URLs de retorno según documentación oficial de MercadoPago
-    // Deben usar HTTPS según la documentación, pero para desarrollo usamos HTTP
-    const baseUrl = "http://146.83.198.35:1235";
-    const successUrl = `${baseUrl}/payment/success?external_reference=${externalReference}`;
-    const failureUrl = `${baseUrl}/payment/failure?external_reference=${externalReference}`; 
-    const pendingUrl = `${baseUrl}/payment/pending?external_reference=${externalReference}`;
-    const notificationUrl = `${BACKEND_URL}/api/payments/webhook`;
-
-    console.log('🔗 URLs configuradas:', {
-      success: successUrl,
-      failure: failureUrl,
-      pending: pendingUrl,
-      notification: notificationUrl,
-      FRONTEND_URL_VALUE: FRONTEND_URL,
-      BACKEND_URL_VALUE: BACKEND_URL,
-      sin_auto_return: 'usamos_webhook_y_polling'
-    });
-
-    // Validar que las URLs estén bien formadas
-    if (!successUrl || successUrl.includes('undefined')) {
-      console.error('❌ successUrl está mal formada:', successUrl);
-      return error(res, 'Error en configuración de URLs de retorno', 500);
-    }
+    // URLs hardcodeadas exactamente como en la documentación de MercadoPago
+    console.log('🔗 Configurando URLs hardcodeadas para MercadoPago');
 
     // Preparar datos para MercadoPago
     const preferenceData = {
@@ -233,11 +212,11 @@ export async function createPaymentPreference(req, res) {
         }
       },
       external_reference: externalReference,
-      notification_url: notificationUrl,
+      notification_url: "http://146.83.198.35:1234/api/payments/webhook",
       back_urls: {
-        success: successUrl,
-        failure: failureUrl,
-        pending: pendingUrl
+        "success": "http://146.83.198.35:1235/payment/success",
+        "failure": "http://146.83.198.35:1235/payment/failure",
+        "pending": "http://146.83.198.35:1235/payment/pending"
       },
       auto_return: "approved",
       // Configuración de tiempo de expiración
