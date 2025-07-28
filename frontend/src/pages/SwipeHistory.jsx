@@ -3,50 +3,69 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { getUserSwipeHistory, updateSwipeInteraction, deleteSwipeInteraction } from "../api/publishedBooks";
+import {
+  getUserSwipeHistory,
+  updateSwipeInteraction,
+  deleteSwipeInteraction,
+} from "../api/publishedBooks";
 import Heart from "../components/icons/Heart";
 import X from "../components/icons/X";
 import BookOpen from "../components/icons/BookOpen";
 import Trash from "../components/icons/Trash";
 import PropTypes from "prop-types";
 
+// Mapeo de tipos de interacción para UI
 const INTERACTION_TYPES = {
   like: { label: "Me gusta", icon: Heart, color: "green" },
   dislike: { label: "No me gusta", icon: X, color: "red" },
 };
 
+// Componente principal para historial de swipes del usuario
+// FLUJO DE DATOS:
+// 1. Carga historial paginado desde backend (getUserSwipeHistory)
+// 2. Muestra tarjetas con información de cada interacción
+// 3. Permite modificar interacciones (cambiar like ↔ dislike)
+// 4. Permite eliminar interacciones completamente
+// 5. Maneja filtros por tipo de interacción
+// 6. Implementa paginación para grandes volúmenes de datos
 export default function SwipeHistory() {
-  const [history, setHistory] = useState([]);
-  const [stats, setStats] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState({});
-  const [selectedFilter, setSelectedFilter] = useState("all");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  // ESTADOS PRINCIPALES del componente
+  const [history, setHistory] = useState([]); // Array de interacciones del usuario
+  const [stats, setStats] = useState({}); // Estadísticas globales (likes, dislikes, total)
+  const [loading, setLoading] = useState(true); // Estado de carga
+  const [error, setError] = useState(null); // Manejo de errores
+  const [currentPage, setCurrentPage] = useState(1); // Página actual para paginación
+  const [pagination, setPagination] = useState({}); // Metadata de paginación
+  const [selectedFilter, setSelectedFilter] = useState("all"); // Filtro actual ("all", "like", "dislike")
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // ID de interacción a eliminar
 
+  // FUNCIÓN: Cargar historial desde backend
+  // Maneja paginación y filtros
   const loadHistory = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
+      // PASO 1: Preparar parámetros de consulta
       const params = {
-        page: currentPage,
-        limit: 12,
+        page: currentPage, // Página actual
+        limit: 12, // 12 elementos por página para grid 3x4
       };
 
+      // PASO 2: Aplicar filtro si no es "all"
       if (selectedFilter !== "all") {
-        params.interaction_type = selectedFilter;
+        params.interaction_type = selectedFilter; // "like" o "dislike"
       }
-
+      // PASO 3: Ejecutar consulta al backend
       console.log("Loading history with params:", params);
       const response = await getUserSwipeHistory(params);
       console.log("History response:", response);
-      
+
       if (response.success) {
-        setHistory(response.data.interactions);
-        setStats(response.data.stats);
-        setPagination(response.data.pagination);
+        // PASO 4: Actualizar estados con datos recibidos
+        setHistory(response.data.interactions); // Array de interacciones
+        setStats(response.data.stats); // Estadísticas globales
+        setPagination(response.data.pagination); // Metadata de paginación
       } else {
         setError(response.message || "Error al cargar el historial");
       }
@@ -58,26 +77,30 @@ export default function SwipeHistory() {
     }
   }, [currentPage, selectedFilter]);
 
+  // EFECTO: Cargar historial cuando cambian filtros o página
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
 
+  // FUNCIÓN: Cambiar tipo de interacción (like ↔ dislike)
+  // Permite al usuario corregir su decisión anterior
   const handleChangeInteraction = async (interactionId, newType) => {
     try {
+      // PASO 1: Actualizar en backend
       const response = await updateSwipeInteraction(interactionId, {
-        interaction_type: newType
+        interaction_type: newType, // Nuevo tipo de interacción
       });
-      
+
       if (response.success) {
-        // Actualizar el historial localmente
-        setHistory(prevHistory => 
-          prevHistory.map(item => 
-            item.interaction_id === interactionId 
+        // PASO 2: Actualizar estado local inmediatamente (optimistic update)
+        setHistory((prevHistory) =>
+          prevHistory.map((item) =>
+            item.interaction_id === interactionId
               ? { ...item, interaction_type: newType }
-              : item
-          )
+              : item,
+          ),
         );
-        // Recargar estadísticas
+        // PASO 3: Recargar para actualizar estadísticas
         loadHistory();
       }
     } catch (err) {
@@ -88,11 +111,11 @@ export default function SwipeHistory() {
   const handleDeleteInteraction = async (interactionId) => {
     try {
       const response = await deleteSwipeInteraction(interactionId);
-      
+
       if (response.success) {
         // Remover del historial local
-        setHistory(prevHistory => 
-          prevHistory.filter(item => item.interaction_id !== interactionId)
+        setHistory((prevHistory) =>
+          prevHistory.filter((item) => item.interaction_id !== interactionId),
         );
         // Recargar estadísticas
         loadHistory();
@@ -157,10 +180,7 @@ export default function SwipeHistory() {
                 Revisa y modifica tus decisiones anteriores
               </p>
             </div>
-            <Link
-              to="/dashboard/swipe"
-              className="btn btn-secondary"
-            >
+            <Link to="/dashboard/swipe" className="btn btn-secondary">
               Volver
             </Link>
           </div>
@@ -168,15 +188,21 @@ export default function SwipeHistory() {
           {/* Estadísticas */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div className="text-2xl font-bold text-green-600">{stats.likes || 0}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {stats.likes || 0}
+              </div>
               <div className="text-sm text-green-700">Me gusta</div>
             </div>
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-              <div className="text-2xl font-bold text-red-600">{stats.dislikes || 0}</div>
+              <div className="text-2xl font-bold text-red-600">
+                {stats.dislikes || 0}
+              </div>
               <div className="text-sm text-red-700">No me gusta</div>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <div className="text-2xl font-bold text-gray-600">{stats.total || 0}</div>
+              <div className="text-2xl font-bold text-gray-600">
+                {stats.total || 0}
+              </div>
               <div className="text-sm text-gray-700">Total</div>
             </div>
           </div>
@@ -236,10 +262,7 @@ export default function SwipeHistory() {
             <p className="text-gray-600 mb-4">
               Comienza a hacer swipe para ver tu historial aquí
             </p>
-            <Link
-              to="/dashboard/swipe"
-              className="btn btn-primary"
-            >
+            <Link to="/dashboard/swipe" className="btn btn-primary">
               Ir a LibroSwipe
             </Link>
           </div>
@@ -253,7 +276,9 @@ export default function SwipeHistory() {
                     key={item.interaction_id}
                     interaction={item}
                     onChangeInteraction={handleChangeInteraction}
-                    onDeleteInteraction={() => setShowDeleteConfirm(item.interaction_id)}
+                    onDeleteInteraction={() =>
+                      setShowDeleteConfirm(item.interaction_id)
+                    }
                   />
                 ))}
               </AnimatePresence>
@@ -269,8 +294,11 @@ export default function SwipeHistory() {
                 >
                   ← Anterior
                 </button>
-                
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
+
+                {Array.from(
+                  { length: pagination.totalPages },
+                  (_, i) => i + 1,
+                ).map((page) => (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
@@ -283,7 +311,7 @@ export default function SwipeHistory() {
                     {page}
                   </button>
                 ))}
-                
+
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === pagination.totalPages}
@@ -309,7 +337,8 @@ export default function SwipeHistory() {
               ¿Eliminar interacción?
             </h3>
             <p className="text-gray-600 mb-6">
-              Esta acción no se puede deshacer. El libro volverá a aparecer en tus recomendaciones.
+              Esta acción no se puede deshacer. El libro volverá a aparecer en
+              tus recomendaciones.
             </p>
             <div className="flex space-x-3">
               <button
@@ -332,62 +361,88 @@ export default function SwipeHistory() {
   );
 }
 
-function HistoryCard({ interaction, onChangeInteraction, onDeleteInteraction }) {
-  const { PublishedBook } = interaction;
-  const { Book: book, User: user, PublishedBookImages: images = [] } = PublishedBook;
-  
+// Componente individual para cada tarjeta de historial
+// FLUJO DE DATOS:
+// 1. Recibe datos de una interacción específica
+// 2. Extrae información del libro, usuario e imágenes
+// 3. Renderiza tarjeta con imagen, información y controles
+// 4. Permite cambiar tipo de interacción (like ↔ dislike)
+// 5. Permite eliminar la interacción completamente
+function HistoryCard({
+  interaction,
+  onChangeInteraction,
+  onDeleteInteraction,
+}) {
+  // EXTRACCIÓN DE DATOS anidados
+  const { PublishedBook } = interaction; // Datos del libro publicado
+  const {
+    Book: book,
+    User: user,
+    PublishedBookImages: images = [],
+  } = PublishedBook;
+
+  // ESTADO para manejo de errores de imagen
   const [imageError, setImageError] = useState(false);
-  
-  const primaryImage = images.find(img => img.is_primary) || images[0];
-  const imageUrl = imageError ? "/api/placeholder/300/200" :
-                   primaryImage?.image_data ||          // Usar image_data (base64) como prioridad
-                   primaryImage?.image_url ||            // Fallback a image_url
-                   "/api/placeholder/300/200";          // Fallback final
-  
-  const currentType = INTERACTION_TYPES[interaction.interaction_type];
-  const date = new Date(interaction.created_at).toLocaleDateString();
+
+  // MANEJO DE IMÁGENES
+  // Buscar imagen principal o usar la primera disponible
+  const primaryImage = images.find((img) => img.is_primary) || images[0];
+  const imageUrl = imageError
+    ? "/api/placeholder/300/200"
+    : primaryImage?.image_data || // Usar image_data (base64) como prioridad
+      primaryImage?.image_url || // Fallback a image_url
+      "/api/placeholder/300/200"; // Fallback final
+
+  // CONFIGURACIÓN DE UI
+  const currentType = INTERACTION_TYPES[interaction.interaction_type]; // Configuración del tipo actual
+  const date = new Date(interaction.created_at).toLocaleDateString(); // Formatear fecha
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      // ANIMACIONES DE ENTRADA/SALIDA
+      initial={{ opacity: 0, y: 20 }} // Aparece desde abajo
+      animate={{ opacity: 1, y: 0 }} // Se posiciona normalmente
+      exit={{ opacity: 0, y: -20 }} // Sale hacia arriba
       className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
     >
-      {/* Imagen */}
+      {/* SECCIÓN: Imagen del libro */}
       <div className="relative h-48">
         <img
           src={imageUrl}
           alt={book.title}
           className="w-full h-full object-cover image-render-crisp"
           style={{
-            imageRendering: 'optimize-contrast',
-            msInterpolationMode: 'nearest-neighbor'
+            imageRendering: "optimize-contrast",
+            msInterpolationMode: "nearest-neighbor",
           }}
           onError={() => setImageError(true)}
         />
-        <div className={`absolute top-3 right-3 bg-${currentType.color}-500 text-white px-3 py-1 rounded-full text-sm font-medium`}>
+        {/* Badge con tipo de interacción */}
+        <div
+          className={`absolute top-3 right-3 bg-${currentType.color}-500 text-white px-3 py-1 rounded-full text-sm font-medium`}
+        >
           {currentType.label}
         </div>
       </div>
 
-      {/* Información */}
+      {/* SECCIÓN: Información del libro */}
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 mb-1 truncate">
           {book.title}
         </h3>
-        <p className="text-sm text-gray-600 mb-2">
-          por {book.author}
-        </p>
+        <p className="text-sm text-gray-600 mb-2">por {book.author}</p>
         <p className="text-xs text-gray-500 mb-4">
           {date} • Por {user.first_name} {user.last_name}
         </p>
 
-        {/* Acciones */}
+        {/* SECCIÓN: Controles de acción */}
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
+            {/* Botón LIKE */}
             <button
-              onClick={() => onChangeInteraction(interaction.interaction_id, "like")}
+              onClick={() =>
+                onChangeInteraction(interaction.interaction_id, "like")
+              }
               className={`p-2 rounded-full transition-colors ${
                 interaction.interaction_type === "like"
                   ? "bg-green-100 text-green-600"
@@ -398,7 +453,9 @@ function HistoryCard({ interaction, onChangeInteraction, onDeleteInteraction }) 
               <Heart className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onChangeInteraction(interaction.interaction_id, "dislike")}
+              onClick={() =>
+                onChangeInteraction(interaction.interaction_id, "dislike")
+              }
               className={`p-2 rounded-full transition-colors ${
                 interaction.interaction_type === "dislike"
                   ? "bg-red-100 text-red-600"
@@ -424,7 +481,8 @@ function HistoryCard({ interaction, onChangeInteraction, onDeleteInteraction }) 
 
 HistoryCard.propTypes = {
   interaction: PropTypes.shape({
-    interaction_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    interaction_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+      .isRequired,
     interaction_type: PropTypes.string.isRequired,
     created_at: PropTypes.string.isRequired,
     PublishedBook: PropTypes.shape({
@@ -440,7 +498,7 @@ HistoryCard.propTypes = {
         PropTypes.shape({
           image_url: PropTypes.string,
           is_primary: PropTypes.bool,
-        })
+        }),
       ),
     }).isRequired,
   }).isRequired,

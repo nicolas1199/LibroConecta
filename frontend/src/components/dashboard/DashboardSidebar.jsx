@@ -55,7 +55,7 @@ export default function DashboardSidebar({
     // Solo cargar si el usuario está autenticado
     if (user && user.user_id) {
       loadPendingRequestsCount();
-      
+
       // Recargar cada 30 segundos
       const interval = setInterval(loadPendingRequestsCount, 30000);
       return () => clearInterval(interval);
@@ -116,15 +116,21 @@ export default function DashboardSidebar({
       { icon: Star, label: "Calificaciones", path: "/dashboard/ratings" },
       { icon: FileText, label: "Reseñas", path: "/dashboard/reviews" },
       { icon: BarChart, label: "Estadísticas", path: "/dashboard/stats" },
+      {
+        icon: Settings,
+        label: "Pruebas Auto-Match",
+        path: "/dashboard/swipe/test",
+        badge: "Dev",
+      },
     ],
   };
 
   return (
     <aside
       className={`dashboard-sidebar ${isOpen ? "dashboard-sidebar-open" : ""}`}
-      style={{ 
+      style={{
         // Temporalmente forzar visible para debug
-        transform: window.innerWidth >= 1024 ? 'translateX(0)' : undefined 
+        transform: window.innerWidth >= 1024 ? "translateX(0)" : undefined,
       }}
     >
       {/* Validación adicional para evitar errores */}
@@ -321,7 +327,9 @@ export default function DashboardSidebar({
                 ) : (
                   <LogOut className="h-4 w-4" />
                 )}
-                <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
+                <span>
+                  {isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+                </span>
               </div>
             </button>
           </div>

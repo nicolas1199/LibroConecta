@@ -25,6 +25,7 @@ import BookDetails from "../pages/BookDetails";
 import UserProfile from "../pages/UserProfile";
 import Swipe from "../pages/Swipe";
 import SwipeHistory from "../pages/SwipeHistory";
+import SwipeTestPage from "../pages/SwipeTestPage";
 import EditProfile from "../pages/EditProfile";
 import MyPublications from "../pages/MyPublications";
 import EditPublication from "../pages/EditPublication";
@@ -102,6 +103,18 @@ export default function AppRouter() {
           }
         />
 
+        {/* Swipe test page route */}
+        <Route
+          path="/dashboard/swipe/test"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <SwipeTestPage />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+
         {/* Publish book route */}
         <Route
           path="/dashboard/publish"
@@ -123,7 +136,7 @@ export default function AppRouter() {
             </PrivateRoute>
           }
         />
-        
+
         <Route
           path="/dashboard/library/add"
           element={
