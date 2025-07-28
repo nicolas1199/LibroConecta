@@ -26,6 +26,7 @@ export default function EditPublication() {
   const [imageStorageType, setImageStorageType] = useState("base64")
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [publication, setPublication] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Datos de referencia
   const [transactionTypes, setTransactionTypes] = useState([])
@@ -134,6 +135,53 @@ export default function EditPublication() {
       ...prev,
       images: [...prev.images, ...newImages].slice(0, 5), // Máximo 5 imágenes total
     }))
+  }
+
+  const handleDragOver = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  const handleDragEnter = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(false)
+    
+    const files = Array.from(event.dataTransfer.files)
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    
+    if (imageFiles.length === 0) {
+      setErrors({ images: "Solo se permiten archivos de imagen" })
+      return
+    }
+
+    const newImages = imageFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      is_primary: formData.images.length === 0 && formData.existingImages.length === 0,
+    }))
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...newImages].slice(0, 5), // Máximo 5 imágenes total
+    }))
+
+    // Limpiar error si había
+    if (errors.images) {
+      setErrors(prev => ({ ...prev, images: "" }))
+    }
   }
 
   const removeNewImage = (index) => {
@@ -612,10 +660,24 @@ export default function EditPublication() {
               )}
 
               {/* Subir nuevas imágenes */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors mb-4">
-                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Agregar más imágenes</h3>
-                <p className="text-xs text-gray-600 mb-3">o haz clic para seleccionar archivos</p>
+              <div 
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors mb-4 ${
+                  isDragging 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <Upload className={`h-8 w-8 mx-auto mb-3 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+                <h3 className={`text-sm font-medium mb-2 ${isDragging ? 'text-blue-900' : 'text-gray-900'}`}>
+                  {isDragging ? 'Suelta tus imágenes aquí' : 'Agregar más imágenes'}
+                </h3>
+                <p className={`text-xs mb-3 ${isDragging ? 'text-blue-700' : 'text-gray-600'}`}>
+                  Arrastra y suelta tus imágenes aquí o haz clic para seleccionar archivos
+                </p>
                 <input
                   type="file"
                   multiple

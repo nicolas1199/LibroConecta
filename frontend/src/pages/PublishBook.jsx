@@ -35,6 +35,7 @@ export default function PublishBook() {
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [imageStorageType, setImageStorageType] = useState("base64") // 'cloudinary' o 'base64'
+  const [isDragging, setIsDragging] = useState(false)
 
   // Google Books search
   const [searchTerm, setSearchTerm] = useState("")
@@ -159,6 +160,53 @@ export default function PublishBook() {
       ...prev,
       images: [...prev.images, ...newImages].slice(0, 5), // Máximo 5 imágenes
     }))
+  }
+
+  const handleDragOver = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  const handleDragEnter = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(false)
+    
+    const files = Array.from(event.dataTransfer.files)
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    
+    if (imageFiles.length === 0) {
+      setErrors({ images: "Solo se permiten archivos de imagen" })
+      return
+    }
+
+    const newImages = imageFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      is_primary: formData.images.length === 0, // Primera imagen es principal
+    }))
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...newImages].slice(0, 5), // Máximo 5 imágenes
+    }))
+
+    // Limpiar error si había
+    if (errors.images) {
+      setErrors(prev => ({ ...prev, images: "" }))
+    }
   }
 
   const removeImage = (index) => {
@@ -423,6 +471,11 @@ export default function PublishBook() {
             errors={errors}
             imageStorageType={imageStorageType}
             setImageStorageType={setImageStorageType}
+            handleDragOver={handleDragOver}
+            handleDragEnter={handleDragEnter}
+            handleDragLeave={handleDragLeave}
+            handleDrop={handleDrop}
+            isDragging={isDragging}
           />
         )
       default:
@@ -918,14 +971,33 @@ function Step4({
   errors,
   imageStorageType,
   setImageStorageType,
+  handleDragOver,
+  handleDragEnter,
+  handleDragLeave,
+  handleDrop,
+  isDragging,
 }) {
   return (
     <div className="space-y-4">
       {/* Upload area */}
-      <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors">
-        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-        <h3 className="text-base font-medium text-gray-900 mb-1">Arrastra y suelta tus imágenes aquí</h3>
-        <p className="text-gray-600 mb-3 text-sm">o haz clic para seleccionar archivos</p>
+      <div 
+        className={`border-2 border-dashed rounded-md p-6 text-center transition-colors ${
+          isDragging 
+            ? 'border-blue-500 bg-blue-50' 
+            : 'border-gray-300 hover:border-gray-400'
+        }`}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <Upload className={`h-8 w-8 mx-auto mb-3 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+        <h3 className={`text-base font-medium mb-1 ${isDragging ? 'text-blue-900' : 'text-gray-900'}`}>
+          {isDragging ? 'Suelta tus imágenes aquí' : 'Arrastra y suelta tus imágenes aquí'}
+        </h3>
+        <p className={`mb-3 text-sm ${isDragging ? 'text-blue-700' : 'text-gray-600'}`}>
+          o haz clic para seleccionar archivos
+        </p>
         <input
           type="file"
           multiple
