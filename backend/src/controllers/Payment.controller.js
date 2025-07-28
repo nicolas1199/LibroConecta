@@ -183,7 +183,7 @@ export async function createPaymentPreference(req, res) {
     }
 
     // Preparar URLs de retorno según documentación de MercadoPago - mismo dominio que el frontend
-    // Usar URLs más simples sin parámetros complejos para evitar problemas de validación
+    // Incluir external_reference para identificación posterior
     const successUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=success`;
     const failureUrl = `${FRONTEND_URL}/payment/failure?external_reference=${externalReference}&status=failure`; 
     const pendingUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=pending`;
@@ -309,13 +309,6 @@ export async function createPaymentPreference(req, res) {
       return error(res, 'Error: back_urls.success no está definida', 500);
     }
 
-    // Log extra para debugging del error específico
-    console.log('🔍 DEBUGGING - Verificando estructura back_urls:');
-    console.log('back_urls objeto completo:', JSON.stringify(preferenceData.back_urls, null, 2));
-    console.log('back_urls.success existe?', !!preferenceData.back_urls.success);
-    console.log('back_urls.success valor:', preferenceData.back_urls.success);
-    console.log('auto_return valor:', preferenceData.auto_return);
-
     // Log específico para las URLs de retorno
     console.log('🔗 URLs de retorno en preferenceData:', {
       back_urls: preferenceData.back_urls,
@@ -342,7 +335,7 @@ export async function createPaymentPreference(req, res) {
       price: publishedBook.price
     });
 
-    // Crear preferencia en MercadoPago usando la nueva estructura del SDK
+    // Crear preferencia en MercadoPago usando la estructura correcta
     const mpPreference = await preference.create({
       body: preferenceData
     });
@@ -395,12 +388,7 @@ export async function createPaymentPreference(req, res) {
     }, 'Preferencia de pago creada exitosamente', 201);
 
   } catch (err) {
-    console.error('❌ Error creando preferencia de pago:', {
-      message: err.message,
-      error: err.error,
-      status: err.status,
-      cause: err.cause
-    });
+    console.error('❌ Error creando preferencia de pago:', err);
     console.error('❌ Stack trace completo:', err.stack);
     console.error('❌ Detalles del error:', {
       message: err.message,
