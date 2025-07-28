@@ -7,7 +7,7 @@ import {
   PublishedBooks,
 } from "../db/modelIndex.js";
 import { Op } from "sequelize";
-import { successResponse, errorResponse } from "../utils/responses.util.js";
+import { successResponse, errorResponse } from "../utils/response.util.js";
 import { validateUUID } from "../utils/uuid.util.js";
 
 // POST /api/drafts - Crear o actualizar un borrador
