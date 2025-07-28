@@ -73,6 +73,21 @@ export default function BookDetails() {
     )
   }
 
+  // Función para obtener la URL de la imagen actual basada en el índice seleccionado
+  const getCurrentImageUrl = (images, index) => {
+    if (!images || images.length === 0) {
+      return "/placeholder.svg?height=400&width=400&text=Libro"
+    }
+
+    const selectedImage = images[index] || images[0]
+    return (
+      selectedImage?.src ||
+      selectedImage?.image_url ||
+      selectedImage?.image_data ||
+      "/placeholder.svg?height=400&width=400&text=Libro"
+    )
+  }
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -132,7 +147,7 @@ export default function BookDetails() {
             {/* Imagen principal */}
             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden shadow-sm">
               <img
-                src={imageError ? "/placeholder.svg?height=400&width=400&text=Libro" : getImageUrl(images)}
+                src={imageError ? "/placeholder.svg?height=400&width=400&text=Libro" : getCurrentImageUrl(images, currentImageIndex)}
                 alt={bookInfo?.title || "Libro"}
                 className="w-full h-full object-cover image-render-crisp"
                 style={{
@@ -152,7 +167,10 @@ export default function BookDetails() {
                 {images.map((image, index) => (
                   <button
                     key={index}
-                    onClick={() => setCurrentImageIndex(index)}
+                    onClick={() => {
+                      setCurrentImageIndex(index)
+                      setImageError(false) // Reset image error when changing image
+                    }}
                     className={`w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
                       index === currentImageIndex ? "border-blue-500" : "border-gray-200 hover:border-gray-300"
                     }`}
