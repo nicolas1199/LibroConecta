@@ -238,7 +238,7 @@ export async function createPaymentPreference(req, res) {
         failure: failureUrl,
         pending: pendingUrl
       },
-      auto_return: "approved",
+      // Sin auto_return - manejaremos la redirección desde el webhook
       // Configuración de tiempo de expiración
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
