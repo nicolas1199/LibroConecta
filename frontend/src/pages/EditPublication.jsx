@@ -181,6 +181,13 @@ export default function EditPublication() {
     }
   }
 
+  const removeNewImage = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }))
+  }
+
   const setPrimaryImage = (index, isExisting = false) => {
     if (isExisting) {
       setFormData((prev) => ({
