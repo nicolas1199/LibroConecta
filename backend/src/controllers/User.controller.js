@@ -1,4 +1,4 @@
-import User from "../db/models/User.js";
+import { User, LocationBook } from "../db/modelIndex.js";
 import { createResponse } from "../utils/responses.util.js";
 
 // Obtener perfil público de un usuario por ID
@@ -13,15 +13,27 @@ export const getUserPublicProfile = async (req, res) => {
         "last_name",
         "username",
         "email",
-        "location",
         "biography",
         "profile_image_base64",
+      ],
+      include: [
+        {
+          model: LocationBook,
+          as: "userLocation",
+          attributes: ["region", "comuna"],
+          required: false,
+        },
       ],
     });
 
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
+
+    // Formatear la ubicación
+    const location = user.userLocation 
+      ? { region: user.userLocation.region, comuna: user.userLocation.comuna }
+      : null;
 
     return res.status(200).json({
       message: "Perfil público obtenido exitosamente",
@@ -31,7 +43,7 @@ export const getUserPublicProfile = async (req, res) => {
         last_name: user.get("last_name"),
         username: user.get("username"),
         email: user.get("email"),
-        location: user.get("location"),
+        location: location,
         biography: user.get("biography"),
         profile_image_base64: user.get("profile_image_base64"),
       },
