@@ -18,16 +18,16 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
   // Estados para manejo de errores y referencias
   const [imageError, setImageError] = useState(false);
   const cardRef = useRef(null);
-  
+
   // SISTEMA DE ANIMACIONES CON FRAMER MOTION:
   // x: posición horizontal de la tarjeta durante el arrastre
-  // rotate: rotación basada en posición horizontal para efecto natural  
+  // rotate: rotación basada en posición horizontal para efecto natural
   // opacity: opacidad que cambia según la distancia del swipe
   // likeOpacity/dislikeOpacity: indicadores visuales de la acción pendiente
   const x = useMotionValue(0); // Posición horizontal en tiempo real
   const rotate = useTransform(x, [-300, 300], [-15, 15]); // Rotación sutil: -15° a +15°
   const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]); // Fade out en extremos
-  
+
   // Indicadores visuales de acción (LIKE/DISLIKE)
   const likeOpacity = useTransform(x, [0, 50, 150], [0, 0.5, 1]); // Aparece al arrastrar derecha
   const dislikeOpacity = useTransform(x, [-150, -50, 0], [1, 0.5, 0]); // Aparece al arrastrar izquierda
@@ -35,34 +35,34 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
   // Funciones callback para manejo de swipe
   // useCallback evita re-renders innecesarios cuando cambian las props
   const handleLike = useCallback(() => {
-    onSwipe(book.published_book_id, 'like'); // Enviar like al componente padre
+    onSwipe(book.published_book_id, "like"); // Enviar like al componente padre
   }, [onSwipe, book.published_book_id]);
 
   const handleDislike = useCallback(() => {
-    onSwipe(book.published_book_id, 'dislike'); // Enviar dislike al componente padre
+    onSwipe(book.published_book_id, "dislike"); // Enviar dislike al componente padre
   }, [onSwipe, book.published_book_id]);
 
   // SISTEMA DE NAVEGACIÓN POR TECLADO para accesibilidad
   // Solo la tarjeta superior (isTop=true) puede recibir input de teclado
   useEffect(() => {
     if (!isTop) return; // Solo la tarjeta superior puede recibir input
-    
+
     // MAPEO DE TECLAS:
     // Flecha derecha o 'L' → LIKE
     // Flecha izquierda o 'H' → DISLIKE
     const handleKeyDown = (event) => {
-      if (event.key === 'ArrowRight' || event.key === 'l') {
+      if (event.key === "ArrowRight" || event.key === "l") {
         event.preventDefault();
         handleLike(); // Ejecutar like
-      } else if (event.key === 'ArrowLeft' || event.key === 'h') {
+      } else if (event.key === "ArrowLeft" || event.key === "h") {
         event.preventDefault();
         handleDislike(); // Ejecutar dislike
       }
     };
 
     // Registrar event listener global
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isTop, handleLike, handleDislike]);
 
   // EXTRACCIÓN DE DATOS del objeto libro
@@ -82,27 +82,28 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
   // 2. Si no hay principal, usar la primera disponible
   // 3. Manejar diferentes campos de imagen por compatibilidad
   const primaryImage = images.find((img) => img.is_primary) || images[0];
-  const imageUrl = primaryImage?.src ||          // Nuevo campo 'src' (URL o base64)
-                   primaryImage?.image_url ||    // Campo legacy para URLs
-                   primaryImage?.image_data ||   // Campo legacy para base64
-                   "/api/placeholder/300/400";   // Placeholder si no hay imagen
+  const imageUrl =
+    primaryImage?.src || // Nuevo campo 'src' (URL o base64)
+    primaryImage?.image_url || // Campo legacy para URLs
+    primaryImage?.image_data || // Campo legacy para base64
+    "/api/placeholder/300/400"; // Placeholder si no hay imagen
 
   // LÓGICA DE DETECCIÓN DE SWIPE
   // Se ejecuta cuando el usuario termina de arrastrar la tarjeta
   const handleDragEnd = (event, info) => {
     const swipeThreshold = SWIPE_THRESHOLD; // 75px mínimo
     const velocity = info.velocity.x; // Velocidad del arrastre
-    
+
     // CRITERIOS DE ACTIVACIÓN:
     // 1. Distancia: más de 75px en cualquier dirección
     // 2. Velocidad: más de 500px/s en cualquier dirección
     // Se evalúa CUALQUIERA de los dos criterios para mejor UX
     if (info.offset.x > swipeThreshold || velocity > 500) {
       // Swipe hacia la derecha = LIKE
-      onSwipe(book.published_book_id, 'like');
+      onSwipe(book.published_book_id, "like");
     } else if (info.offset.x < -swipeThreshold || velocity < -500) {
-      // Swipe hacia la izquierda = DISLIKE  
-      onSwipe(book.published_book_id, 'dislike');
+      // Swipe hacia la izquierda = DISLIKE
+      onSwipe(book.published_book_id, "dislike");
     }
     // Si no cumple criterios, la tarjeta vuelve a posición original
   };
@@ -111,7 +112,7 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
     <motion.div
       ref={cardRef}
       className={`absolute w-80 h-96 bg-white rounded-xl shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing select-none ${
-        isTop ? 'z-10' : 'z-0' // Solo la tarjeta superior tiene z-index alto
+        isTop ? "z-10" : "z-0" // Solo la tarjeta superior tiene z-index alto
       }`}
       style={{
         x, // Posición horizontal animada
@@ -135,12 +136,12 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
           alt={bookInfo?.title || "Libro"}
           className="w-full h-full object-cover rounded-t-xl"
           style={{
-            imageRendering: 'optimize-contrast',
-            msInterpolationMode: 'nearest-neighbor'
+            imageRendering: "optimize-contrast",
+            msInterpolationMode: "nearest-neighbor",
           }}
           onError={() => setImageError(true)}
         />
-        
+
         {/* Indicadores de swipe mejorados */}
         <motion.div
           className="absolute top-4 left-4 bg-green-500 text-white px-4 py-2 rounded-full font-bold text-sm transform rotate-12 shadow-lg"
@@ -151,7 +152,7 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
         >
           ❤️ ME GUSTA
         </motion.div>
-        
+
         <motion.div
           className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-full font-bold text-sm transform -rotate-12 shadow-lg"
           style={{
@@ -179,14 +180,13 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
           <p className="text-sm text-gray-600 truncate">
             {bookInfo?.author || "Autor desconocido"}
           </p>
-          
+
           {/* Precio o tipo de transacción */}
           <div className="flex items-center justify-between mt-2">
             <span className="text-sm font-semibold text-green-600">
-              {transactionType?.type_name === 'Intercambio' 
-                ? 'Intercambio' 
-                : `$${price || 'N/A'}`
-              }
+              {transactionType?.type_name === "Intercambio"
+                ? "Intercambio"
+                : `$${price || "N/A"}`}
             </span>
             {location && (
               <span className="text-xs text-gray-500 truncate">
@@ -197,7 +197,7 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
 
           {/* Usuario */}
           <p className="text-xs text-gray-500 mt-1">
-            Por: {user?.first_name || 'Usuario'} {user?.last_name || ''}
+            Por: {user?.first_name || "Usuario"} {user?.last_name || ""}
           </p>
         </div>
 
@@ -227,7 +227,8 @@ export default function SwipeCard({ book, onSwipe, isTop = false }) {
 
 SwipeCard.propTypes = {
   book: PropTypes.shape({
-    published_book_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    published_book_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+      .isRequired,
     price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     Book: PropTypes.shape({
       title: PropTypes.string,
@@ -251,7 +252,7 @@ SwipeCard.propTypes = {
       PropTypes.shape({
         image_url: PropTypes.string,
         is_primary: PropTypes.bool,
-      })
+      }),
     ),
   }).isRequired,
   onSwipe: PropTypes.func.isRequired,

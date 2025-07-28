@@ -19,7 +19,9 @@ import { formatMatchNotification } from "../utils/notification.util.js";
 // 6. Retorna información del match para notificación en frontend
 export async function checkAndCreateAutoMatch(userId, publishedBookId) {
   try {
-    console.log(`Verificando posible auto-match para usuario ${userId} y libro ${publishedBookId}`);
+    console.log(
+      `Verificando posible auto-match para usuario ${userId} y libro ${publishedBookId}`
+    );
 
     // PASO 1: Obtener información completa del libro que recibió el like
     // Incluye datos del propietario y del libro para construir el match
@@ -41,11 +43,14 @@ export async function checkAndCreateAutoMatch(userId, publishedBookId) {
     }
 
     const bookOwnerId = likedBook.user_id;
-    
+
     // PASO 2: Validación de auto-match
     // Un usuario no puede hacer match consigo mismo
     if (userId === bookOwnerId) {
-      return { success: false, message: "No se puede hacer match consigo mismo" };
+      return {
+        success: false,
+        message: "No se puede hacer match consigo mismo",
+      };
     }
 
     // PASO 3: Verificar si ya existe un match entre estos usuarios
@@ -60,8 +65,13 @@ export async function checkAndCreateAutoMatch(userId, publishedBookId) {
     });
 
     if (existingMatch) {
-      console.log(`Ya existe un match entre usuarios ${userId} y ${bookOwnerId}`);
-      return { success: false, message: "Ya existe un match entre estos usuarios" };
+      console.log(
+        `Ya existe un match entre usuarios ${userId} y ${bookOwnerId}`
+      );
+      return {
+        success: false,
+        message: "Ya existe un match entre estos usuarios",
+      };
     }
 
     // PASO 4: Búsqueda de reciprocidad
@@ -89,7 +99,9 @@ export async function checkAndCreateAutoMatch(userId, publishedBookId) {
       ],
     });
 
-    console.log(`Libros del usuario ${userId} que le gustaron al dueño: ${currentUserBooks.length}`);
+    console.log(
+      `Libros del usuario ${userId} que le gustaron al dueño: ${currentUserBooks.length}`
+    );
 
     // PASO 5: Validación de reciprocidad
     if (currentUserBooks.length === 0) {
@@ -115,7 +127,7 @@ export async function checkAndCreateAutoMatch(userId, publishedBookId) {
           author: likedBook.Book.author,
         },
         // Información de todos los libros del usuario que el dueño había likeado
-        user2_liked_books: currentUserBooks.map(book => ({
+        user2_liked_books: currentUserBooks.map((book) => ({
           published_book_id: book.published_book_id,
           title: book.Book.title,
           author: book.Book.author,
@@ -192,7 +204,8 @@ export async function getAutoMatchStats(userId) {
       total: totalMatches,
       automatic: autoMatches,
       manual: manualMatches,
-      auto_percentage: totalMatches > 0 ? Math.round((autoMatches / totalMatches) * 100) : 0,
+      auto_percentage:
+        totalMatches > 0 ? Math.round((autoMatches / totalMatches) * 100) : 0,
     };
   } catch (error) {
     console.error("Error obteniendo estadísticas de auto-match:", error);
@@ -221,12 +234,24 @@ export async function getUserAutoMatches(userId) {
         {
           model: User,
           as: "User1",
-          attributes: ["user_id", "first_name", "last_name", "email", "profile_image_base64"],
+          attributes: [
+            "user_id",
+            "first_name",
+            "last_name",
+            "email",
+            "profile_image_base64",
+          ],
         },
         {
           model: User,
           as: "User2",
-          attributes: ["user_id", "first_name", "last_name", "email", "profile_image_base64"],
+          attributes: [
+            "user_id",
+            "first_name",
+            "last_name",
+            "email",
+            "profile_image_base64",
+          ],
         },
       ],
       order: [["date_match", "DESC"]],
@@ -234,7 +259,8 @@ export async function getUserAutoMatches(userId) {
 
     // Formatear para mostrar el "otro usuario" y detalles del match
     const formattedMatches = autoMatches.map((match) => {
-      const otherUser = match.get("user_id_1") === userId ? match.User2 : match.User1;
+      const otherUser =
+        match.get("user_id_1") === userId ? match.User2 : match.User1;
       return {
         match_id: match.get("match_id"),
         date_match: match.get("date_match"),

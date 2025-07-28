@@ -27,20 +27,20 @@ export default function SwipeTestPage() {
             user_id: "user-1",
             first_name: "Ana",
             last_name: "García",
-            email: "ana@example.com"
+            email: "ana@example.com",
           },
           User2: {
             user_id: "user-2",
             first_name: "Carlos",
             last_name: "López",
-            email: "carlos@example.com"
-          }
+            email: "carlos@example.com",
+          },
         },
         trigger_info: {
           trigger_book: "Cien años de soledad",
-          books_count: 1
-        }
-      }
+          books_count: 1,
+        },
+      },
     },
     {
       id: 2,
@@ -56,20 +56,20 @@ export default function SwipeTestPage() {
             user_id: "user-1",
             first_name: "María",
             last_name: "Rodríguez",
-            email: "maria@example.com"
+            email: "maria@example.com",
           },
           User2: {
             user_id: "user-3",
             first_name: "Alejandro",
             last_name: "Martín",
-            email: "alejandro@example.com"
-          }
+            email: "alejandro@example.com",
+          },
         },
         trigger_info: {
           trigger_book: "El Principito",
-          books_count: 5
-        }
-      }
+          books_count: 5,
+        },
+      },
     },
     {
       id: 3,
@@ -85,20 +85,20 @@ export default function SwipeTestPage() {
             user_id: "user-1",
             first_name: "Isabella",
             last_name: "Fernández-Vázquez",
-            email: "isabella.fernandez@example.com"
+            email: "isabella.fernandez@example.com",
           },
           User2: {
             user_id: "user-4",
             first_name: "Sebastián",
             last_name: "García-Montenegro",
-            email: "sebastian.garcia@example.com"
-          }
+            email: "sebastian.garcia@example.com",
+          },
         },
         trigger_info: {
           trigger_book: "Don Quijote de la Mancha - Edición Conmemorativa",
-          books_count: 3
-        }
-      }
+          books_count: 3,
+        },
+      },
     },
     {
       id: 4,
@@ -106,9 +106,9 @@ export default function SwipeTestPage() {
       description: "Simular cuando no se crea match",
       autoMatchData: {
         created: false,
-        reason: "No hay likes mutuos suficientes"
-      }
-    }
+        reason: "No hay likes mutuos suficientes",
+      },
+    },
   ];
 
   const handleTestNotification = (scenario) => {
@@ -130,7 +130,7 @@ export default function SwipeTestPage() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard/swipe')}
+            onClick={() => navigate("/dashboard/swipe")}
             className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors mb-4"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -142,8 +142,9 @@ export default function SwipeTestPage() {
               🧪 Página de Pruebas - Auto Match
             </h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Prueba diferentes escenarios de auto-match sin necesidad de múltiples cuentas.
-              Haz clic en cualquier escenario para ver la notificación correspondiente.
+              Prueba diferentes escenarios de auto-match sin necesidad de
+              múltiples cuentas. Haz clic en cualquier escenario para ver la
+              notificación correspondiente.
             </p>
           </div>
         </div>
@@ -159,10 +160,21 @@ export default function SwipeTestPage() {
                 ¿Cómo funciona el Auto-Match?
               </h3>
               <ul className="space-y-1 text-blue-800 text-sm">
-                <li>• Cuando dos usuarios se dan &ldquo;like&rdquo; mutuamente, se crea automáticamente un match</li>
-                <li>• La notificación aparece inmediatamente después del like</li>
-                <li>• Se muestra información del otro usuario y el libro que activó el match</li>
-                <li>• Si hay múltiples libros en común, se indica la cantidad total</li>
+                <li>
+                  • Cuando dos usuarios se dan &ldquo;like&rdquo; mutuamente, se
+                  crea automáticamente un match
+                </li>
+                <li>
+                  • La notificación aparece inmediatamente después del like
+                </li>
+                <li>
+                  • Se muestra información del otro usuario y el libro que
+                  activó el match
+                </li>
+                <li>
+                  • Si hay múltiples libros en común, se indica la cantidad
+                  total
+                </li>
               </ul>
             </div>
           </div>
@@ -177,18 +189,20 @@ export default function SwipeTestPage() {
               whileTap={{ scale: 0.98 }}
               className={`bg-white rounded-xl shadow-md border-2 p-6 cursor-pointer transition-all duration-200 ${
                 scenario.autoMatchData.created
-                  ? 'border-green-200 hover:border-green-300 hover:shadow-lg'
-                  : 'border-red-200 hover:border-red-300 hover:shadow-lg'
+                  ? "border-green-200 hover:border-green-300 hover:shadow-lg"
+                  : "border-red-200 hover:border-red-300 hover:shadow-lg"
               }`}
               onClick={() => handleTestNotification(scenario)}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-3 rounded-lg ${
-                    scenario.autoMatchData.created
-                      ? 'bg-green-100'
-                      : 'bg-red-100'
-                  }`}>
+                  <div
+                    className={`p-3 rounded-lg ${
+                      scenario.autoMatchData.created
+                        ? "bg-green-100"
+                        : "bg-red-100"
+                    }`}
+                  >
                     {scenario.autoMatchData.created ? (
                       <Heart className="h-6 w-6 text-green-600" />
                     ) : (
@@ -204,12 +218,14 @@ export default function SwipeTestPage() {
                     </p>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  scenario.autoMatchData.created
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {scenario.autoMatchData.created ? 'Éxito' : 'Fallo'}
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    scenario.autoMatchData.created
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {scenario.autoMatchData.created ? "Éxito" : "Fallo"}
                 </span>
               </div>
 
@@ -219,18 +235,25 @@ export default function SwipeTestPage() {
                   <div className="flex items-center space-x-2 mb-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="font-medium text-gray-700">
-                      {scenario.autoMatchData.match.User2.first_name} {scenario.autoMatchData.match.User2.last_name}
+                      {scenario.autoMatchData.match.User2.first_name}{" "}
+                      {scenario.autoMatchData.match.User2.last_name}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <BookOpen className="h-4 w-4 text-gray-500" />
                     <span className="text-gray-600">
-                      &ldquo;{scenario.autoMatchData.trigger_info.trigger_book}&rdquo;
+                      &ldquo;{scenario.autoMatchData.trigger_info.trigger_book}
+                      &rdquo;
                     </span>
                   </div>
                   {scenario.autoMatchData.trigger_info.books_count > 1 && (
                     <p className="text-xs text-gray-500 mt-1">
-                      +{scenario.autoMatchData.trigger_info.books_count - 1} libro{scenario.autoMatchData.trigger_info.books_count > 2 ? 's' : ''} más
+                      +{scenario.autoMatchData.trigger_info.books_count - 1}{" "}
+                      libro
+                      {scenario.autoMatchData.trigger_info.books_count > 2
+                        ? "s"
+                        : ""}{" "}
+                      más
                     </p>
                   )}
                 </div>
@@ -256,11 +279,21 @@ export default function SwipeTestPage() {
                 Consejos para las pruebas
               </h3>
               <ul className="space-y-1 text-yellow-800 text-sm">
-                <li>• Prueba cada escenario para verificar diferentes comportamientos</li>
-                <li>• Observa cómo cambia la UI con nombres largos y múltiples libros</li>
-                <li>• Verifica que la navegación a Matches funcione correctamente</li>
+                <li>
+                  • Prueba cada escenario para verificar diferentes
+                  comportamientos
+                </li>
+                <li>
+                  • Observa cómo cambia la UI con nombres largos y múltiples
+                  libros
+                </li>
+                <li>
+                  • Verifica que la navegación a Matches funcione correctamente
+                </li>
                 <li>• Comprueba el auto-close después de 8 segundos</li>
-                <li>• Testa la responsividad en diferentes tamaños de pantalla</li>
+                <li>
+                  • Testa la responsividad en diferentes tamaños de pantalla
+                </li>
               </ul>
             </div>
           </div>

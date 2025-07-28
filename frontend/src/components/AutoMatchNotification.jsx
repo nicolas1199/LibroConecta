@@ -31,7 +31,7 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
   // Cierra notificación y redirige al usuario
   const handleViewMatches = useCallback(() => {
     handleClose(); // Cerrar notificación primero
-    navigate('/dashboard/matches'); // Navegar a matches
+    navigate("/dashboard/matches"); // Navegar a matches
   }, [handleClose, navigate]);
 
   // EFECTO: Auto-cierre automático
@@ -51,7 +51,8 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
 
   // EXTRACCIÓN DE DATOS del match
   const { match, trigger_info } = autoMatchData;
-  const otherUser = match.User1?.user_id === match.user_id_1 ? match.User2 : match.User1;
+  const otherUser =
+    match.User1?.user_id === match.user_id_1 ? match.User2 : match.User1;
 
   return (
     <AnimatePresence>
@@ -86,12 +87,8 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
 
             {/* Título */}
             <div className="text-center mb-4">
-              <h3 className="text-xl font-bold mb-1">
-                ¡Nuevo Match!
-              </h3>
-              <p className="text-pink-100 text-sm">
-                Tienes un like mutuo
-              </p>
+              <h3 className="text-xl font-bold mb-1">¡Nuevo Match!</h3>
+              <p className="text-pink-100 text-sm">Tienes un like mutuo</p>
             </div>
 
             {/* Información del usuario */}
@@ -104,9 +101,7 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
                   <p className="font-semibold">
                     {otherUser?.first_name} {otherUser?.last_name}
                   </p>
-                  <p className="text-pink-100 text-sm">
-                    {otherUser?.email}
-                  </p>
+                  <p className="text-pink-100 text-sm">{otherUser?.email}</p>
                 </div>
               </div>
             </div>
@@ -125,7 +120,8 @@ export default function AutoMatchNotification({ autoMatchData, onClose }) {
                 </p>
                 {trigger_info.books_count > 1 && (
                   <p className="text-xs text-pink-200 mt-1">
-                    +{trigger_info.books_count - 1} libro{trigger_info.books_count > 2 ? 's' : ''} más en común
+                    +{trigger_info.books_count - 1} libro
+                    {trigger_info.books_count > 2 ? "s" : ""} más en común
                   </p>
                 )}
               </div>

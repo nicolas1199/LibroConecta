@@ -20,7 +20,7 @@ const UserPublishedBookInteraction = sequelize.define(
       comment: "Libro publicado con el que interactúa",
     },
     interaction_type: {
-      type: DataTypes.ENUM('like', 'dislike'),
+      type: DataTypes.ENUM("like", "dislike"),
       allowNull: false,
       comment: "Tipo de interacción: like, dislike",
     },

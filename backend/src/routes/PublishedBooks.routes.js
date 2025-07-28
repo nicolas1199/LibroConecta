@@ -31,11 +31,7 @@ router.get("/", getAllPublishedBooks);
 router.get("/search", searchPublishedBooks);
 
 // Rutas protegidas (requieren autenticación) - ANTES de /:id
-router.get(
-  "/my-books",
-  authenticateToken,
-  getPublishedBooksByUser
-);
+router.get("/my-books", authenticateToken, getPublishedBooksByUser);
 
 router.get("/:id", getPublishedBookById);
 router.get(
@@ -69,54 +65,22 @@ router.delete(
 );
 
 // Rutas para recomendaciones y swipe
-router.get(
-  "/recommendations/swipe",
-  authenticateToken,
-  getRecommendations
-);
+router.get("/recommendations/swipe", authenticateToken, getRecommendations);
 
-router.post(
-  "/interactions",
-  authenticateToken,
-  recordInteraction
-);
+router.post("/interactions", authenticateToken, recordInteraction);
 
-router.get(
-  "/interactions/stats",
-  authenticateToken,
-  getUserInteractionStats
-);
+router.get("/interactions/stats", authenticateToken, getUserInteractionStats);
 
 // Rutas para historial de interacciones
-router.get(
-  "/interactions/history",
-  authenticateToken,
-  getUserSwipeHistory
-);
+router.get("/interactions/history", authenticateToken, getUserSwipeHistory);
 
-router.put(
-  "/interactions/:id",
-  authenticateToken,
-  updateSwipeInteraction
-);
+router.put("/interactions/:id", authenticateToken, updateSwipeInteraction);
 
-router.delete(
-  "/interactions/:id",
-  authenticateToken,
-  deleteSwipeInteraction
-);
+router.delete("/interactions/:id", authenticateToken, deleteSwipeInteraction);
 
 // 🚀 Rutas para auto-matches
-router.get(
-  "/auto-matches/stats",
-  authenticateToken,
-  getUserAutoMatchStats
-);
+router.get("/auto-matches/stats", authenticateToken, getUserAutoMatchStats);
 
-router.get(
-  "/auto-matches",
-  authenticateToken,
-  getUserAutoMatchesList
-);
+router.get("/auto-matches", authenticateToken, getUserAutoMatchesList);
 
 export default router;

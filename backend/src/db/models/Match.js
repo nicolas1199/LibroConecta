@@ -25,9 +25,10 @@ const Match = sequelize.define(
       comment: "Fecha en que se creó el match",
     },
     match_type: {
-      type: DataTypes.ENUM('manual', 'automatic'),
-      defaultValue: 'manual',
-      comment: "Tipo de match: manual (creado por usuario) o automatic (por likes mutuos)",
+      type: DataTypes.ENUM("manual", "automatic"),
+      defaultValue: "manual",
+      comment:
+        "Tipo de match: manual (creado por usuario) o automatic (por likes mutuos)",
     },
     triggered_by_books: {
       type: DataTypes.JSON,

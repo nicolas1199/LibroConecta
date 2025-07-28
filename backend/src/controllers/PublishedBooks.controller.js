@@ -8,73 +8,96 @@ import {
   PublishedBookImage,
   Category,
   UserPublishedBookInteraction,
-} from "../db/modelIndex.js"
-import { Op, fn, col } from "sequelize"
-import { success, error } from "../utils/responses.util.js"
-import { checkAndCreateAutoMatch, getAutoMatchStats, getUserAutoMatches } from "../services/AutoMatch.service.js"
+} from "../db/modelIndex.js";
+import { Op, fn, col } from "sequelize";
+import { success, error } from "../utils/responses.util.js";
+import {
+  checkAndCreateAutoMatch,
+  getAutoMatchStats,
+  getUserAutoMatches,
+} from "../services/AutoMatch.service.js";
 
 // Obtener todos los libros publicados con filtros
 export async function getAllPublishedBooks(req, res) {
   try {
-    const { page = 1, limit = 10, transaction_type_id, condition_id, location_id, min_price, max_price } = req.query
+    const {
+      page = 1,
+      limit = 10,
+      transaction_type_id,
+      condition_id,
+      location_id,
+      min_price,
+      max_price,
+    } = req.query;
 
-    const offset = (page - 1) * limit
-    const whereConditions = {}
+    const offset = (page - 1) * limit;
+    const whereConditions = {};
 
     // Aplicar filtros
-    if (transaction_type_id) whereConditions.transaction_type_id = transaction_type_id
-    if (condition_id) whereConditions.condition_id = condition_id
-    if (location_id) whereConditions.location_id = location_id
-    if (min_price) whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price }
-    if (max_price) whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price }
-    
-    // 🚀 NUEVO: Solo mostrar libros disponibles (no vendidos)
-    whereConditions.status = { [Op.in]: ['available', 'reserved'] }
+    if (transaction_type_id)
+      whereConditions.transaction_type_id = transaction_type_id;
+    if (condition_id) whereConditions.condition_id = condition_id;
+    if (location_id) whereConditions.location_id = location_id;
+    if (min_price)
+      whereConditions.price = { ...whereConditions.price, [Op.gte]: min_price };
+    if (max_price)
+      whereConditions.price = { ...whereConditions.price, [Op.lte]: max_price };
 
-    const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
-      where: whereConditions,
-      include: [
-        {
-          model: Book,
-          include: [
-            {
-              model: Category,
-              as: "Categories",
-              through: { attributes: [] },
-            },
-          ],
-        },
-        {
-          model: User,
-          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
-          include: [
-            {
-              model: LocationBook,
-              as: "userLocation",
-              attributes: ["location_id", "comuna", "region"],
-            },
-          ],
-        },
-        {
-          model: TransactionType,
-        },
-        {
-          model: BookCondition,
-        },
-        {
-          model: LocationBook,
-        },
-        {
-          model: PublishedBookImage,
-          limit: 1,
-          where: { is_primary: true },
-          required: false,
-        },
-      ],
-      order: [["date_published", "DESC"]],
-      limit: Number.parseInt(limit),
-      offset: offset,
-    })
+    // 🚀 NUEVO: Solo mostrar libros disponibles (no vendidos)
+    whereConditions.status = { [Op.in]: ["available", "reserved"] };
+
+    const { count, rows: publishedBooks } =
+      await PublishedBooks.findAndCountAll({
+        where: whereConditions,
+        include: [
+          {
+            model: Book,
+            include: [
+              {
+                model: Category,
+                as: "Categories",
+                through: { attributes: [] },
+              },
+            ],
+          },
+          {
+            model: User,
+            attributes: [
+              "user_id",
+              "first_name",
+              "last_name",
+              "username",
+              "location_id",
+              "profile_image_base64",
+            ],
+            include: [
+              {
+                model: LocationBook,
+                as: "userLocation",
+                attributes: ["location_id", "comuna", "region"],
+              },
+            ],
+          },
+          {
+            model: TransactionType,
+          },
+          {
+            model: BookCondition,
+          },
+          {
+            model: LocationBook,
+          },
+          {
+            model: PublishedBookImage,
+            limit: 1,
+            where: { is_primary: true },
+            required: false,
+          },
+        ],
+        order: [["date_published", "DESC"]],
+        limit: Number.parseInt(limit),
+        offset: offset,
+      });
 
     res.json({
       publishedBooks,
@@ -85,17 +108,17 @@ export async function getAllPublishedBooks(req, res) {
         hasNextPage: page * limit < count,
         hasPreviousPage: page > 1,
       },
-    })
+    });
   } catch (error) {
-    console.error("Error en getAllPublishedBooks:", error)
-    res.status(500).json({ error: "Error al obtener libros publicados" })
+    console.error("Error en getAllPublishedBooks:", error);
+    res.status(500).json({ error: "Error al obtener libros publicados" });
   }
 }
 
 // Obtener libro publicado por ID
 export async function getPublishedBookById(req, res) {
   try {
-    const { id } = req.params
+    const { id } = req.params;
     const publishedBook = await PublishedBooks.findByPk(id, {
       include: [
         {
@@ -110,7 +133,14 @@ export async function getPublishedBookById(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          attributes: [
+            "user_id",
+            "first_name",
+            "last_name",
+            "username",
+            "location_id",
+            "profile_image_base64",
+          ],
           include: [
             {
               model: LocationBook,
@@ -136,16 +166,16 @@ export async function getPublishedBookById(req, res) {
           ],
         },
       ],
-    })
+    });
 
     if (!publishedBook) {
-      return res.status(404).json({ error: "Libro publicado no encontrado" })
+      return res.status(404).json({ error: "Libro publicado no encontrado" });
     }
 
-    res.json(publishedBook)
+    res.json(publishedBook);
   } catch (error) {
-    console.error("Error en getPublishedBookById:", error)
-    res.status(500).json({ error: "Error al obtener libro publicado" })
+    console.error("Error en getPublishedBookById:", error);
+    res.status(500).json({ error: "Error al obtener libro publicado" });
   }
 }
 
@@ -153,43 +183,44 @@ export async function getPublishedBookById(req, res) {
 export async function getPublishedBooksByUser(req, res) {
   try {
     // Si no hay userId en params, usar el usuario autenticado
-    const userId = req.params.userId || req.user.user_id
-    const { page = 1, limit = 10 } = req.query
-    const offset = (page - 1) * limit
+    const userId = req.params.userId || req.user.user_id;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
 
-    const { count, rows: publishedBooks } = await PublishedBooks.findAndCountAll({
-      where: { user_id: userId },
-      include: [
-        {
-          model: Book,
-          include: [
-            {
-              model: Category,
-              as: "Categories",
-              through: { attributes: [] },
-            },
-          ],
-        },
-        {
-          model: TransactionType,
-        },
-        {
-          model: BookCondition,
-        },
-        {
-          model: LocationBook,
-        },
-        {
-          model: PublishedBookImage,
-          limit: 1,
-          where: { is_primary: true },
-          required: false,
-        },
-      ],
-      order: [["date_published", "DESC"]],
-      limit: Number.parseInt(limit),
-      offset: offset,
-    })
+    const { count, rows: publishedBooks } =
+      await PublishedBooks.findAndCountAll({
+        where: { user_id: userId },
+        include: [
+          {
+            model: Book,
+            include: [
+              {
+                model: Category,
+                as: "Categories",
+                through: { attributes: [] },
+              },
+            ],
+          },
+          {
+            model: TransactionType,
+          },
+          {
+            model: BookCondition,
+          },
+          {
+            model: LocationBook,
+          },
+          {
+            model: PublishedBookImage,
+            limit: 1,
+            where: { is_primary: true },
+            required: false,
+          },
+        ],
+        order: [["date_published", "DESC"]],
+        limit: Number.parseInt(limit),
+        offset: offset,
+      });
 
     res.json({
       publishedBooks,
@@ -200,10 +231,12 @@ export async function getPublishedBooksByUser(req, res) {
         hasNextPage: page * limit < count,
         hasPreviousPage: page > 1,
       },
-    })
+    });
   } catch (error) {
-    console.error("Error en getPublishedBooksByUser:", error)
-    res.status(500).json({ error: "Error al obtener libros publicados por usuario" })
+    console.error("Error en getPublishedBooksByUser:", error);
+    res
+      .status(500)
+      .json({ error: "Error al obtener libros publicados por usuario" });
   }
 }
 
@@ -219,9 +252,9 @@ export async function createPublishedBook(req, res) {
       location_id,
       description,
       images = [],
-    } = req.body
+    } = req.body;
 
-    const user_id = req.user.user_id
+    const user_id = req.user.user_id;
 
     console.log("Datos recibidos para publicar libro:", {
       book_id,
@@ -232,13 +265,13 @@ export async function createPublishedBook(req, res) {
       price,
       description,
       images: images.length,
-    })
+    });
 
     // Validar campos requeridos
     if (!book_id || !transaction_type_id || !condition_id) {
       return res.status(400).json({
         error: "book_id, transaction_type_id y condition_id son requeridos",
-      })
+      });
     }
 
     // Crear el libro publicado
@@ -253,60 +286,63 @@ export async function createPublishedBook(req, res) {
       description,
       date_published: new Date(),
       updated_at: new Date(),
-    })
+    });
 
-    console.log("Libro publicado creado:", newPublishedBook.dataValues)
+    console.log("Libro publicado creado:", newPublishedBook.dataValues);
 
     // Nota: Las imágenes se suben por separado usando /api/published-book-images/upload/:publishedBookId
     // No crear placeholders aquí
 
     // Obtener el libro publicado completo
-    const publishedBookComplete = await PublishedBooks.findByPk(newPublishedBook.published_book_id, {
-      include: [
-        {
-          model: Book,
-          include: [
-            {
-              model: Category,
-              as: "Categories",
-              through: { attributes: [] },
-            },
-          ],
-        },
-        {
-          model: TransactionType,
-        },
-        {
-          model: BookCondition,
-        },
-        {
-          model: LocationBook,
-        },
-        {
-          model: PublishedBookImage,
-        },
-      ],
-    })
+    const publishedBookComplete = await PublishedBooks.findByPk(
+      newPublishedBook.published_book_id,
+      {
+        include: [
+          {
+            model: Book,
+            include: [
+              {
+                model: Category,
+                as: "Categories",
+                through: { attributes: [] },
+              },
+            ],
+          },
+          {
+            model: TransactionType,
+          },
+          {
+            model: BookCondition,
+          },
+          {
+            model: LocationBook,
+          },
+          {
+            model: PublishedBookImage,
+          },
+        ],
+      }
+    );
 
-    console.log("Libro publicado completo:", publishedBookComplete.dataValues)
+    console.log("Libro publicado completo:", publishedBookComplete.dataValues);
 
-    res.status(201).json(publishedBookComplete)
+    res.status(201).json(publishedBookComplete);
   } catch (error) {
-    console.error("Error en createPublishedBook:", error)
+    console.error("Error en createPublishedBook:", error);
     res.status(500).json({
       error: "Error al crear libro publicado",
       details: error.message,
-    })
+    });
   }
 }
 
 // Actualizar libro publicado
 export async function updatePublishedBook(req, res) {
   try {
-    console.log("Iniciando actualización de libro publicado:", req.params.id)
-    console.log("Datos recibidos:", req.body)
+    console.log("Iniciando actualización de libro publicado:", req.params.id);
+    console.log("Datos recibidos:", req.body);
 
-    const { id } = req.params
+    const { id } = req.params;
     const {
       transaction_type_id,
       price,
@@ -315,52 +351,55 @@ export async function updatePublishedBook(req, res) {
       location_id,
       description,
       book, // Información del libro a actualizar
-    } = req.body
+    } = req.body;
 
     // Buscar el libro publicado con su libro asociado
     const publishedBook = await PublishedBooks.findByPk(id, {
       include: [{ model: Book }],
-    })
+    });
 
     if (!publishedBook) {
-      return res.status(404).json({ error: "Libro publicado no encontrado" })
+      return res.status(404).json({ error: "Libro publicado no encontrado" });
     }
 
     // Verificar que el usuario sea el propietario
     if (publishedBook.user_id !== req.user.user_id) {
-      return res.status(403).json({ error: "No tienes permisos para actualizar este libro" })
+      return res
+        .status(403)
+        .json({ error: "No tienes permisos para actualizar este libro" });
     }
 
-    console.log("Libro encontrado:", publishedBook.id)
+    console.log("Libro encontrado:", publishedBook.id);
 
     // Actualizar información del libro si se proporciona
     if (book && publishedBook.Book) {
-      console.log("Actualizando información del libro base:", book)
+      console.log("Actualizando información del libro base:", book);
       await publishedBook.Book.update({
         title: book.title || publishedBook.Book.title,
         author: book.author || publishedBook.Book.author,
         date_of_pub: book.date_of_pub || publishedBook.Book.date_of_pub,
-      })
-      console.log("Libro base actualizado")
+      });
+      console.log("Libro base actualizado");
     }
 
     // Preparar los campos a actualizar
-    const updateFields = {}
+    const updateFields = {};
 
-    if (transaction_type_id !== undefined) updateFields.transaction_type_id = transaction_type_id
-    if (price !== undefined) updateFields.price = price
-    if (look_for !== undefined) updateFields.look_for = look_for
-    if (condition_id !== undefined) updateFields.condition_id = condition_id
-    if (location_id !== undefined) updateFields.location_id = location_id
-    if (description !== undefined) updateFields.description = description
+    if (transaction_type_id !== undefined)
+      updateFields.transaction_type_id = transaction_type_id;
+    if (price !== undefined) updateFields.price = price;
+    if (look_for !== undefined) updateFields.look_for = look_for;
+    if (condition_id !== undefined) updateFields.condition_id = condition_id;
+    if (location_id !== undefined) updateFields.location_id = location_id;
+    if (description !== undefined) updateFields.description = description;
 
-    updateFields.updated_at = new Date()
+    updateFields.updated_at = new Date();
 
-    console.log("Campos a actualizar:", updateFields)
+    console.log("Campos a actualizar:", updateFields);
 
     // Actualizar la publicación
-    await publishedBook.update(updateFields)
-    console.log("Publicación actualizada")
+    await publishedBook.update(updateFields);
+    console.log("Publicación actualizada");
 
     // Obtener el libro actualizado completo
     const updatedBook = await PublishedBooks.findByPk(id, {
@@ -388,43 +427,50 @@ export async function updatePublishedBook(req, res) {
           model: PublishedBookImage,
         },
       ],
-    })
+    });
 
-    console.log("Enviando respuesta con libro actualizado")
-    res.json(updatedBook)
+    console.log("Enviando respuesta con libro actualizado");
+    res.json(updatedBook);
   } catch (error) {
-    console.error("Error en updatePublishedBook:", error)
-    res.status(500).json({ error: "Error al actualizar libro publicado", details: error.message })
+    console.error("Error en updatePublishedBook:", error);
+    res
+      .status(500)
+      .json({
+        error: "Error al actualizar libro publicado",
+        details: error.message,
+      });
   }
 }
 
 // Eliminar libro publicado
 export async function deletePublishedBook(req, res) {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
-    const publishedBook = await PublishedBooks.findByPk(id)
+    const publishedBook = await PublishedBooks.findByPk(id);
     if (!publishedBook) {
-      return res.status(404).json({ error: "Libro publicado no encontrado" })
+      return res.status(404).json({ error: "Libro publicado no encontrado" });
     }
 
     // Verificar que el usuario sea el propietario
     if (publishedBook.user_id !== req.user.user_id) {
-      return res.status(403).json({ error: "No tienes permisos para eliminar este libro" })
+      return res
+        .status(403)
+        .json({ error: "No tienes permisos para eliminar este libro" });
     }
 
     // Eliminar imágenes asociadas
     await PublishedBookImage.destroy({
       where: { published_book_id: id },
-    })
+    });
 
     // Eliminar el libro publicado
-    await publishedBook.destroy()
+    await publishedBook.destroy();
 
-    res.json({ message: "Libro publicado eliminado correctamente" })
+    res.json({ message: "Libro publicado eliminado correctamente" });
   } catch (error) {
-    console.error("Error en deletePublishedBook:", error)
-    res.status(500).json({ error: "Error al eliminar libro publicado" })
+    console.error("Error en deletePublishedBook:", error);
+    res.status(500).json({ error: "Error al eliminar libro publicado" });
   }
 }
 
@@ -441,11 +487,13 @@ export async function deletePublishedBook(req, res) {
 export async function getRecommendations(req, res) {
   try {
     // Extracción de datos de entrada
-    const { user_id } = req.user // Usuario autenticado desde middleware auth
-    const { limit = 20 } = req.query // Cantidad solicitada de libros (default: 20)
-    const requestedLimit = Number.parseInt(limit)
+    const { user_id } = req.user; // Usuario autenticado desde middleware auth
+    const { limit = 20 } = req.query; // Cantidad solicitada de libros (default: 20)
+    const requestedLimit = Number.parseInt(limit);
 
-    console.log(`Obteniendo ${requestedLimit} recomendaciones para usuario: ${user_id}`)
+    console.log(
+      `Obteniendo ${requestedLimit} recomendaciones para usuario: ${user_id}`
+    );
 
     // PASO 1: Obtener historial de interacciones del usuario
     // Consulta tabla UserPublishedBookInteraction para conocer qué libros ya evaluó
@@ -453,45 +501,49 @@ export async function getRecommendations(req, res) {
       where: { user_id },
       attributes: ["published_book_id"], // Solo IDs para optimizar consulta
       raw: true, // Retorna objetos planos en lugar de instancias Sequelize
-    })
+    });
 
     // Extraer array de IDs de libros ya evaluados
-    const interactedBookIds = interactedBooks.map((interaction) => interaction.published_book_id)
+    const interactedBookIds = interactedBooks.map(
+      (interaction) => interaction.published_book_id
+    );
 
-    console.log(`Libros ya evaluados: ${interactedBookIds.length}`)
+    console.log(`Libros ya evaluados: ${interactedBookIds.length}`);
 
     // PASO 2: Construir filtros de exclusión
     // Excluir libros del propio usuario y libros ya evaluados
     const whereConditions = {
       user_id: { [Op.ne]: user_id }, // Operador "not equal" - excluir propios libros
-    }
+    };
 
     // PASO 3: Añadir filtro de libros ya evaluados si existen
     // Solo aplicar filtro si el usuario ha interactuado con algún libro
     if (interactedBookIds.length > 0) {
-      whereConditions.published_book_id = { [Op.notIn]: interactedBookIds } // Excluir libros ya swipeados
+      whereConditions.published_book_id = { [Op.notIn]: interactedBookIds }; // Excluir libros ya swipeados
     }
 
     // PASO 4: Análisis de disponibilidad
     // Contar cuántos libros están realmente disponibles con los filtros aplicados
     const availableCount = await PublishedBooks.count({
-      where: whereConditions
-    })
+      where: whereConditions,
+    });
 
-    console.log(`Libros disponibles para swipe: ${availableCount}`)
+    console.log(`Libros disponibles para swipe: ${availableCount}`);
 
     // PASO 5: Manejo de caso sin libros disponibles
     // Si no hay libros disponibles, informar al usuario que ya revisó todo
     if (availableCount === 0) {
-      console.log(`No hay más libros para mostrar al usuario ${user_id}`)
-      return success(res, [], "Has revisado todos los libros disponibles")
+      console.log(`No hay más libros para mostrar al usuario ${user_id}`);
+      return success(res, [], "Has revisado todos los libros disponibles");
     }
 
     // PASO 6: Cálculo inteligente del límite
     // Determinar cuántos libros solicitar (el menor entre lo pedido y lo disponible)
     // Esto evita solicitar más libros de los que existen
-    const actualLimit = Math.min(requestedLimit, availableCount)
-    console.log(`Solicitando ${actualLimit} libros (pedidos: ${requestedLimit}, disponibles: ${availableCount})`)
+    const actualLimit = Math.min(requestedLimit, availableCount);
+    console.log(
+      `Solicitando ${actualLimit} libros (pedidos: ${requestedLimit}, disponibles: ${availableCount})`
+    );
 
     // PASO 7: Consulta principal con joins completos
     // Obtener libros con toda la información necesaria para el frontend
@@ -513,7 +565,13 @@ export async function getRecommendations(req, res) {
         {
           // Información del usuario propietario del libro
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "username", "email"],
+          attributes: [
+            "user_id",
+            "first_name",
+            "last_name",
+            "username",
+            "email",
+          ],
         },
         {
           // Tipo de transacción (venta, intercambio, regalo)
@@ -541,58 +599,74 @@ export async function getRecommendations(req, res) {
       ],
       limit: actualLimit, // Usar el límite calculado exacto (no más de lo necesario)
       distinct: true, // Asegurar resultados únicos a nivel de base de datos
-    })
+    });
 
     // PASO 8: Filtrado de duplicados adicional (capa de seguridad)
     // Filtrar duplicados por published_book_id como precaución adicional
-    const uniqueRecommendations = recommendations
-      .filter((book, index, self) => 
-        index === self.findIndex(b => b.published_book_id === book.published_book_id)
-      )
+    const uniqueRecommendations = recommendations.filter(
+      (book, index, self) =>
+        index ===
+        self.findIndex((b) => b.published_book_id === book.published_book_id)
+    );
 
     // PASO 9: Logging y debugging
-    console.log(`Recomendaciones encontradas: ${recommendations.length}`)
-    console.log(`Recomendaciones únicas después de filtrar: ${uniqueRecommendations.length}`)
-    console.log(`IDs de libros recomendados: [${uniqueRecommendations.map((r) => r.published_book_id).join(", ")}]`)
+    console.log(`Recomendaciones encontradas: ${recommendations.length}`);
+    console.log(
+      `Recomendaciones únicas después de filtrar: ${uniqueRecommendations.length}`
+    );
+    console.log(
+      `IDs de libros recomendados: [${uniqueRecommendations
+        .map((r) => r.published_book_id)
+        .join(", ")}]`
+    );
 
     // PASO 10: Detección de duplicados para debugging
     // Identificar y reportar cualquier duplicado encontrado
-    const duplicates = recommendations.filter((book, index, self) => 
-      self.findIndex(b => b.published_book_id === book.published_book_id) !== index
-    )
-    
+    const duplicates = recommendations.filter(
+      (book, index, self) =>
+        self.findIndex(
+          (b) => b.published_book_id === book.published_book_id
+        ) !== index
+    );
+
     if (duplicates.length > 0) {
-      console.warn(`Se encontraron ${duplicates.length} libros duplicados:`)
-      duplicates.forEach(book => {
-        console.warn(`   - ID: ${book.published_book_id}, Título: ${book.Book?.title || 'N/A'}`)
-      })
+      console.warn(`Se encontraron ${duplicates.length} libros duplicados:`);
+      duplicates.forEach((book) => {
+        console.warn(
+          `   - ID: ${book.published_book_id}, Título: ${
+            book.Book?.title || "N/A"
+          }`
+        );
+      });
     }
 
     // PASO 11: Validación de resultado vacío
     // Si no hay libros para mostrar, enviar mensaje específico
     if (uniqueRecommendations.length === 0) {
-      console.log(`No hay más libros para mostrar al usuario ${user_id}`)
-      return success(res, [], "Has revisado todos los libros disponibles")
+      console.log(`No hay más libros para mostrar al usuario ${user_id}`);
+      return success(res, [], "Has revisado todos los libros disponibles");
     }
 
     // PASO 12: Respuesta final con metadata
-    console.log(`Algoritmo de recomendaciones completado:`)
-    console.log(`   Libros solicitados: ${requestedLimit}`)
-    console.log(`   Libros disponibles: ${availableCount}`)
-    console.log(`   Libros entregados: ${uniqueRecommendations.length}`)
+    console.log(`Algoritmo de recomendaciones completado:`);
+    console.log(`   Libros solicitados: ${requestedLimit}`);
+    console.log(`   Libros disponibles: ${availableCount}`);
+    console.log(`   Libros entregados: ${uniqueRecommendations.length}`);
 
     // RETORNO DE DATOS AL FRONTEND:
     // - data: Array de libros recomendados con información completa
     // - message: Mensaje informativo sobre el resultado
     // El frontend usará estos datos para renderizar las tarjetas de swipe
-    return success(res, uniqueRecommendations, 
-      availableCount < requestedLimit 
+    return success(
+      res,
+      uniqueRecommendations,
+      availableCount < requestedLimit
         ? `Se encontraron ${availableCount} libros disponibles de ${requestedLimit} solicitados`
         : `${uniqueRecommendations.length} recomendaciones encontradas`
-    )
+    );
   } catch (err) {
-    console.error("Error en getRecommendations:", err)
-    return error(res, "Error al obtener recomendaciones", 500)
+    console.error("Error en getRecommendations:", err);
+    return error(res, "Error al obtener recomendaciones", 500);
   }
 }
 
@@ -607,31 +681,37 @@ export async function getRecommendations(req, res) {
 export async function recordInteraction(req, res) {
   try {
     // Extracción de datos de entrada
-    const { user_id } = req.user // Usuario autenticado desde middleware
-    const { published_book_id, interaction_type } = req.body // Datos del swipe
+    const { user_id } = req.user; // Usuario autenticado desde middleware
+    const { published_book_id, interaction_type } = req.body; // Datos del swipe
 
     // PASO 1: Validación de datos de entrada
     if (!published_book_id || !interaction_type) {
-      return error(res, "published_book_id e interaction_type son requeridos", 400)
+      return error(
+        res,
+        "published_book_id e interaction_type son requeridos",
+        400
+      );
     }
 
     if (!["like", "dislike"].includes(interaction_type)) {
-      return error(res, "interaction_type debe ser: like o dislike", 400)
+      return error(res, "interaction_type debe ser: like o dislike", 400);
     }
 
     // PASO 2: Verificación de existencia del libro
-    const publishedBook = await PublishedBooks.findByPk(published_book_id)
+    const publishedBook = await PublishedBooks.findByPk(published_book_id);
     if (!publishedBook) {
-      return error(res, "Libro publicado no encontrado", 404)
+      return error(res, "Libro publicado no encontrado", 404);
     }
 
     // PASO 3: Verificación de que no es su propio libro
     // Los usuarios no pueden hacer swipe en sus propios libros
     if (publishedBook.user_id === user_id) {
-      return error(res, "No puedes interactuar con tus propios libros", 400)
+      return error(res, "No puedes interactuar con tus propios libros", 400);
     }
 
-    console.log(`Registrando interacción: usuario ${user_id}, libro ${published_book_id}, tipo: ${interaction_type}`)
+    console.log(
+      `Registrando interacción: usuario ${user_id}, libro ${published_book_id}, tipo: ${interaction_type}`
+    );
 
     // PASO 4: Buscar interacción existente
     // Verificar si el usuario ya interactuó con este libro previamente
@@ -640,29 +720,33 @@ export async function recordInteraction(req, res) {
         user_id,
         published_book_id,
       },
-    })
+    });
 
-    let message
+    let message;
     if (interaction) {
       // CASO A: Actualización de interacción existente
       // El usuario ya había swipeado este libro, cambiar su decisión
-      console.log(`Actualizando interacción existente: ${interaction.interaction_type} → ${interaction_type}`)
-      interaction.interaction_type = interaction_type
-      await interaction.save()
-      message = "Interacción actualizada"
+      console.log(
+        `Actualizando interacción existente: ${interaction.interaction_type} → ${interaction_type}`
+      );
+      interaction.interaction_type = interaction_type;
+      await interaction.save();
+      message = "Interacción actualizada";
     } else {
       // CASO B: Nueva interacción
       // Primera vez que el usuario interactúa con este libro
-      console.log(`Creando nueva interacción`)
+      console.log(`Creando nueva interacción`);
       interaction = await UserPublishedBookInteraction.create({
         user_id,
         published_book_id,
         interaction_type,
-      })
-      message = "Interacción registrada"
+      });
+      message = "Interacción registrada";
     }
 
-    console.log(`Interacción ${message.toLowerCase()}: ID ${interaction.interaction_id}`)
+    console.log(
+      `Interacción ${message.toLowerCase()}: ID ${interaction.interaction_id}`
+    );
 
     // PASO 5: SISTEMA DE AUTO-MATCH
     // Verificar auto-match solo si la interacción es un LIKE
@@ -675,7 +759,10 @@ export async function recordInteraction(req, res) {
         // 1. Busca si el dueño del libro también le dio LIKE a algún libro del usuario actual
         // 2. Si encuentra reciprocidad, crea un Match automático
         // 3. Retorna información del match creado
-        autoMatchResult = await checkAndCreateAutoMatch(user_id, published_book_id);
+        autoMatchResult = await checkAndCreateAutoMatch(
+          user_id,
+          published_book_id
+        );
         if (autoMatchResult.success) {
           console.log(`AUTO-MATCH CREADO! ${autoMatchResult.message}`);
         } else {
@@ -692,25 +779,27 @@ export async function recordInteraction(req, res) {
     // Estructurar datos de respuesta incluyendo información de auto-match
     const responseData = {
       interaction, // Datos de la interacción registrada
-      autoMatch: autoMatchResult?.success ? {
-        // Si se creó un auto-match, incluir información completa
-        created: true,
-        match: autoMatchResult.match, // Datos del match creado
-        trigger_info: autoMatchResult.trigger_info, // Info sobre qué libros causaron el match
-      } : {
-        // Si no se creó auto-match, indicar por qué
-        created: false,
-        reason: autoMatchResult?.message || "No aplicable",
-      }
+      autoMatch: autoMatchResult?.success
+        ? {
+            // Si se creó un auto-match, incluir información completa
+            created: true,
+            match: autoMatchResult.match, // Datos del match creado
+            trigger_info: autoMatchResult.trigger_info, // Info sobre qué libros causaron el match
+          }
+        : {
+            // Si no se creó auto-match, indicar por qué
+            created: false,
+            reason: autoMatchResult?.message || "No aplicable",
+          },
     };
 
     // RETORNO AL FRONTEND:
     // El frontend recibe tanto la confirmación del swipe como información de auto-match
     // Si hay auto-match, el frontend puede mostrar notificación inmediata
-    return success(res, responseData, message)
+    return success(res, responseData, message);
   } catch (err) {
-    console.error("Error en recordInteraction:", err)
-    return error(res, "Error al registrar interacción", 500)
+    console.error("Error en recordInteraction:", err);
+    return error(res, "Error al registrar interacción", 500);
   }
 }
 
@@ -722,7 +811,7 @@ export async function recordInteraction(req, res) {
 // 4. Retorna estadísticas formateadas para frontend
 export async function getUserInteractionStats(req, res) {
   try {
-    const { user_id } = req.user // Usuario autenticado
+    const { user_id } = req.user; // Usuario autenticado
 
     // CONSULTA: Contar interacciones agrupadas por tipo
     // Usando GROUP BY para obtener conteos por interaction_type
@@ -730,30 +819,30 @@ export async function getUserInteractionStats(req, res) {
       where: { user_id },
       attributes: [
         "interaction_type", // Agrupar por tipo (like/dislike)
-        [fn("COUNT", col("interaction_type")), "count"] // Contar ocurrencias
+        [fn("COUNT", col("interaction_type")), "count"], // Contar ocurrencias
       ],
       group: ["interaction_type"], // Agrupar por tipo de interacción
       raw: true, // Retornar objetos planos
-    })
+    });
 
     // FORMATEO: Estructurar datos para frontend
     const formattedStats = {
       likes: 0,
       dislikes: 0,
       total: 0,
-    }
+    };
 
     // Procesar resultados y sumar totales
     stats.forEach((stat) => {
-      const count = Number.parseInt(stat.count)
-      formattedStats[stat.interaction_type + "s"] = count // likes o dislikes
-      formattedStats.total += count // Sumar al total
-    })
+      const count = Number.parseInt(stat.count);
+      formattedStats[stat.interaction_type + "s"] = count; // likes o dislikes
+      formattedStats.total += count; // Sumar al total
+    });
 
-    return success(res, formattedStats, "Estadísticas obtenidas correctamente")
+    return success(res, formattedStats, "Estadísticas obtenidas correctamente");
   } catch (err) {
-    console.error("Error en getUserInteractionStats:", err)
-    return error(res, "Error al obtener estadísticas", 500)
+    console.error("Error en getUserInteractionStats:", err);
+    return error(res, "Error al obtener estadísticas", 500);
   }
 }
 
@@ -765,68 +854,75 @@ export async function getUserInteractionStats(req, res) {
 // 4. Retorna datos paginados + estadísticas globales
 export async function getUserSwipeHistory(req, res) {
   try {
-    const { user_id } = req.user // Usuario autenticado
-    const { page = 1, limit = 20, interaction_type } = req.query // Parámetros de consulta
+    const { user_id } = req.user; // Usuario autenticado
+    const { page = 1, limit = 20, interaction_type } = req.query; // Parámetros de consulta
 
     // CÁLCULO DE PAGINACIÓN
-    const offset = (page - 1) * limit // Saltar registros de páginas anteriores
-    const whereConditions = { user_id } // Condición base
+    const offset = (page - 1) * limit; // Saltar registros de páginas anteriores
+    const whereConditions = { user_id }; // Condición base
 
     // FILTRO OPCIONAL: por tipo de interacción
     if (interaction_type && ["like", "dislike"].includes(interaction_type)) {
-      whereConditions.interaction_type = interaction_type
+      whereConditions.interaction_type = interaction_type;
     }
 
     // CONSULTA PRINCIPAL: Obtener interacciones con información completa
     // Usa findAndCountAll para obtener datos + total count para paginación
-    const { count, rows: interactions } = await UserPublishedBookInteraction.findAndCountAll({
-      where: whereConditions,
-      include: [
-        {
-          // Incluir datos completos del libro publicado
-          model: PublishedBooks,
-          as: "PublishedBook",
-          include: [
-            {
-              // Información básica del libro
-              model: Book,
-              include: [
-                {
-                  // Categorías del libro
-                  model: Category,
-                  as: "Categories",
-                  through: { attributes: [] }, // Excluir atributos de tabla intermedia
-                },
-              ],
-            },
-            {
-              // Propietario del libro
-              model: User,
-              attributes: ["user_id", "first_name", "last_name", "username", "email"],
-            },
-            {
-              // Tipo de transacción
-              model: TransactionType,
-            },
-            {
-              // Estado del libro
-              model: BookCondition,
-            },
-            {
-              // Ubicación
-              model: LocationBook,
-            },
-            {
-              // Imágenes del libro
-              model: PublishedBookImage,
-            },
-          ],
-        },
-      ],
-      order: [["created_at", "DESC"]], // Más recientes primero
-      limit: Number.parseInt(limit), // Límite de resultados
-      offset: Number.parseInt(offset), // Offset para paginación
-    })
+    const { count, rows: interactions } =
+      await UserPublishedBookInteraction.findAndCountAll({
+        where: whereConditions,
+        include: [
+          {
+            // Incluir datos completos del libro publicado
+            model: PublishedBooks,
+            as: "PublishedBook",
+            include: [
+              {
+                // Información básica del libro
+                model: Book,
+                include: [
+                  {
+                    // Categorías del libro
+                    model: Category,
+                    as: "Categories",
+                    through: { attributes: [] }, // Excluir atributos de tabla intermedia
+                  },
+                ],
+              },
+              {
+                // Propietario del libro
+                model: User,
+                attributes: [
+                  "user_id",
+                  "first_name",
+                  "last_name",
+                  "username",
+                  "email",
+                ],
+              },
+              {
+                // Tipo de transacción
+                model: TransactionType,
+              },
+              {
+                // Estado del libro
+                model: BookCondition,
+              },
+              {
+                // Ubicación
+                model: LocationBook,
+              },
+              {
+                // Imágenes del libro
+                model: PublishedBookImage,
+              },
+            ],
+          },
+        ],
+        order: [["created_at", "DESC"]], // Más recientes primero
+        limit: Number.parseInt(limit), // Límite de resultados
+        offset: Number.parseInt(offset), // Offset para paginación
+      });
 
     // CONSULTA SECUNDARIA: Obtener estadísticas globales del usuario
     // Se ejecuta por separado para no afectar la paginación
@@ -834,24 +930,24 @@ export async function getUserSwipeHistory(req, res) {
       where: { user_id }, // Todas las interacciones del usuario
       attributes: [
         "interaction_type",
-        [fn("COUNT", col("interaction_type")), "count"]
+        [fn("COUNT", col("interaction_type")), "count"],
       ],
       group: ["interaction_type"], // Agrupar por tipo
       raw: true,
-    })
+    });
 
     // FORMATEO DE ESTADÍSTICAS
     const statsFormatted = {
       likes: 0,
       dislikes: 0,
       total: 0,
-    }
+    };
 
     // Procesar estadísticas y calcular totales
     stats.forEach((stat) => {
-      statsFormatted[stat.interaction_type + "s"] = Number.parseInt(stat.count)
-      statsFormatted.total += Number.parseInt(stat.count)
-    })
+      statsFormatted[stat.interaction_type + "s"] = Number.parseInt(stat.count);
+      statsFormatted.total += Number.parseInt(stat.count);
+    });
 
     // RESPUESTA ESTRUCTURADA para frontend
     // Incluye datos paginados + estadísticas + metadata de paginación
@@ -868,26 +964,26 @@ export async function getUserSwipeHistory(req, res) {
           hasMore: offset + limit < count, // Si hay más páginas
         },
       },
-      `${count} interacciones encontradas`,
-    )
+      `${count} interacciones encontradas`
+    );
   } catch (err) {
-    console.error("Error en getUserSwipeHistory:", err)
-    return error(res, "Error al obtener historial de interacciones", 500)
+    console.error("Error en getUserSwipeHistory:", err);
+    return error(res, "Error al obtener historial de interacciones", 500);
   }
 }
 
 // Actualizar una interacción existente
 export async function updateSwipeInteraction(req, res) {
   try {
-    const { user_id } = req.user
-    const { id } = req.params
-    const { interaction_type } = req.body
+    const { user_id } = req.user;
+    const { id } = req.params;
+    const { interaction_type } = req.body;
 
-    console.log(`🔄 Actualizando interacción ${id} para usuario ${user_id}`)
+    console.log(`🔄 Actualizando interacción ${id} para usuario ${user_id}`);
 
     // Validar tipo de interacción
     if (!["like", "dislike"].includes(interaction_type)) {
-      return error(res, "interaction_type debe ser: like o dislike", 400)
+      return error(res, "interaction_type debe ser: like o dislike", 400);
     }
 
     // Buscar la interacción
@@ -896,32 +992,32 @@ export async function updateSwipeInteraction(req, res) {
         interaction_id: id,
         user_id,
       },
-    })
+    });
 
     if (!interaction) {
-      return error(res, "Interacción no encontrada", 404)
+      return error(res, "Interacción no encontrada", 404);
     }
 
     // Actualizar la interacción
-    interaction.interaction_type = interaction_type
-    await interaction.save()
+    interaction.interaction_type = interaction_type;
+    await interaction.save();
 
-    console.log(`✅ Interacción actualizada: ${interaction.interaction_id}`)
+    console.log(`✅ Interacción actualizada: ${interaction.interaction_id}`);
 
-    return success(res, interaction, "Interacción actualizada correctamente")
+    return success(res, interaction, "Interacción actualizada correctamente");
   } catch (err) {
-    console.error("Error en updateSwipeInteraction:", err)
-    return error(res, "Error al actualizar interacción", 500)
+    console.error("Error en updateSwipeInteraction:", err);
+    return error(res, "Error al actualizar interacción", 500);
   }
 }
 
 // Eliminar una interacción
 export async function deleteSwipeInteraction(req, res) {
   try {
-    const { user_id } = req.user
-    const { id } = req.params
+    const { user_id } = req.user;
+    const { id } = req.params;
 
-    console.log(`🗑️ Eliminando interacción ${id} para usuario ${user_id}`)
+    console.log(`🗑️ Eliminando interacción ${id} para usuario ${user_id}`);
 
     // Buscar la interacción
     const interaction = await UserPublishedBookInteraction.findOne({
@@ -929,21 +1025,21 @@ export async function deleteSwipeInteraction(req, res) {
         interaction_id: id,
         user_id,
       },
-    })
+    });
 
     if (!interaction) {
-      return error(res, "Interacción no encontrada", 404)
+      return error(res, "Interacción no encontrada", 404);
     }
 
     // Eliminar la interacción
-    await interaction.destroy()
+    await interaction.destroy();
 
-    console.log(`✅ Interacción eliminada: ${id}`)
+    console.log(`✅ Interacción eliminada: ${id}`);
 
-    return success(res, null, "Interacción eliminada correctamente")
+    return success(res, null, "Interacción eliminada correctamente");
   } catch (err) {
-    console.error("Error en deleteSwipeInteraction:", err)
-    return error(res, "Error al eliminar interacción", 500)
+    console.error("Error en deleteSwipeInteraction:", err);
+    return error(res, "Error al eliminar interacción", 500);
   }
 }
 
@@ -952,50 +1048,60 @@ export async function deleteSwipeInteraction(req, res) {
 // Obtener estadísticas de auto-matches del usuario
 export async function getUserAutoMatchStats(req, res) {
   try {
-    const { user_id } = req.user
+    const { user_id } = req.user;
 
-    console.log(`📊 Obteniendo estadísticas de auto-matches para usuario: ${user_id}`)
+    console.log(
+      `📊 Obteniendo estadísticas de auto-matches para usuario: ${user_id}`
+    );
 
-    const stats = await getAutoMatchStats(user_id)
+    const stats = await getAutoMatchStats(user_id);
 
-    return success(res, stats, "Estadísticas de auto-matches obtenidas correctamente")
+    return success(
+      res,
+      stats,
+      "Estadísticas de auto-matches obtenidas correctamente"
+    );
   } catch (err) {
-    console.error("Error en getUserAutoMatchStats:", err)
-    return error(res, "Error al obtener estadísticas de auto-matches", 500)
+    console.error("Error en getUserAutoMatchStats:", err);
+    return error(res, "Error al obtener estadísticas de auto-matches", 500);
   }
 }
 
 // Obtener todos los auto-matches del usuario
 export async function getUserAutoMatchesList(req, res) {
   try {
-    const { user_id } = req.user
+    const { user_id } = req.user;
 
-    console.log(`🤖 Obteniendo auto-matches para usuario: ${user_id}`)
+    console.log(`🤖 Obteniendo auto-matches para usuario: ${user_id}`);
 
-    const autoMatches = await getUserAutoMatches(user_id)
+    const autoMatches = await getUserAutoMatches(user_id);
 
-    return success(res, autoMatches, `${autoMatches.length} auto-matches encontrados`)
+    return success(
+      res,
+      autoMatches,
+      `${autoMatches.length} auto-matches encontrados`
+    );
   } catch (err) {
-    console.error("Error en getUserAutoMatchesList:", err)
-    return error(res, "Error al obtener auto-matches", 500)
+    console.error("Error en getUserAutoMatchesList:", err);
+    return error(res, "Error al obtener auto-matches", 500);
   }
 }
 
 // Búsqueda de libros publicados
 export async function searchPublishedBooks(req, res) {
   try {
-    const { q, page = 1, limit = 20 } = req.query
+    const { q, page = 1, limit = 20 } = req.query;
 
-    console.log(`🔍 Búsqueda iniciada: "${q}"`)
+    console.log(`🔍 Búsqueda iniciada: "${q}"`);
 
     if (!q || q.trim().length < 2) {
       return res.status(400).json({
         error: "El término de búsqueda debe tener al menos 2 caracteres",
-      })
+      });
     }
 
-    const searchTerm = q.trim()
-    const offset = (page - 1) * limit
+    const searchTerm = q.trim();
+    const offset = (page - 1) * limit;
 
     // Buscar primero todos los libros publicados con sus relaciones - AGREGADO PublishedBookImage
     const allBooks = await PublishedBooks.findAll({
@@ -1012,7 +1118,14 @@ export async function searchPublishedBooks(req, res) {
         },
         {
           model: User,
-          attributes: ["user_id", "first_name", "last_name", "username", "location_id", "profile_image_base64"],
+          attributes: [
+            "user_id",
+            "first_name",
+            "last_name",
+            "username",
+            "location_id",
+            "profile_image_base64",
+          ],
           include: [
             {
               model: LocationBook,
@@ -1037,20 +1150,20 @@ export async function searchPublishedBooks(req, res) {
           required: false,
         },
       ],
-    })
+    });
 
     // Filtrar en JavaScript para evitar problemas de SQL
     const searchResults = allBooks.filter((book) => {
-      const bookTitle = book.Book?.title?.toLowerCase() || ""
-      const bookAuthor = book.Book?.author?.toLowerCase() || ""
-      const bookIsbn = book.Book?.isbn?.toLowerCase() || ""
-      const userFirstName = book.User?.first_name?.toLowerCase() || ""
-      const userLastName = book.User?.last_name?.toLowerCase() || ""
-      const userName = book.User?.username?.toLowerCase() || ""
-      const locationComuna = book.LocationBook?.comuna?.toLowerCase() || ""
-      const locationRegion = book.LocationBook?.region?.toLowerCase() || ""
+      const bookTitle = book.Book?.title?.toLowerCase() || "";
+      const bookAuthor = book.Book?.author?.toLowerCase() || "";
+      const bookIsbn = book.Book?.isbn?.toLowerCase() || "";
+      const userFirstName = book.User?.first_name?.toLowerCase() || "";
+      const userLastName = book.User?.last_name?.toLowerCase() || "";
+      const userName = book.User?.username?.toLowerCase() || "";
+      const locationComuna = book.LocationBook?.comuna?.toLowerCase() || "";
+      const locationRegion = book.LocationBook?.region?.toLowerCase() || "";
 
-      const searchLower = searchTerm.toLowerCase()
+      const searchLower = searchTerm.toLowerCase();
 
       return (
         bookTitle.includes(searchLower) ||
@@ -1061,14 +1174,19 @@ export async function searchPublishedBooks(req, res) {
         userName.includes(searchLower) ||
         locationComuna.includes(searchLower) ||
         locationRegion.includes(searchLower)
-      )
-    })
+      );
+    });
 
     // Aplicar paginación
-    const totalResults = searchResults.length
-    const paginatedResults = searchResults.slice(offset, offset + Number.parseInt(limit))
+    const totalResults = searchResults.length;
+    const paginatedResults = searchResults.slice(
+      offset,
+      offset + Number.parseInt(limit)
+    );
 
-    console.log(`✅ Búsqueda completada: ${totalResults} resultados encontrados`)
+    console.log(
+      `✅ Búsqueda completada: ${totalResults} resultados encontrados`
+    );
 
     res.json({
       searchResults: paginatedResults,
@@ -1080,12 +1198,12 @@ export async function searchPublishedBooks(req, res) {
         hasNextPage: offset + Number.parseInt(limit) < totalResults,
         hasPreviousPage: page > 1,
       },
-    })
+    });
   } catch (error) {
-    console.error("Error en searchPublishedBooks:", error)
+    console.error("Error en searchPublishedBooks:", error);
     res.status(500).json({
       error: "Error al realizar la búsqueda",
       details: error.message,
-    })
+    });
   }
 }
