@@ -1,5 +1,7 @@
 import "./config/configEnv.js";
 import express from "express";
+import https from "https";
+import fs from "fs";
 
 console.log("🚀 SERVIDOR INICIANDO...");
 console.log("🚀 PUERTO:", process.env.PORT);
@@ -56,9 +58,26 @@ async function setupServer() {
   // Error handler middleware (debe ir después de todas las rutas)
   app.use(errorHandler);
 
-  app.listen(PORT, () => {
-    console.log(`=> Servidor corriendo en puerto ${PORT}`);
-  });
+  // Configuración HTTPS
+  try {
+    const privateKey = fs.readFileSync('server-key.pem', 'utf8');
+    const certificate = fs.readFileSync('server-cert.pem', 'utf8');
+    const credentials = { key: privateKey, cert: certificate };
+
+    // Servidor HTTPS
+    https.createServer(credentials, app).listen(PORT, () => {
+      console.log(`=> Servidor HTTPS corriendo en puerto ${PORT}`);
+      console.log(`=> URL: https://146.83.198.35:${PORT}`);
+    });
+  } catch (error) {
+    console.log("⚠️ Certificados SSL no encontrados, usando HTTP:");
+    console.log("   Ejecuta: openssl req -x509 -newkey rsa:2048 -keyout server-key.pem -out server-cert.pem -days 365 -nodes");
+    
+    // Fallback a HTTP
+    app.listen(PORT, () => {
+      console.log(`=> Servidor HTTP corriendo en puerto ${PORT}`);
+    });
+  }
 }
 
 async function setupAPI() {
