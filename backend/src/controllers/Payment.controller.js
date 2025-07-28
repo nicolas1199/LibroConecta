@@ -182,12 +182,24 @@ export async function createPaymentPreference(req, res) {
       return error(res, 'Error en configuración de URLs', 500);
     }
 
-    // Preparar URLs de retorno según documentación de MercadoPago - mismo dominio que el frontend
-    // Usar URLs más simples sin parámetros complejos para evitar problemas de validación
-    const successUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=success`;
-    const failureUrl = `${FRONTEND_URL}/payment/failure?external_reference=${externalReference}&status=failure`; 
-    const pendingUrl = `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=pending`;
+    // Preparar URLs de retorno según documentación de MercadoPago
+    // Usar external_reference en la URL path en lugar de query parameters
+    const successUrl = `${FRONTEND_URL}/payment/success?ref=${externalReference}`;
+    const failureUrl = `${FRONTEND_URL}/payment/failure?ref=${externalReference}`; 
+    const pendingUrl = `${FRONTEND_URL}/payment/pending?ref=${externalReference}`;
     const notificationUrl = `${BACKEND_URL}/api/payments/webhook`;
+    
+    // Verificar que las URLs no estén corruptas
+    const urlsAreValid = [successUrl, failureUrl, pendingUrl, notificationUrl].every(url => 
+      url && !url.includes('undefined') && url.startsWith('http')
+    );
+    
+    if (!urlsAreValid) {
+      console.error('❌ Una o más URLs están mal formadas:', {
+        successUrl, failureUrl, pendingUrl, notificationUrl
+      });
+      return error(res, 'Error en configuración de URLs', 500);
+    }
 
     console.log('🔗 URLs configuradas:', {
       success: successUrl,
@@ -315,6 +327,13 @@ export async function createPaymentPreference(req, res) {
     console.log('back_urls.success existe?', !!preferenceData.back_urls.success);
     console.log('back_urls.success valor:', preferenceData.back_urls.success);
     console.log('auto_return valor:', preferenceData.auto_return);
+    
+    // Verificar que las URLs no contengan caracteres problemáticos
+    console.log('🔍 VERIFICANDO URLs:');
+    console.log('successUrl length:', successUrl.length);
+    console.log('successUrl contiene espacios?', successUrl.includes(' '));
+    console.log('successUrl contiene undefined?', successUrl.includes('undefined'));
+    console.log('successUrl encoded:', encodeURI(successUrl));
 
     // Log específico para las URLs de retorno
     console.log('🔗 URLs de retorno en preferenceData:', {
@@ -766,6 +785,50 @@ export async function checkPaymentRedirect(req, res) {
     return error(res, 'Error verificando estado del pago', 500);
   }
 }
+
+/**
+ * Obtener pago por external_reference
+ */
+export async function getPaymentByReference(req, res) {
+  try {
+    const { externalReference } = req.params;
+    
+    const payment = await Payment.findOne({
+      where: { mp_external_reference: externalReference },
+      include: [
+        {
+          model: PublishedBooks,
+          include: [
+            {
+              model: Book,
+              attributes: ['title', 'author']
+            }
+          ]
+        },
+        {
+          model: User,
+          as: 'Buyer',
+          attributes: ['user_id', 'first_name', 'last_name', 'email']
+        },
+        {
+          model: User,
+          as: 'Seller',
+          attributes: ['user_id', 'first_name', 'last_name', 'email']
+        }
+      ]
+    });
+
+    if (!payment) {
+      return error(res, 'Pago no encontrado', 404);
+    }
+
+    return success(res, payment, 'Pago encontrado');
+  } catch (err) {
+    console.error('Error obteniendo pago por referencia:', err);
+    return error(res, 'Error interno del servidor', 500);
+  }
+}
+
 export async function getPaymentStatus(req, res) {
   try {
     const { paymentId } = req.params;
