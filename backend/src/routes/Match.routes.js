@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   getMatches,
   getSuggestedMatches,
+  getMatchById,
   createMatch,
   deleteMatch,
 } from "../controllers/Match.controller.js";
@@ -22,6 +23,9 @@ router.get("/", getMatches);
 
 // GET /api/matches/suggested - Obtener matches sugeridos
 router.get("/suggested", getSuggestedMatches);
+
+// GET /api/matches/:match_id - Obtener información de un match específico  
+router.get("/:match_id", validateMatchParams, getMatchById);
 
 // POST /api/matches - Crear un nuevo match
 router.post("/", validateMatchCreation, createMatch);

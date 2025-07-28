@@ -332,6 +332,69 @@ export const createMatch = async (req, res) => {
   }
 };
 
+export const getMatchById = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+    const { match_id } = req.params;
+
+    // Buscar el match y verificar que el usuario tiene acceso
+    const match = await Match.findOne({
+      where: {
+        match_id,
+        [Op.or]: [{ user_id_1: user_id }, { user_id_2: user_id }],
+      },
+      include: [
+        {
+          model: User,
+          as: "User1",
+          attributes: ["user_id", "first_name", "last_name", "username"],
+        },
+        {
+          model: User,
+          as: "User2", 
+          attributes: ["user_id", "first_name", "last_name", "username"],
+        },
+      ],
+    });
+
+    if (!match) {
+      return res
+        .status(404)
+        .json(createResponse(404, "Match no encontrado", null, null));
+    }
+
+    // Formatear la respuesta
+    const matchData = {
+      match_id: match.match_id,
+      date_match: match.date_match,
+      match_type: match.match_type,
+      users: [
+        {
+          user_id: match.User1.user_id,
+          first_name: match.User1.first_name,
+          last_name: match.User1.last_name,
+          username: match.User1.username,
+        },
+        {
+          user_id: match.User2.user_id,
+          first_name: match.User2.first_name,
+          last_name: match.User2.last_name,
+          username: match.User2.username,
+        },
+      ],
+    };
+
+    return res.json(
+      createResponse(200, "Match obtenido exitosamente", matchData, null)
+    );
+  } catch (error) {
+    console.error("Error al obtener match:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Error interno del servidor", null, error.message));
+  }
+};
+
 export const deleteMatch = async (req, res) => {
   try {
     const { user_id } = req.user;

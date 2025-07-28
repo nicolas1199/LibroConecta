@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { getUserProfileById, getUserProfile } from "../api/auth"
+import { getUserRatings } from "../api/ratings"
 import ArrowLeft from "../components/icons/ArrowLeft"
 import Edit from "../components/icons/Edit"
 import MapPin from "../components/icons/MapPin"
 import Users from "../components/icons/Users"
 import BookOpen from "../components/icons/BookOpen"
 import MessageCircle from "../components/icons/MessageCircle"
+import Star from "../components/icons/Star"
 import ProfileImage from "../components/ProfileImage"
 
 export default function UserProfile() {
@@ -18,6 +20,36 @@ export default function UserProfile() {
   const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isOwnProfile, setIsOwnProfile] = useState(true)
+  const [ratings, setRatings] = useState([])
+  const [ratingsLoading, setRatingsLoading] = useState(false)
+  const [averageRating, setAverageRating] = useState(0)
+  const [totalRatings, setTotalRatings] = useState(0)
+
+  const loadUserRatings = async (targetUserId) => {
+    try {
+      setRatingsLoading(true)
+      const response = await getUserRatings(targetUserId, { type: 'received', limit: 20 })
+      const userRatings = response.data || []
+      
+      setRatings(userRatings)
+      setTotalRatings(userRatings.length)
+      
+      // Calcular promedio de calificaciones
+      if (userRatings.length > 0) {
+        const average = userRatings.reduce((sum, rating) => sum + rating.rating, 0) / userRatings.length
+        setAverageRating(Math.round(average * 10) / 10) // Redondear a 1 decimal
+      } else {
+        setAverageRating(0)
+      }
+    } catch (error) {
+      console.error("Error loading user ratings:", error)
+      setRatings([])
+      setAverageRating(0)
+      setTotalRatings(0)
+    } finally {
+      setRatingsLoading(false)
+    }
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -71,6 +103,9 @@ export default function UserProfile() {
             
             setUser(profileUser)
             console.log("✅ Usuario establecido en estado:", profileUser)
+            
+            // Cargar calificaciones del usuario
+            loadUserRatings(profileUser.user_id)
           } catch (parseError) {
             console.error("❌ Error parseando datos del usuario:", parseError)
             setUser(null)
@@ -96,6 +131,21 @@ export default function UserProfile() {
     const firstName = user.first_name || ""
     const lastName = user.last_name || ""
     return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "U"
+  }
+
+  const renderStars = (rating) => {
+    return (
+      <div className="flex space-x-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-4 w-4 ${
+              star <= rating ? "text-yellow-400 fill-current" : "text-gray-300"
+            }`}
+          />
+        ))}
+      </div>
+    )
   }
 
   // Función helper para formatear la ubicación de manera segura
@@ -309,8 +359,107 @@ export default function UserProfile() {
                     </div>
                     <span className="font-semibold text-gray-900">0</span>
                   </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <span className="text-gray-600">Calificación</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <span className="font-semibold text-gray-900">
+                        {averageRating > 0 ? averageRating.toFixed(1) : "-"}
+                      </span>
+                      {averageRating > 0 && (
+                        <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Star className="h-4 w-4 text-orange-500" />
+                      <span className="text-gray-600">Reseñas</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{totalRatings}</span>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Sección de Calificaciones */}
+          <div className="mt-8">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Calificaciones Recibidas
+                </h2>
+                
+                {totalRatings > 0 && (
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-1">
+                      {renderStars(Math.round(averageRating))}
+                      <span className="ml-2 text-sm text-gray-600">
+                        {averageRating.toFixed(1)} ({totalRatings} reseña{totalRatings !== 1 ? 's' : ''})
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {ratingsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : ratings.length > 0 ? (
+                <div className="space-y-4">
+                  {ratings.map((rating) => (
+                    <div key={rating.rating_id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <ProfileImage
+                            user={rating.Rater}
+                            size="sm"
+                            className="flex-shrink-0"
+                          />
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              {rating.Rater.first_name} {rating.Rater.last_name}
+                            </h4>
+                            <div className="flex items-center space-x-2 mt-1">
+                              {renderStars(rating.rating)}
+                              <span className="text-sm text-gray-500">
+                                {new Date(rating.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {rating.comment && (
+                        <div className="mt-3">
+                          <p className="text-gray-700 text-sm bg-gray-50 p-3 rounded-lg">
+                            "{rating.comment}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Sin calificaciones aún
+                  </h3>
+                  <p className="text-gray-600">
+                    {isOwnProfile 
+                      ? "Aún no has recibido calificaciones." 
+                      : "Este usuario aún no ha recibido calificaciones."
+                    }
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

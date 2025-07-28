@@ -165,8 +165,9 @@ export default function EnhancedMessages() {
       await completeExchange(selectedConversation.match_id);
       await loadExchangeInfo(selectedConversation.match_id);
       setError(null);
-      // Mostrar mensaje de éxito
-      alert("¡Intercambio completado! Ahora puedes calificar al otro usuario.");
+      
+      // Redireccionar automáticamente a la página de calificaciones
+      navigate(`/dashboard/ratings?review_user=${selectedConversation.other_user.user_id}&match_id=${selectedConversation.match_id}`);
     } catch (error) {
       console.error("Error completing exchange:", error);
       setError("Error al completar el intercambio");
@@ -374,21 +375,29 @@ export default function EnhancedMessages() {
             {exchangeInfo && (
               <div className="flex items-center space-x-2">
                 {!exchangeInfo.is_completed ? (
-                  <button
-                    onClick={handleCompleteExchange}
-                    className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center space-x-1"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Completar Intercambio</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={handleCompleteExchange}
+                      className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center space-x-1"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Completar Intercambio</span>
+                    </button>
+                  </>
                 ) : (
-                  <button
-                    onClick={handleGoToRating}
-                    className="bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-yellow-700 transition-colors flex items-center space-x-1"
-                  >
-                    <Star className="h-4 w-4" />
-                    <span>Calificar</span>
-                  </button>
+                  <>
+                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-lg text-sm flex items-center space-x-1">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Intercambio Completado</span>
+                    </div>
+                    <button
+                      onClick={handleGoToRating}
+                      className="bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-yellow-700 transition-colors flex items-center space-x-1"
+                    >
+                      <Star className="h-4 w-4" />
+                      <span>Calificar</span>
+                    </button>
+                  </>
                 )}
               </div>
             )}

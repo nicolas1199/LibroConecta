@@ -7,6 +7,7 @@ import {
   updateRating, 
   deleteRating 
 } from "../api/ratings";
+import { getMatchInfo } from "../api/matches";
 import Star from "../components/icons/Star";
 import Clock from "../components/icons/Clock";
 import Users from "../components/icons/Users";
@@ -35,37 +36,54 @@ export default function Ratings() {
 
   useEffect(() => {
     loadData();
-    
-    // Si viene de un chat, abrir directamente el modal de calificación
-    if (reviewUserId && matchId) {
-      // Buscar la calificación pendiente correspondiente
-      setTimeout(() => {
-        const pendingForUser = pendingRatings.find(p => 
-          p.other_user_id === reviewUserId || 
-          (p.match_id && p.match_id.toString() === matchId)
-        );
-        
-        if (pendingForUser) {
-          handleOpenRatingModal(pendingForUser);
-        } else {
-          // Crear una calificación pendiente artificial para el intercambio
-          const artificialPending = {
-            other_user_id: reviewUserId,
-            match_id: parseInt(matchId),
-            transaction_type: 'exchange',
-            other_user_first_name: 'Usuario',
-            other_user_last_name: '',
-            transaction_date: new Date().toISOString(),
-          };
-          handleOpenRatingModal(artificialPending);
-        }
-      }, 1000); // Esperar a que carguen los datos
-    }
-  }, [reviewUserId, matchId]);
-
-  useEffect(() => {
-    loadData();
   }, []);
+
+  // Separar el useEffect para la redirección automática
+  useEffect(() => {
+    // Si viene de un chat, abrir directamente el modal de calificación
+    if (reviewUserId && matchId && pendingRatings.length > 0 && !showRatingModal) {
+      // Buscar la calificación pendiente correspondiente
+      const pendingForUser = pendingRatings.find(p => 
+        p.other_user_id === reviewUserId && p.match_id && p.match_id.toString() === matchId
+      );
+      
+      if (pendingForUser) {
+        handleOpenRatingModal(pendingForUser);
+      } else {
+        // Obtener información del match para mostrar el nombre correcto
+        const fetchMatchInfo = async () => {
+          try {
+            const matchInfo = await getMatchInfo(matchId);
+            const otherUser = matchInfo.data.users.find(u => u.user_id === reviewUserId);
+            
+            const artificialPending = {
+              other_user_id: reviewUserId,
+              match_id: parseInt(matchId),
+              transaction_type: 'match',
+              other_user_first_name: otherUser?.first_name || 'Usuario',
+              other_user_last_name: otherUser?.last_name || '',
+              transaction_date: new Date().toISOString(),
+            };
+            handleOpenRatingModal(artificialPending);
+          } catch (error) {
+            console.error("Error obteniendo info del match:", error);
+            // Fallback con datos básicos
+            const artificialPending = {
+              other_user_id: reviewUserId,
+              match_id: parseInt(matchId),
+              transaction_type: 'match',
+              other_user_first_name: 'Usuario',
+              other_user_last_name: '',
+              transaction_date: new Date().toISOString(),
+            };
+            handleOpenRatingModal(artificialPending);
+          }
+        };
+        
+        fetchMatchInfo();
+      }
+    }
+  }, [reviewUserId, matchId, pendingRatings, showRatingModal]);
 
   const loadData = async () => {
     try {
@@ -139,11 +157,11 @@ export default function Ratings() {
         comment: ratingForm.comment,
       };
 
-      if (selectedPending.transaction_type === "exchange") {
+      if (selectedPending.transaction_type === "exchange" && selectedPending.exchange_id) {
         ratingData.exchange_id = selectedPending.exchange_id;
-      } else if (selectedPending.transaction_type === "match") {
+      } else if (selectedPending.transaction_type === "match" || selectedPending.match_id) {
         ratingData.match_id = selectedPending.match_id;
-      } else if (selectedPending.transaction_type === "sell") {
+      } else if (selectedPending.transaction_type === "sell" && selectedPending.sell_id) {
         ratingData.sell_id = selectedPending.sell_id;
       }
 

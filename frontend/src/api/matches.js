@@ -11,6 +11,17 @@ export const getMatches = async (params = {}) => {
   }
 };
 
+// Obtener información de un match específico
+export const getMatchInfo = async (matchId) => {
+  try {
+    const response = await api.get(`/matches/${matchId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener información del match:", error);
+    throw error;
+  }
+};
+
 // Obtener matches sugeridos
 export const getSuggestedMatches = async (params = {}) => {
   try {
