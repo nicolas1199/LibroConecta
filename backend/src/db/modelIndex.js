@@ -24,7 +24,6 @@ import Payment from "./models/Payment.js";
 import Transaction from "./models/Transaction.js";
 import MatchBooks from "./models/MatchBooks.js";
 import ChatRequest from "./models/ChatRequest.js";
-import Drafts from "./models/Drafts.js";
 
 // Configurar relaciones una sola vez
 setupRelations({
@@ -51,7 +50,6 @@ setupRelations({
   Transaction,
   MatchBooks,
   ChatRequest,
-  Drafts,
 });
 
 // Exportar todos los modelos + conexión
@@ -79,6 +77,5 @@ export {
   Transaction,
   MatchBooks,
   ChatRequest,
-  Drafts,
   sequelize,
 };
