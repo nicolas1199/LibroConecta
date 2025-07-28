@@ -17,7 +17,6 @@ import Messages from "../pages/Messages";
 import EnhancedMessages from "../pages/EnhancedMessages";
 import Ratings from "../pages/Ratings";
 import ReviewsPage from "../pages/ReviewsPage";
-import Favorites from "../pages/Favorites";
 import Wishlist from "../pages/Wishlist";
 
 import History from "../pages/History";
@@ -230,18 +229,6 @@ export default function AppRouter() {
           element={
             <PrivateRoute>
               <ReviewsPage />
-            </PrivateRoute>
-          }
-        />
-
-        {/* Favorites routes */}
-        <Route
-          path="/dashboard/favorites"
-          element={
-            <PrivateRoute>
-              <DashboardLayout>
-                <Favorites />
-              </DashboardLayout>
             </PrivateRoute>
           }
         />
