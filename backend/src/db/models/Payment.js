@@ -117,6 +117,87 @@ const Payment = sequelize.define(
       allowNull: true,
       comment: "URL de pendiente",
     },
+    // 🆕 Información adicional del pago desde MercadoPago
+    payment_type: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "Tipo de pago (credit_card, debit_card, bank_transfer, etc.)",
+    },
+    installments: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
+      allowNull: true,
+      comment: "Número de cuotas del pago",
+    },
+    issuer_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "ID del emisor de la tarjeta",
+    },
+    transaction_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "Monto de la transacción desde MercadoPago",
+    },
+    net_received_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "Monto neto recibido después de comisiones",
+    },
+    total_paid_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "Monto total pagado por el comprador",
+    },
+    
+    // Información del pagador
+    payer_email: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "Email del pagador desde MercadoPago",
+    },
+    payer_identification_type: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "Tipo de identificación del pagador",
+    },
+    payer_identification_number: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "Número de identificación del pagador",
+    },
+    
+    // Información de la tarjeta (si aplica)
+    card_last_four_digits: {
+      type: DataTypes.STRING(4),
+      allowNull: true,
+      comment: "Últimos 4 dígitos de la tarjeta",
+    },
+    card_first_six_digits: {
+      type: DataTypes.STRING(6),
+      allowNull: true,
+      comment: "Primeros 6 dígitos de la tarjeta",
+    },
+    
+    // Timestamps de MercadoPago
+    date_created: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: "Fecha de creación en MercadoPago",
+    },
+    date_last_updated: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: "Fecha de última actualización en MercadoPago",
+    },
+    
+    // Detalles de la transacción (JSON)
+    transaction_details: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: "Detalles de la transacción en formato JSON",
+    },
+
     // Timestamps automáticos
     payment_date: {
       type: DataTypes.DATE,

@@ -11,10 +11,37 @@ export default function PaymentButton({
   disabled = false,
   onPaymentStart,
   onPaymentSuccess,
-  onPaymentError 
+  onPaymentError,
+  usePopup = true // 🆕 Nueva opción para usar popup
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentWindow, setPaymentWindow] = useState(null);
+
+  // 🆕 Función para manejar el popup de pago
+  const openPaymentPopup = (url, externalReference) => {
+    const popup = window.open(
+      url,
+      'mercadopago_payment',
+      'width=800,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no'
+    );
+    
+    setPaymentWindow(popup);
+    
+    // Monitorear el popup
+    const checkPopup = setInterval(() => {
+      if (popup.closed) {
+        console.log('🪟 Popup cerrado, verificando estado del pago...');
+        clearInterval(checkPopup);
+        setPaymentWindow(null);
+        
+        // Redirigir a la página de procesamiento para verificar el pago
+        window.location.href = `/payment/processing?external_reference=${externalReference}&source=popup`;
+      }
+    }, 1000);
+    
+    return popup;
+  };
 
   const handlePayment = async () => {
     if (isLoading || isProcessing || disabled) return;
@@ -26,6 +53,7 @@ export default function PaymentButton({
       console.log('🛒 Iniciando proceso de pago para libro:', publishedBookId);
       console.log('🔧 URL API configurada:', import.meta.env.VITE_API_URL);
       console.log('🔑 Public Key configurada:', import.meta.env.VITE_MP_PUBLIC_KEY);
+      console.log('🪟 Modo popup:', usePopup);
 
       // Crear preferencia de pago
       const response = await createPaymentPreference(publishedBookId);
@@ -36,10 +64,22 @@ export default function PaymentButton({
       console.log('✅ Preferencia creada:', preference.preference_id);
       console.log('✅ Init point:', preference.init_point);
 
-      // Redirigir directamente a MercadoPago
       if (preference.init_point) {
-        console.log('🚀 Redirigiendo a:', preference.init_point);
-        window.location.href = preference.init_point;
+        if (usePopup) {
+          // 🆕 Abrir en popup
+          console.log('🪟 Abriendo pago en popup:', preference.init_point);
+          
+          // Extraer external_reference del preference (generado en el backend)
+          const externalRef = preference.book_info?.external_reference || 
+                             `LIBRO_${publishedBookId}_${Date.now()}`;
+          
+          openPaymentPopup(preference.init_point, externalRef);
+          setIsProcessing(true); // Mantener botón en estado "procesando"
+        } else {
+          // Redirección tradicional
+          console.log('🚀 Redirigiendo a:', preference.init_point);
+          window.location.href = preference.init_point;
+        }
       } else {
         console.error('❌ No hay init_point en la preferencia:', preference);
         throw new Error('No se pudo obtener el link de pago');
@@ -70,9 +110,23 @@ export default function PaymentButton({
       onPaymentError?.(errorMessage);
       alert(`Error: ${errorMessage}`);
     } finally {
-      setIsLoading(false);
-      setIsProcessing(false);
+      if (!usePopup) {
+        setIsLoading(false);
+        setIsProcessing(false);
+      } else {
+        setIsLoading(false);
+        // No resetear isProcessing si es popup - se mantiene hasta que se cierre
+      }
     }
+  };
+
+  // 🆕 Cleanup al desmontar componente
+  const handleClosePayment = () => {
+    if (paymentWindow && !paymentWindow.closed) {
+      paymentWindow.close();
+    }
+    setPaymentWindow(null);
+    setIsProcessing(false);
   };
 
   return (
@@ -106,6 +160,16 @@ export default function PaymentButton({
           </>
         )}
       </button>
+
+      {/* 🆕 Botón para cancelar pago en popup */}
+      {usePopup && isProcessing && paymentWindow && (
+        <button
+          onClick={handleClosePayment}
+          className="mt-2 text-sm text-gray-600 hover:text-gray-800 underline"
+        >
+          Cancelar pago
+        </button>
+      )}
 
       {/* Contenedor para el checkout (si se usa modo embebido) */}
       <div className="cho-container hidden"></div>

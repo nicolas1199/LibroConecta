@@ -179,7 +179,7 @@ export async function createPaymentPreference(req, res) {
     // URLs hardcodeadas exactamente como en la documentación de MercadoPago
     console.log('🔗 Configurando URLs hardcodeadas para MercadoPago');
 
-    // Preparar datos para MercadoPago - Estructura exacta según documentación oficial
+    // Preparar datos para MercadoPago - Estructura optimizada con auto_return mejorado
     const preferenceData = {
       items: [
         {
@@ -194,16 +194,37 @@ export async function createPaymentPreference(req, res) {
       external_reference: externalReference,
       notification_url: `${BACKEND_URL}/api/payments/webhook`,
       back_urls: {
-        success: `${FRONTEND_URL}/payment/success`,
-        failure: `${FRONTEND_URL}/payment/failure`,
-        pending: `${FRONTEND_URL}/payment/pending`
+        success: `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=approved`,
+        failure: `${FRONTEND_URL}/payment/failure?external_reference=${externalReference}&status=rejected`,
+        pending: `${FRONTEND_URL}/payment/processing?external_reference=${externalReference}&status=pending`
       },
-      auto_return: "approved",
+      
+      // 🆕 Configuración mejorada de auto_return
+      auto_return: "approved", // Solo auto-retorno en pagos aprobados
+      binary_mode: false, // Permite estados pending
+      
+      // 🆕 Configuraciones adicionales para mejor experiencia
+      expires: true,
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
+      
       payer: {
         name: buyerUser.first_name || buyerUser.username || 'Comprador',
         surname: buyerUser.last_name || 'LibroConecta',
         email: buyerUser.email
-      }
+      },
+      
+      // 🆕 Metadata adicional para tracking
+      metadata: {
+        published_book_id: publishedBookId,
+        buyer_id: userId,
+        seller_id: publishedBook.user_id,
+        book_title: publishedBook.Book.title,
+        integration_source: 'LibroConecta'
+      },
+      
+      // 🆕 Configuración de statement descriptor
+      statement_descriptor: 'LIBROCONECTA'
     };
 
     // Validar que las URLs estén correctamente formateadas
@@ -375,10 +396,12 @@ export async function createPaymentPreference(req, res) {
       preference_id: mpPreference.id,
       init_point: mpPreference.init_point,
       sandbox_init_point: mpPreference.sandbox_init_point,
+      external_reference: externalReference, // 🆕 Incluir external_reference
       book_info: {
         title: publishedBook.Book.title,
         author: publishedBook.Book.author,
-        price: publishedBook.price
+        price: publishedBook.price,
+        external_reference: externalReference // 🆕 También en book_info
       }
     }, 'Preferencia de pago creada exitosamente', 201);
 
@@ -476,15 +499,56 @@ export async function handlePaymentWebhook(req, res) {
  * Actualizar pago desde webhook de MercadoPago
  */
 async function updatePaymentFromWebhook(paymentRecord, mpPaymentInfo, mpPaymentId) {
-  // Actualizar información del pago
-  await paymentRecord.update({
+  // Extraer más datos del pago para información completa
+  const paymentDetails = {
     mp_payment_id: mpPaymentId.toString(),
     mp_collection_id: mpPaymentInfo.collection_id,
     mp_collection_status: mpPaymentInfo.status,
     payment_method: mpPaymentInfo.payment_method_id,
     payment_date: mpPaymentInfo.date_approved || new Date(),
-    status: mapMercadoPagoStatus(mpPaymentInfo.status)
+    status: mapMercadoPagoStatus(mpPaymentInfo.status),
+    
+    // 🆕 Extraer datos adicionales del pago
+    payment_type: mpPaymentInfo.payment_type_id,
+    installments: mpPaymentInfo.installments || 1,
+    issuer_id: mpPaymentInfo.issuer_id,
+    transaction_amount: mpPaymentInfo.transaction_amount,
+    net_received_amount: mpPaymentInfo.net_received_amount,
+    total_paid_amount: mpPaymentInfo.total_paid_amount,
+    
+    // Información del pagador
+    payer_email: mpPaymentInfo.payer?.email,
+    payer_identification_type: mpPaymentInfo.payer?.identification?.type,
+    payer_identification_number: mpPaymentInfo.payer?.identification?.number,
+    
+    // Información de la tarjeta (si aplica)
+    card_last_four_digits: mpPaymentInfo.card?.last_four_digits,
+    card_first_six_digits: mpPaymentInfo.card?.first_six_digits,
+    
+    // Timestamps importantes
+    date_created: mpPaymentInfo.date_created,
+    date_last_updated: mpPaymentInfo.date_last_updated,
+    
+    // Fees y costos
+    transaction_details: JSON.stringify({
+      financial_institution: mpPaymentInfo.transaction_details?.financial_institution,
+      net_received_amount: mpPaymentInfo.transaction_details?.net_received_amount,
+      total_paid_amount: mpPaymentInfo.transaction_details?.total_paid_amount,
+      installment_amount: mpPaymentInfo.transaction_details?.installment_amount,
+      overpaid_amount: mpPaymentInfo.transaction_details?.overpaid_amount
+    })
+  };
+
+  console.log('💳 Actualizando pago con datos completos:', {
+    payment_id: paymentRecord.payment_id,
+    status: paymentDetails.status,
+    amount: paymentDetails.transaction_amount,
+    method: paymentDetails.payment_method,
+    installments: paymentDetails.installments
   });
+
+  // Actualizar información del pago
+  await paymentRecord.update(paymentDetails);
 
   // Si el pago fue aprobado, crear la transacción
   if (mpPaymentInfo.status === 'approved') {
